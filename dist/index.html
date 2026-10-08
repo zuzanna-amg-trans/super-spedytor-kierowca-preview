@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f7f8fa">
-  <meta name="description" content="Jasny, interaktywny projekt aplikacji Super Spedytor dla kierowcy. Dojazd, załadunek, rozładunek i dokumentacja.">
+  <meta name="theme-color" content="#f5f5f3">
+  <meta name="description" content="SuperSpedytor: nowy ekran załadunku. Pełne dane zlecenia, widoczne notatki i sześć uporządkowanych kroków kierowcy.">
   <title>Super Spedytor — tryb kierowcy</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="driver.css">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -36,49 +36,51 @@
 
   <header class="studio-header">
     <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
-    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 01</span></div>
+    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 02</span></div>
     <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
   </header>
 
   <div class="studio-layout">
     <aside class="studio-sidebar">
-      <div class="eyebrow">NOWY KIERUNEK</div>
-      <h1>Twój punkt.<br>Wszystko<br><span>pod ręką.</span></h1>
-      <p class="intro">Jasny interfejs. Czytelne informacje.<br>Jedna operacja na raz.</p>
+      <div class="eyebrow">SUPERSPEDYTOR / DRIVER</div>
+      <h1>Załadunek.<br><span>Krok po kroku.</span></h1>
+      <p class="intro">Właściwe miejsce. Właściwy towar.<br>Cała operacja na jednym ekranie.</p>
       <div class="operation-label">PODGLĄD OPERACJI</div>
-      <div class="operation-switch" role="group" aria-label="Rodzaj operacji"><button data-operation="unload" class="active">Rozładunek</button><button data-operation="load">Załadunek</button></div>
-      <label class="mobile-stage"><span>PROTOTYP</span><select id="mobile-screen" aria-label="Etap w prototypie"><option value="travel">W drodze</option><option value="arrival" selected>Po przyjeździe</option><option value="photos">Zdjęcia ładunku</option><option value="seals">Plomby QR</option><option value="cmr">Dokument CMR</option></select></label>
+      <div class="operation-switch" role="group" aria-label="Rodzaj operacji"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button></div>
+      <label class="mobile-stage"><span>PROTOTYP</span><select id="mobile-screen" aria-label="Etap w prototypie"><option value="travel">W drodze</option><option value="arrival" selected>Na miejscu</option><option value="finalization">Finalizacja</option></select></label>
       <nav class="screen-list" aria-label="Ekrany prototypu">
-        <button data-screen="travel"><span class="screen-num">01</span><span>W drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="arrival" class="active"><span class="screen-num">02</span><span>Po przyjeździe</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="photos"><span class="screen-num">03</span><span>Zdjęcia ładunku</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="seals"><span class="screen-num">04</span><span>Plomby QR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="cmr"><span class="screen-num">05</span><span>Dokument CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-screen="travel"><span class="screen-num">↗</span><span>Widok w drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-scroll="place" class="active"><span class="screen-num">01</span><span>Miejsce i zlecenie</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-scroll="count"><span class="screen-num">02</span><span>Sprawdź liczbę sztuk</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-scroll="cargo-label"><span class="screen-num">03</span><span>Oznacz i zeskanuj ładunek</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-scroll="photos"><span class="screen-num">04</span><span>Zrób dwa zdjęcia</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-scroll="cmr-label"><span class="screen-num">05</span><span>Oznacz dokument CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-screen="finalization"><span class="screen-num">06</span><span>Finalizacja i pełny skan</span><svg class="icon"><use href="#i-arrow"/></svg></button>
       </nav>
       <div class="sidebar-foot"><div class="light-mode-dot"></div><span>Tryb jasny</span><button id="reset" aria-label="Zresetuj postęp prototypu">Zresetuj podgląd</button></div>
     </aside>
 
     <main class="preview-area">
-      <div class="preview-topline"><span id="preview-label">02 / PO PRZYJEŹDZIE</span><span>360–440 dp <span class="tiny-dot">·</span> Dane przykładowe</span></div>
+      <div class="preview-topline"><span id="preview-label">ZAŁADUNEK / NA MIEJSCU</span><span>Android <span class="tiny-dot">·</span> Dane przykładowe</span></div>
       <section class="device" aria-label="Prototyp aplikacji kierowcy">
         <div class="status-bar"><span>10:42</span><div class="status-icons"><svg class="icon"><use href="#i-signal"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M1 4c4-4 11-4 15 0M4 7c2-2 7-2 9 0M7 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="battery"></span></div></div>
-        <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><button class="icon-button" id="notifications" aria-label="Powiadomienia"><svg class="icon"><use href="#i-bell"/></svg><i></i></button></header>
+        <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
         <div class="app-scroll" id="app-scroll"><div id="app"></div></div>
         <div id="app-action" class="app-action"></div>
-        <nav class="bottom-nav" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Teraz</span></button><button data-nav="route"><svg class="icon"><use href="#i-route"/></svg><span>Trasa</span></button><button data-nav="documents"><svg class="icon"><use href="#i-doc"/></svg><span>Dokumenty</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
+        <nav class="bottom-nav" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Teraz</span></button><button data-nav="route"><svg class="icon"><use href="#i-route"/></svg><span>Trasa</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
         <div class="android-home"><span></span></div>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <div id="modal-root"></div>
       </section>
-      <div class="preview-bottomline"><span class="live-dot"></span> Klikaj elementy, aby przejść przez operację</div>
+      <div class="preview-bottomline"><span class="live-dot"></span> Przewijaj ekran i wykonuj kolejne czynności</div>
     </main>
 
-    <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> Z MYŚLĄ O KIEROWCY</div><div id="design-context"></div>
-      <div class="design-palette"><div class="swatches"><span style="--swatch:#f7f8fa"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#f5ca32"></span><span style="--swatch:#252c38"></span></div><span>Biel, grafit i wyraźny akcent.</span></div>
-      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Wstępna propozycja UX. Kolejność kroków jest elastyczna. Przy rozładunku zakładamy odczyt istniejących plomb; przy załadunku — naklejenie nowych.</p></div>
+    <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> JEDEN EKRAN. SZEŚĆ KROKÓW.</div><div id="design-context"></div>
+      <div class="design-palette"><div class="swatches"><span style="--swatch:#f5f5f3"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#ff6a1a"></span><span style="--swatch:#202124"></span></div><span>Pomarańcz AMG. Jasne powierzchnie.</span></div>
+      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Dane i notatki widoczne w całości. QR ładunku, QR dokumentu i pełny skan CMR to osobne czynności. Skaner w prototypie działa demonstracyjnie.</p></div>
     </aside>
   </div>
   <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
-  <script src="app.js"></script>
+  <script src="driver.js"></script>
 </body>
 </html>
