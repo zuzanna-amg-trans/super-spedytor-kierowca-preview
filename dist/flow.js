@@ -7,10 +7,10 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&
 const has=value=>value!==null&&value!==undefined&&String(value).trim()!=='';
 const materialWord=value=>value===1?'materiał':(value%10>=2&&value%10<=4&&(value%100<12||value%100>14)?'materiały':'materiałów');
 const dispatcher={name:'Spedytor CWP',phone:'+48 000 000 000',demo:true};
-const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.company}, ${place.countryName}`)}`;
+const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.address||`${place.company}, ${place.countryName}`)}`;
 
-const pickup={company:'Cardo Roma Hotel',country:'IT',countryName:'Włochy',map:'https://maps.app.goo.gl/VHKsFNUHtNADEfki6'};
-const delivery={company:'One World Rental Europe B.V.',country:'NL',countryName:'Holandia',map:'https://maps.app.goo.gl/yeTaQnNQw4w2F6YN6'};
+const pickup={company:'Cardo Roma Hotel',address:'Viale del Pattinaggio 100, 00144 Roma RM, Włochy',country:'IT',countryName:'Włochy',map:'https://maps.app.goo.gl/VHKsFNUHtNADEfki6'};
+const delivery={company:'One World Rental Europe B.V.',address:'Brugge 14–16, 2993 LB Barendrecht, Holandia',country:'NL',countryName:'Holandia',map:'https://maps.app.goo.gl/yeTaQnNQw4w2F6YN6'};
 const assignment={
   id:'SS/26/105/H',
   pickup,
@@ -124,7 +124,7 @@ function pageHeading(travel=false){
 function placeView(){
   const place=currentPlace(),data=optional();
   const fields=[['Brama',data.gate],['Parking',data.parking],['Magazyn',data.warehouse],['Rampa',data.ramp]].filter(([,value])=>has(value));
-  return `<section class="panel place-panel"><div class="section-kicker">${icon('pin')} FIRMA ${isLoad()?'ZAŁADOWCY':'ODBIORCY'}</div><h3>${esc(place.company)}</h3>${has(place.address)?`<p class="address">${esc(place.address)}</p>`:''}<p class="location-caption">${esc(place.countryName)} · lokalizacja przekazana przez spedytora</p>${fields.length?`<div class="gate-chips optional-place-fields">${fields.map(([label,value])=>`<div class="gate-chip"><small>${label}</small><b>${esc(value)}</b></div>`).join('')}</div>`:''}</section>`;
+  return `<section class="panel place-panel"><div class="section-kicker">${icon('pin')} FIRMA ${isLoad()?'ZAŁADOWCY':'ODBIORCY'}</div><h3>${esc(place.company)}</h3>${has(place.address)?`<p class="address">${esc(place.address)}</p>`:''}${fields.length?`<div class="gate-chips optional-place-fields">${fields.map(([label,value])=>`<div class="gate-chip"><small>${label}</small><b>${esc(value)}</b></div>`).join('')}</div>`:''}</section>`;
 }
 function destinationView(){
   const place=isLoad()?assignment.delivery:assignment.pickup;
