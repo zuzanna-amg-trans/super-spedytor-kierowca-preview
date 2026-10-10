@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f3">
-  <meta name="description" content="SuperSpedytor: osobne ekrany załadunku, zdjęć, dokumentów i plomb. Automatyczna synchronizacja dokumentacji z czatem i szybki skan QR.">
+  <meta name="description" content="SuperSpedytor: każda sztuka ładunku otrzymuje plombę, QR i dwa zdjęcia, następnie plomba ostatniej strony CMR i pełny skan dokumentu.">
   <title>Super Spedytor — tryb kierowcy</title>
   <link rel="stylesheet" href="driver.css">
   <link rel="stylesheet" href="flow.css">
@@ -39,7 +39,7 @@
 
   <header class="studio-header">
     <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
-    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 04</span></div>
+    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 05</span></div>
     <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
   </header>
 
@@ -47,7 +47,7 @@
     <aside class="studio-sidebar">
       <div class="eyebrow">SUPERSPEDYTOR / DRIVER</div>
       <h1>Jedno zadanie.<br><span>Jeden ekran.</span></h1>
-      <p class="intro">Zdjęcia. Dokumenty. Plomby.<br>Przechodzisz dalej, kiedy krok jest gotowy.</p>
+      <p class="intro">Plomba. QR. Dwa zdjęcia.<br>Każda sztuka ładunku osobno.</p>
       <label class="scenario-picker"><span>PRZYKŁAD DANYCH ZLECENIA</span><select id="scenario-select"><option value="basic">Firma + kraj + pinezka</option><option value="contact">Z kontaktem i instrukcją</option><option value="materials">Z dodatkowymi zdjęciami</option></select></label>
       <div class="operation-label">PODGLĄD OPERACJI</div>
       <div class="operation-switch" role="group" aria-label="Rodzaj operacji"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button></div>
@@ -55,9 +55,9 @@
       <nav class="screen-list" aria-label="Ekrany prototypu">
         <button data-screen="travel"><span class="screen-num">↗</span><span>Widok w drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         <button data-screen="info" class="active"><span class="screen-num">00</span><span>Zlecenie i załadunek</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="photos"><span class="screen-num">01</span><span>Zdjęcia ładunku</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="documents"><span class="screen-num">02</span><span>Skany dokumentów</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="seals"><span class="screen-num">03</span><span>Plomby ładunku i CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-screen="photos"><span class="screen-num">01</span><span>Sztuki ładunku</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-screen="seals"><span class="screen-num">02</span><span>Plomba ostatniej strony CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button data-screen="documents"><span class="screen-num">03</span><span>Skan dokumentu CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         <button data-screen="review"><span class="screen-num">04</span><span>Sprawdź i zakończ</span><svg class="icon"><use href="#i-arrow"/></svg></button>
       </nav>
       <div class="sidebar-foot"><div class="light-mode-dot"></div><span>Tryb jasny</span><button id="reset" aria-label="Zresetuj postęp prototypu">Zresetuj podgląd</button></div>
@@ -80,7 +80,7 @@
 
     <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> PROSTY PRZEBIEG OPERACJI</div><div id="design-context"></div>
       <div class="design-palette"><div class="swatches"><span style="--swatch:#f5f5f3"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#ff6a1a"></span><span style="--swatch:#202124"></span></div><span>Pomarańcz AMG. Jasne powierzchnie.</span></div>
-      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Niepodane dane są pomijane. Zdjęcia i CMR trafiają automatycznie do czatu zlecenia. QR plomby można zeskanować już przy zdjęciach. Parametry ładunku są demonstracyjne.</p></div>
+      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Niepodane dane są pomijane. Liczbę i szczegóły sztuk można poprawić przed potwierdzeniem. Najpierw dokumentujemy każdą sztukę, potem plombę CMR, a na końcu skan dokumentu.</p></div>
     </aside>
   </div>
   <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
