@@ -28,7 +28,7 @@ const routeStopDefinitions={
     title:'Tankowanie',genitive:'tankowanie',icon:'fuel',country:'DE',countryName:'Niemcy',
     company:'DKV Truck Station Wörnitz',address:'Bastenauer Straße 10, 91637 Wörnitz, Niemcy',
     note:'Stacja demonstracyjna · sieć DKV',
-    details:[['Sieć','DKV'],['Stanowisko','Truck 04'],['Paliwo','Diesel / AdBlue']],
+    details:[['Sieć','DKV'],['Paliwo','Diesel'],['Dodatkowo','AdBlue']],
     card:{name:'Karta DKV · demonstracyjna',number:'•••• 7842',pin:'2486',vehicle:'Pojazd demonstracyjny · TRUCK 01'}
   }
 };
@@ -82,7 +82,7 @@ const fresh=(mode='load',pieces=mode==='load'?defaultPieces():defaultUnloadPiece
 const freshRouteStop=type=>({
   type,screen:'travel',returnScreen:'travel',arrived:false,finished:false,messages:[],
   photos:type==='fueling'?{receipt:null,dispenser:null,nozzle:null}:null,
-  expense:type==='fueling'?{country:'DE',fuelType:'Diesel',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null
+  expense:type==='fueling'?{country:'DE',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null
 });
 const state={operation:'load',routeStop:null,screen:'info',returnScreen:'info',scenario:'basic',language:'it',manualLanguage:false,operations:{load:fresh('load'),unload:fresh('unload')},routeStops:{parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},modal:null};
 const dictionary={pl:{pickup:'ZAŁADUNEK',delivery:'ROZŁADUNEK',flag:'🇵🇱'},en:{pickup:'PICKUP',delivery:'DELIVERY',flag:'🇬🇧'},de:{pickup:'BELADUNG',delivery:'ENTLADUNG',flag:'🇩🇪'},it:{pickup:'CARICO',delivery:'SCARICO',flag:'🇮🇹'}};
@@ -358,34 +358,48 @@ function parkingInfoView(){
 }
 function fuelingInfoView(){
   const stop=stopDefinition(),card=stop.card;
-  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('fuel')}</span><div><small>DOTARŁEŚ NA TANKOWANIE</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel station-arrival-card"><div class="section-kicker">${icon('pin')} STACJA</div><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></section><section class="fuel-card" aria-label="Karta do tankowania i demonstracyjny PIN"><div class="fuel-card-top"><span>${icon('card')}</span><small>DANE DEMONSTRACYJNE</small></div><strong>${esc(card.name)}</strong><div class="fuel-card-number">${esc(card.number)}</div><div class="fuel-card-meta"><span><small>PIN</small><b>${esc(card.pin)}</b></span><span><small>Pojazd</small><b>${esc(card.vehicle)}</b></span></div></section><div class="fuel-before-note">${icon('info')}<p><strong>Przed tankowaniem</strong>Sprawdź stację, kartę i pojazd. Po tankowaniu naciśnij „Zakończyłem tankowanie”.</p></div></div>`;
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('fuel')}</span><div><small>DOTARŁEŚ NA TANKOWANIE</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel station-arrival-card"><div class="section-kicker">${icon('pin')} STACJA</div><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></section><section class="fuel-card" aria-label="Karta do tankowania i demonstracyjny PIN"><div class="fuel-card-top"><span>${icon('card')}</span><small>DANE DEMONSTRACYJNE</small></div><strong>${esc(card.name)}</strong><div class="fuel-card-number">${esc(card.number)}</div><div class="fuel-card-meta"><span><small>PIN</small><b>${esc(card.pin)}</b></span><span><small>Pojazd</small><b>${esc(card.vehicle)}</b></span></div></section><div class="fuel-before-note">${icon('info')}<p><strong>Przed tankowaniem</strong>Sprawdź stację, kartę i pojazd. W trakcie tankowania aplikacja poprosi o dwa zdjęcia.</p></div></div>`;
 }
 const fuelPhotoLabels={receipt:['receipt','Paragon','Cały paragon z widoczną kwotą i stacją'],dispenser:['fuel','Dystrybutor','Widoczne litry i kwota na dystrybutorze'],nozzle:['camera','Pistolet w pojeździe','Pistolet wsadzony do tankowanego pojazdu']};
-const fuelPhotosReady=()=>Object.values(currentStop().photos).every(Boolean);
+const fuelingPhotoKeys=['dispenser','nozzle'];
+const fuelingPhotosReady=()=>fuelingPhotoKeys.every(key=>Boolean(currentStop().photos[key]));
+const receiptReady=()=>Boolean(currentStop().photos.receipt);
 const positiveNumber=value=>Number(String(value).replace(',','.'))>0;
 const fuelExpenseReady=()=>{
   const expense=currentStop().expense;
-  return Boolean(expense.country&&expense.fuelType&&positiveNumber(expense.liters)&&positiveNumber(expense.price)&&(!expense.withAdBlue||(positiveNumber(expense.adBlueLiters)&&positiveNumber(expense.adBluePrice))));
+  return Boolean(expense.country&&positiveNumber(expense.liters)&&positiveNumber(expense.price)&&(!expense.withAdBlue||(positiveNumber(expense.adBlueLiters)&&positiveNumber(expense.adBluePrice))));
 };
-const fuelingReady=()=>fuelPhotosReady()&&fuelExpenseReady();
-const expenseCurrency=()=>currentStop().expense.country==='PL'?'PLN':'EUR';
+const fuelingReady=()=>receiptReady()&&fuelExpenseReady();
+const expenseCountries=[
+  ['PL','Polska',true],['DE','Niemcy',true],['IT','Włochy',true],['FR','Francja',true],['LU','Luksemburg',true],
+  ['AL','Albania'],['AD','Andora'],['AM','Armenia'],['AT','Austria'],['AZ','Azerbejdżan'],['BE','Belgia'],['BY','Białoruś'],['BA','Bośnia i Hercegowina'],['BG','Bułgaria'],['HR','Chorwacja'],['ME','Czarnogóra'],['CY','Cypr'],['CZ','Czechy'],['DK','Dania'],['EE','Estonia'],['FI','Finlandia'],['GE','Gruzja'],['GR','Grecja'],['ES','Hiszpania'],['NL','Holandia'],['IE','Irlandia'],['IS','Islandia'],['KZ','Kazachstan'],['XK','Kosowo'],['LI','Liechtenstein'],['LT','Litwa'],['LV','Łotwa'],['MK','Macedonia Północna'],['MT','Malta'],['MD','Mołdawia'],['MC','Monako'],['NO','Norwegia'],['PT','Portugalia'],['RU','Rosja'],['RO','Rumunia'],['SM','San Marino'],['RS','Serbia'],['SK','Słowacja'],['SI','Słowenia'],['CH','Szwajcaria'],['SE','Szwecja'],['TR','Turcja'],['UA','Ukraina'],['HU','Węgry'],['GB','Wielka Brytania'],['VA','Watykan']
+];
+const countryOptions=selected=>{
+  const options=entries=>entries.map(([code,name])=>`<option value="${code}" ${selected===code?'selected':''}>${name}</option>`).join('');
+  return `<optgroup label="Najczęściej wybierane">${options(expenseCountries.filter(([, ,frequent])=>frequent))}</optgroup><optgroup label="Pozostałe kraje Europy">${options(expenseCountries.filter(([, ,frequent])=>!frequent))}</optgroup>`;
+};
+const expenseCurrency=()=>({PL:'PLN',CZ:'CZK',DK:'DKK',HU:'HUF',RO:'RON',SE:'SEK',NO:'NOK',CH:'CHF',LI:'CHF',GB:'GBP',IS:'ISK',AL:'ALL',BA:'BAM',RS:'RSD',MK:'MKD',MD:'MDL',UA:'UAH',TR:'TRY',GE:'GEL',AM:'AMD',AZ:'AZN',BY:'BYN',RU:'RUB',KZ:'KZT'}[currentStop().expense.country]||'EUR');
 function fuelPhotoButton(key){
   const record=currentStop().photos[key],[photoIcon,title,hint]=fuelPhotoLabels[key];
   return `<button class="fuel-photo-button ${record?'done':''}" data-fuel-photo="${key}">${record?`<img src="${record.url}" alt="${esc(title)}">`:`<span>${icon(photoIcon)}</span>`}<div><strong>${esc(title)}</strong><small>${record?'Zdjęcie dodane':esc(hint)}</small></div>${icon(record?'check':'arrow')}</button>`;
 }
-function fuelingDocumentationView(){
-  const expense=currentStop().expense,currency=expenseCurrency(),photoCount=Object.values(currentStop().photos).filter(Boolean).length;
-  return `<div class="app-content"><div class="stage-header route-stage-header"><button id="stop-stage-back" aria-label="Wróć do danych karty">${icon('back')}</button><div><span>TANKOWANIE · DOKUMENTACJA</span><b>WYDATEK KIEROWCY</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Udokumentuj tankowanie</h2><p class="stage-description">Dodaj trzy zdjęcia, a następnie uzupełnij wydatek. Bez kompletu nie można zakończyć tankowania.</p><div class="fuel-section-heading"><h3>Zdjęcia z tankowania</h3><span>${photoCount}/3</span></div><div class="fuel-photo-list">${Object.keys(fuelPhotoLabels).map(fuelPhotoButton).join('')}</div><div class="fuel-section-heading expense-heading"><h3>Dodaj wydatek</h3><span>${fuelExpenseReady()?'Gotowy':'Wymagane pola'}</span></div><section class="panel expense-form"><label><span>Kraj wydatku *</span><select id="expense-country" class="text-input"><option value="DE" ${expense.country==='DE'?'selected':''}>Niemcy</option><option value="PL" ${expense.country==='PL'?'selected':''}>Polska</option><option value="NL" ${expense.country==='NL'?'selected':''}>Holandia</option><option value="IT" ${expense.country==='IT'?'selected':''}>Włochy</option></select></label><label><span>Rodzaj paliwa *</span><select id="fuel-type" class="text-input"><option value="Diesel" ${expense.fuelType==='Diesel'?'selected':''}>Diesel</option><option value="HVO 100" ${expense.fuelType==='HVO 100'?'selected':''}>HVO 100</option><option value="Benzyna" ${expense.fuelType==='Benzyna'?'selected':''}>Benzyna</option></select></label><div class="expense-two-columns"><label><span>Litry paliwa *</span><input id="fuel-liters" class="text-input" inputmode="decimal" value="${esc(expense.liters)}" placeholder="np. 420,50"></label><label><span>Cena za litr (${currency}) *</span><input id="fuel-price" class="text-input" inputmode="decimal" value="${esc(expense.price)}" placeholder="np. 1,72"></label></div><label class="check-row adblue-toggle"><input id="with-adblue" type="checkbox" ${expense.withAdBlue?'checked':''}><span>Tankowałem również AdBlue</span></label>${expense.withAdBlue?`<div class="adblue-fields"><div class="adblue-title">${icon('drop')}<span><strong>AdBlue</strong><small>W systemie zapisze się jako osobny wydatek.</small></span></div><div class="expense-two-columns"><label><span>Litry AdBlue *</span><input id="adblue-liters" class="text-input" inputmode="decimal" value="${esc(expense.adBlueLiters)}" placeholder="np. 32,00"></label><label><span>Cena za litr (${currency}) *</span><input id="adblue-price" class="text-input" inputmode="decimal" value="${esc(expense.adBluePrice)}" placeholder="np. 0,79"></label></div></div>`:''}</section><div class="fuel-system-note">${icon('info')}<p>Kierowca uzupełnia paliwo i AdBlue na jednym ekranie. SuperSpedytor zapisze je jako ${expense.withAdBlue?'dwa oddzielne wydatki':'jeden wydatek'}.</p></div></div>`;
+function fuelingInProgressView(){
+  const photoCount=fuelingPhotoKeys.filter(key=>currentStop().photos[key]).length;
+  return `<div class="app-content"><div class="stage-header route-stage-header"><button data-stop-back="info" aria-label="Wróć do danych karty">${icon('back')}</button><div><span>TANKOWANIE · W TRAKCIE</span><b>ZDJĘCIA PRZED ZAKOŃCZENIEM</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Tankowanie w toku</h2><p class="stage-description">Zanim zakończysz tankowanie, zrób zdjęcie dystrybutora oraz pistoletu włożonego do pojazdu.</p><div class="fuel-live-banner">${icon('camera')}<p><strong>Nie kończ jeszcze tankowania</strong>Najpierw dodaj oba zdjęcia wykonywane przy pojeździe.</p></div><div class="fuel-section-heading"><h3>Zdjęcia w trakcie tankowania</h3><span>${photoCount}/2</span></div><div class="fuel-photo-list">${fuelingPhotoKeys.map(fuelPhotoButton).join('')}</div></div>`;
+}
+function fuelingExpenseView(){
+  const expense=currentStop().expense,currency=expenseCurrency();
+  return `<div class="app-content"><div class="stage-header route-stage-header"><button data-stop-back="photos" aria-label="Wróć do tankowania">${icon('back')}</button><div><span>TANKOWANIE ZAKOŃCZONE</span><b>PARAGON I WYDATEK</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Dodaj paragon i wydatek</h2><p class="stage-description">Zdjęcia przy pojeździe są już zapisane. Teraz sfotografuj paragon i uzupełnij dane wydatku.</p><div class="fuel-section-heading"><h3>Paragon</h3><span>${receiptReady()?'1/1':'0/1'}</span></div><div class="fuel-photo-list">${fuelPhotoButton('receipt')}</div><div class="fuel-section-heading expense-heading"><h3>Wydatek za diesel</h3><span id="expense-status">${fuelExpenseReady()?'Gotowy':'Wymagane pola'}</span></div><section class="panel expense-form"><div class="diesel-fixed"><span>${icon('fuel')}</span><div><small>RODZAJ PALIWA</small><strong>Diesel</strong></div></div><label><span>Kraj wydatku *</span><select id="expense-country" class="text-input">${countryOptions(expense.country)}</select></label><div class="expense-two-columns"><label><span>Litry diesla *</span><input id="fuel-liters" class="text-input" inputmode="decimal" value="${esc(expense.liters)}" placeholder="np. 420,50"></label><label><span>Cena za litr (${currency}) *</span><input id="fuel-price" class="text-input" inputmode="decimal" value="${esc(expense.price)}" placeholder="np. 1,72"></label></div><label class="check-row adblue-toggle"><input id="with-adblue" type="checkbox" ${expense.withAdBlue?'checked':''}><span>Tankowałem również AdBlue</span></label>${expense.withAdBlue?`<div class="adblue-fields"><div class="adblue-title">${icon('drop')}<span><strong>AdBlue</strong><small>W systemie zapisze się jako osobny wydatek.</small></span></div><div class="expense-two-columns"><label><span>Litry AdBlue *</span><input id="adblue-liters" class="text-input" inputmode="decimal" value="${esc(expense.adBlueLiters)}" placeholder="np. 32,00"></label><label><span>Cena za litr (${currency}) *</span><input id="adblue-price" class="text-input" inputmode="decimal" value="${esc(expense.adBluePrice)}" placeholder="np. 0,79"></label></div></div>`:''}</section><div class="fuel-system-note">${icon('info')}<p>Kierowca uzupełnia diesel i AdBlue na jednym ekranie. SuperSpedytor zapisze je jako ${expense.withAdBlue?'dwa oddzielne wydatki':'jeden wydatek'}.</p></div></div>`;
 }
 function routeStopSuccessView(){
   const stop=stopDefinition();
   if(state.routeStop==='parking')return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('parking')}</span><h2>Postój rozpoczęty</h2><p>${esc(stop.company)}<br>Miejsce P-18 · dane demonstracyjne</p><div class="summary-line">${icon('check')} Potwierdzenie dotarcia <b>OK</b></div><div class="summary-line">${icon('check')} Miejsce parkingowe <b>P-18</b></div></section></div>`;
   const expense=currentStop().expense;
-  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('fuel')}</span><h2>Tankowanie zapisane</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia z tankowania <b>3/3</b></div><div class="summary-line">${icon('check')} ${esc(expense.fuelType)} <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section><p class="small-note">To demonstracja. Wydatek i zdjęcia nie zostały zapisane w rzeczywistym systemie.</p></div>`;
+  return `<div class="app-content"><button class="subpage-back" id="fuel-expense-back">${icon('back')} Wróć do wydatku</button><section class="panel completion-panel"><span class="success-icon">${icon('fuel')}</span><h2>Wydatek zapisany</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia w trakcie tankowania <b>2/2</b></div><div class="summary-line">${icon('check')} Paragon <b>1/1</b></div><div class="summary-line">${icon('check')} Diesel <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section><p class="small-note">To demonstracja. Wydatek i zdjęcia nie zostały zapisane w rzeczywistym systemie.</p></div>`;
 }
 function stopChatView(){
   const stop=stopDefinition(),record=currentStop();
-  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do punktu na trasie">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor CWP</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor CWP</span><p>${state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. Po tankowaniu dodaj wymagane zdjęcia oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-18.'}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do punktu na trasie">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor CWP</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor CWP</span><p>${state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. W trakcie tankowania dodaj zdjęcie dystrybutora i pistoletu, a po zakończeniu — paragon oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-18.'}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
 }
 function stopActionView(){
   const screen=state.screen,stop=currentStop(),definition=stopDefinition();
@@ -396,16 +410,20 @@ function stopActionView(){
     action=countdown?'cancel-arrival':'start-arrival';
     caption=countdown?'Dotarcie zostanie potwierdzone automatycznie. Naciśnij przycisk, aby wycofać.':'Po naciśnięciu masz 5 sekund na wycofanie potwierdzenia.';
   }
-  if(screen==='info'){text=state.routeStop==='fueling'?'Zakończyłem tankowanie':'Rozpocznij postój';action=state.routeStop==='fueling'?'fuel-document':'stop-finish';caption=state.routeStop==='fueling'?'Następnie dodasz trzy zdjęcia i wydatek.':'Potwierdź rozpoczęcie postoju na przydzielonym miejscu.';}
-  if(screen==='photos'){text='Zapisz wydatek i zakończ';action='fuel-finish';disabled=!fuelingReady();caption=fuelingReady()?'Zdjęcia i dane wydatku są kompletne.':`Zdjęcia ${Object.values(stop.photos).filter(Boolean).length}/3 · uzupełnij wszystkie wymagane pola.`;}
-  if(screen==='review'){text='Kolejny punkt na trasie';action='stop-next';}
+  if(screen==='info'){text=state.routeStop==='fueling'?'Rozpocznij tankowanie':'Rozpocznij postój';action=state.routeStop==='fueling'?'fuel-start':'stop-finish';caption=state.routeStop==='fueling'?'W trakcie tankowania dodasz zdjęcie dystrybutora i pistoletu.':'Potwierdź rozpoczęcie postoju na przydzielonym miejscu.';}
+  if(screen==='photos'){const count=fuelingPhotoKeys.filter(key=>stop.photos[key]).length;text='Zakończ tankowanie';action='fuel-end';disabled=!fuelingPhotosReady();caption=fuelingPhotosReady()?'Oba zdjęcia z tankowania są zapisane.':`Zdjęcia w trakcie tankowania ${count}/2 · dodaj oba przed zakończeniem.`;}
+  if(screen==='documents'){text='Zapisz wydatek';action='fuel-finish';disabled=!fuelingReady();caption=fuelingReady()?'Paragon i dane wydatku są kompletne.':`${receiptReady()?'Paragon dodany':'Dodaj paragon'} · uzupełnij wszystkie wymagane pola.`;}
+  if(screen==='review'){text=state.routeStop==='fueling'?'Wróć do trasy':'Kolejny punkt na trasie';action='stop-next';}
   if(screen==='chat')return '<p class="action-caption chat-action-caption">Wiadomości w tym prototypie są symulowane.</p>';
-  const actionIcon=action==='cancel-arrival'?'close':action==='fuel-finish'||action==='stop-finish'?'check':'arrow';
+  const actionIcon=action==='cancel-arrival'?'close':action==='fuel-end'||action==='fuel-finish'||action==='stop-finish'?'check':'arrow';
   return `<div class="flow-actions"><button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
 }
 function stopDesignNotes(){
   if(state.routeStop==='parking')return `<h2>Parking.<br>Bez zgadywania.</h2><p class="note-description">Kierowca widzi parking, dokładny adres, przydzielone miejsce i najważniejsze informacje przed dotarciem.</p><div class="design-progress"><div class="design-progress-title">PUNKT NA TRASIE<span>${currentStop().arrived?'2':'1'}/2</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Mapa i nawigacja na parking</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().finished?'done':''}"><span class="design-step-num">02</span><span>Miejsce parkingowe i potwierdzenie postoju</span></div></div>`;
-  return `<h2>Karta po dotarciu.<br>Dowody po tankowaniu.</h2><p class="note-description">Przed dojazdem kierowca widzi stację. Karta i demonstracyjny PIN pojawiają się dopiero na miejscu.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${currentStop().finished?'3':state.screen==='photos'?'2':'1'}/3</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Stacja i nawigacja</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().arrived?'done':''}"><span class="design-step-num">02</span><span>Karta, PIN i tankowanie</span></div><div class="design-step ${state.screen==='photos'?'current':currentStop().finished?'done':''}"><span class="design-step-num">03</span><span>3 zdjęcia i wydatek kierowcy</span></div></div><div class="design-shared"><strong>Paliwo + AdBlue bez dublowania pracy</strong><p>Kierowca uzupełnia jeden ekran, a system rejestruje dwa osobne wydatki.</p></div>`;
+  const activeScreen=state.screen==='chat'?(currentStop().returnScreen||'travel'):state.screen;
+  const steps=[['travel','Stacja i nawigacja'],['info','Karta i PIN'],['photos','Dwa zdjęcia w trakcie tankowania'],['documents','Paragon i wydatek']];
+  const activeIndex=activeScreen==='review'?steps.length:Math.max(0,steps.findIndex(([screen])=>screen===activeScreen));
+  return `<h2>Zdjęcia w trakcie.<br>Wydatek po zakończeniu.</h2><p class="note-description">Kierowca nie może zakończyć tankowania bez zdjęcia dystrybutora i pistoletu. Paragon oraz wydatek dodaje później.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex&&activeScreen!=='review'?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Diesel + opcjonalne AdBlue</strong><p>Rodzaj paliwa jest stały. Kierowca uzupełnia jeden ekran, a system rejestruje diesel i AdBlue jako osobne wydatki.</p></div>`;
 }
 function actionView(){
   const screen=state.screen;
@@ -434,8 +452,8 @@ function designNotes(){
 
 function updateScreenList(){
   if(state.routeStop){
-    const labels=state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Zdjęcia i wydatek'],review:['03','Tankowanie zapisane']};
-    const order=state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','review'];
+    const labels=state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Tankowanie i 2 zdjęcia'],documents:['03','Paragon i wydatek'],review:['04','Wydatek zapisany']};
+    const order=state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','documents','review'];
     $$('.screen-list [data-screen]').forEach(button=>{button.hidden=!labels[button.dataset.screen];});
     order.forEach(screen=>{
       const button=$(`.screen-list [data-screen="${screen}"]`),label=labels[screen];
@@ -460,11 +478,11 @@ function updateScreenList(){
 function render(){
   const scroll=$('#app-scroll').scrollTop;
   if(state.routeStop){
-    const views={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingDocumentationView,review:routeStopSuccessView,chat:stopChatView};
+    const views={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingInProgressView,documents:fuelingExpenseView,review:routeStopSuccessView,chat:stopChatView};
     $('#app').innerHTML=views[state.screen]();
     $('#app-action').innerHTML=stopActionView();
     $('#design-context').innerHTML=stopDesignNotes();
-    $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${{travel:'W DRODZE',info:'NA MIEJSCU',photos:'DOKUMENTACJA',review:'GOTOWE',chat:'CZAT'}[state.screen]}`;
+    $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${{travel:'W DRODZE',info:'NA MIEJSCU',photos:'W TRAKCIE',documents:'WYDATEK',review:'GOTOWE',chat:'CZAT'}[state.screen]}`;
     $$('[data-operation]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
     $$('[data-route-stop]').forEach(button=>{const active=button.dataset.routeStop===state.routeStop;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
     updateScreenList();
@@ -523,7 +541,8 @@ function bindStopAction(){
     const action=$('#main-action').dataset.action;
     if(action==='start-arrival')startArrivalCountdown();
     if(action==='cancel-arrival')cancelArrivalCountdown(true);
-    if(action==='fuel-document')goStop('photos');
+    if(action==='fuel-start')goStop('photos');
+    if(action==='fuel-end'&&fuelingPhotosReady())goStop('documents');
     if(action==='stop-finish'){currentStop().finished=true;goStop('review');}
     if(action==='fuel-finish'&&fuelingReady()){currentStop().finished=true;goStop('review');}
     if(action==='stop-next')switchOperation('load','travel');
@@ -532,18 +551,19 @@ function bindStopAction(){
 
 function refreshStopAction(){
   $('#app-action').innerHTML=stopActionView();
+  if($('#expense-status'))$('#expense-status').textContent=fuelExpenseReady()?'Gotowy':'Wymagane pola';
   bindStopAction();
 }
 
 function bindStopView(){
   bindStopAction();
-  if($('#stop-stage-back'))$('#stop-stage-back').onclick=()=>goStop('info');
+  $$('[data-stop-back]').forEach(button=>button.onclick=()=>goStop(button.dataset.stopBack));
+  if($('#fuel-expense-back'))$('#fuel-expense-back').onclick=()=>{currentStop().finished=false;goStop('documents');};
   if($('#stop-chat-back'))$('#stop-chat-back').onclick=()=>goStop(currentStop().returnScreen||'travel');
   $$('[data-stop-chat]').forEach(button=>button.onclick=()=>goStop('chat'));
   bindChatComposer(currentStop());
   $$('[data-fuel-photo]').forEach(button=>button.onclick=()=>openModal('fuel-photo',{key:button.dataset.fuelPhoto}));
   if($('#expense-country'))$('#expense-country').onchange=event=>{currentStop().expense.country=event.target.value;render();};
-  if($('#fuel-type'))$('#fuel-type').onchange=event=>{currentStop().expense.fuelType=event.target.value;refreshStopAction();};
   if($('#fuel-liters'))$('#fuel-liters').oninput=event=>{currentStop().expense.liters=event.target.value;refreshStopAction();};
   if($('#fuel-price'))$('#fuel-price').oninput=event=>{currentStop().expense.price=event.target.value;refreshStopAction();};
   if($('#with-adblue'))$('#with-adblue').onchange=event=>{currentStop().expense.withAdBlue=event.target.checked;render();};
