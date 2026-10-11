@@ -84,7 +84,7 @@ const operationFlow=()=>isLoad()?['info',...documentationSteps(),'review']:['sea
 const progress=()=>isLoad()?[cargoReady(),cmrSealReady(),documentReady()]:[cmrSealReady(),cargoReady(),documentReady()];
 const completedPieces=()=>current().items.filter(item=>pieceReady(item)).length;
 
-let toastTimer,uploadTarget,focusBeforeModal,uploadBusy=false;
+let toastTimer,uploadTarget,focusBeforeModal,uploadBusy=false,arrivalCountdown=null;
 
 function toast(message){
   $('#toast').textContent=message;
@@ -95,7 +95,36 @@ function toast(message){
 function revoke(record){if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
 
+function cancelArrivalCountdown(showToast=false){
+  if(!arrivalCountdown)return;
+  clearInterval(arrivalCountdown.timer);
+  arrivalCountdown=null;
+  if(showToast){render();toast('Potwierdzenie dotarcia zostało wycofane.');}
+}
+function startArrivalCountdown(){
+  cancelArrivalCountdown(false);
+  const operation=state.operation;
+  arrivalCountdown={operation,remaining:5,timer:null};
+  render();
+  arrivalCountdown.timer=setInterval(()=>{
+    if(!arrivalCountdown||arrivalCountdown.operation!==operation||state.operation!==operation||state.screen!=='travel'){
+      cancelArrivalCountdown(false);
+      return;
+    }
+    arrivalCountdown.remaining-=1;
+    if(arrivalCountdown.remaining<=0){
+      clearInterval(arrivalCountdown.timer);
+      arrivalCountdown=null;
+      current().arrived=true;
+      go(isLoad()?'info':'seals');
+      return;
+    }
+    render();
+  },1000);
+}
+
 function go(screen){
+  if(arrivalCountdown)cancelArrivalCountdown(false);
   const arrivalSeal=screen==='seals'&&!isLoad()&&current().arrived;
   if(['photos','seals','documents','review'].includes(screen)&&(!current().started||!current().physicalConfirmed)&&!arrivalSeal){
     toast(isLoad()?'Najpierw potwierdź wykonanie załadunku.':'Najpierw potwierdź liczbę sztuk przeznaczonych do rozładunku.');
@@ -127,11 +156,13 @@ function go(screen){
   $('#app-scroll').scrollTop=0;
 }
 function switchOperation(operation,screen='info'){
+  cancelArrivalCountdown(false);
   state.operation=operation;
   if(!state.manualLanguage)state.language=operation==='load'?'it':'en';
   go(screen);
 }
 function switchScenario(value){
+  cancelArrivalCountdown(false);
   state.scenario=value;
   state.screen=current().arrived?(current().finished?'success':current().step):'travel';
   render();
@@ -143,6 +174,12 @@ function languageControl(){
 function pageHeading(travel=false){
   const place=currentPlace();
   return `<div class="operation-heading"><div><div class="overline">${esc(assignment.id)} · PUNKT ${isLoad()?'1':'2'}/2</div><h2>${operationName()}</h2></div><div class="header-tools"><a class="tool-button location-tool" href="${place.map}" target="_blank" rel="noopener" aria-label="Otwórz pinezkę lokalizacji"><span>${icon('pin')}</span><small>Pinezka</small></a><a class="tool-button location-tool" href="${navigationUrl(place)}" target="_blank" rel="noopener" aria-label="Rozpocznij nawigację do punktu"><span>${icon('nav')}</span><small>Nawiguj</small></a>${languageControl()}</div></div><div class="heading-status"><span class="badge ${travel?'orange':'green'}">${icon(travel?'route':'check')}${travel?'W drodze':'Jesteś na miejscu'}</span><span class="arrival-time">${place.country} · ${place.countryName}</span></div>`;
+}
+function travelView(){
+  const place=currentPlace(),data=optional();
+  const access=[has(data.gate)?`Brama ${data.gate}`:null,has(data.parking)?`Parking ${data.parking}`:null,has(data.ramp)?`Rampa ${data.ramp}`:null].filter(Boolean);
+  const nextStep=isLoad()?'Po potwierdzeniu dotarcia zobaczysz informacje o załadunku i listę sztuk.':'Po potwierdzeniu dotarcia aplikacja od razu poprosi o zeskanowanie plomby CMR.';
+  return `<div class="app-content travel-screen">${pageHeading(true)}<section class="travel-map-card" aria-label="Mapa dojazdu do punktu ${operationGenitive()}"><div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-street thin" d="M121 -14 C127 44 152 67 197 91 S282 128 315 220"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A15</span><span class="travel-map-road road-two">N210</span><span class="travel-map-pin">${icon('pin')}</span><span class="travel-map-label">Punkt ${operationGenitive()}</span></div><div class="travel-destination"><span class="travel-destination-icon">${icon('pin')}</span><div><small>${isLoad()?'ZAŁADUNEK':'ROZŁADUNEK'} · ${esc(place.country)}</small><h3>${esc(place.company)}</h3><p>${esc(place.address||place.countryName)}</p>${access.length?`<div class="travel-access">${access.map(item=>`<span>${esc(item)}</span>`).join('')}</div>`:''}</div></div><a class="travel-navigate-button" href="${navigationUrl(place)}" target="_blank" rel="noopener" aria-label="Nawiguj do punktu ${operationGenitive()}"><span class="travel-navigate-icon">${icon('nav')}</span><span><strong>Nawiguj</strong><small>Otwórz trasę w Google Maps</small></span>${icon('arrow')}</a></section><div class="travel-next-hint">${icon(isLoad()?'info':'qr')}<p><strong>${isLoad()?'Po dotarciu':'Na rozładunku najpierw CMR'}</strong>${nextStep}</p></div></div>`;
 }
 function placeView(){
   const place=currentPlace(),data=optional();
@@ -171,12 +208,11 @@ function piecesManager(){
   const editable=!current().started;
   return `<div class="cargo-items-manager"><div class="cargo-items-title"><span>Faktyczne sztuki ładunku</span><b>${count()}</b></div>${current().items.map((piece,index)=>pieceSummary(piece,index,editable)).join('')}${editable?`<div class="cargo-count-actions"><button id="add-cargo-piece">${icon('plus')}<span><strong>Towaru jest więcej?</strong><small>Dodaj sztukę i jej szczegóły</small></span></button><button id="remove-last-piece" ${count()===1?'disabled':''}>${icon('close')}<span><strong>Towaru jest mniej?</strong><small>Usuń ostatnią sztukę</small></span></button></div>`:''}</div>`;
 }
-function infoView(travel=false){
+function infoView(){
   const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie po rozładunku.';
   const quantity=`${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'}`;
   const confirmation=isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Sprawdziłem, że do rozładowania są ${quantity} ładunku zgodne ze zleceniem.`;
-  const travelInfo=isLoad()?'Każdą sztukę udokumentujesz osobno po wykonaniu załadunku.':'Po potwierdzeniu dotarcia najpierw przygotujesz CMR i zeskanujesz plombę znajdującą się na jego tyle.';
-  return `<div class="app-content">${pageHeading(travel)}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś do CWP</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}${travel?`<p class="travel-info">Po przyjeździe potwierdź dotarcie. ${travelInfo}</p>`:`<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section>`}</div>`;
+  return `<div class="app-content">${pageHeading()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś do CWP</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
 }
 function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
@@ -249,7 +285,12 @@ function successView(){
 function actionView(){
   const screen=state.screen;
   let text='',action='',disabled=false,back=null,caption='';
-  if(screen==='travel'){text=`Dotarłem na ${isLoad()?'załadunek':'rozładunek'}`;action='arrive';}
+  if(screen==='travel'){
+    const countdown=arrivalCountdown?.operation===state.operation?arrivalCountdown:null;
+    text=countdown?`Cofnij potwierdzenie · ${countdown.remaining} s`:`Dotarłem na ${isLoad()?'załadunek':'rozładunek'}`;
+    action=countdown?'cancel-arrival':'start-arrival';
+    caption=countdown?'Dotarcie zostanie potwierdzone automatycznie. Naciśnij przycisk, aby wycofać.':'Po naciśnięciu masz 5 sekund na wycofanie potwierdzenia.';
+  }
   if(screen==='info'){text=current().started?'Przejdź do dokumentacji':isLoad()?'Załadunek wykonany · dalej':'Rozpocznij dokumentowanie rozładunku';action='start';disabled=!current().physicalConfirmed||!count()||(!isLoad()&&!cmrSealReady());caption=current().started?'Dodane materiały pozostają w dokumentacji.':isLoad()?'Sprawdź liczbę i szczegóły każdej sztuki.':!cmrSealReady()?'Najpierw po dotarciu zeskanuj plombę CMR.':'Sprawdź informacje i liczbę sztuk przed rozpoczęciem rozładunku.';}
   if(screen==='photos'){text=isLoad()?'Dalej: plomba CMR':'Dalej: skan CMR po rozładunku';action=isLoad()?'seals':'documents';disabled=!cargoReady();back='info';caption=cargoReady()?(isLoad()?'Każda sztuka ładunku ma komplet zdjęć.':'Każda sztuka ma skan plomby i zdjęcie po rozładunku.'):`Gotowe sztuki · ${completedPieces()}/${count()}`;}
   if(screen==='seals'){text=isLoad()?'Dalej: skan CMR':'Dalej: informacje o rozładunku';action=isLoad()?'documents':'info';disabled=!cmrSealReady();back=isLoad()?'photos':'travel';caption=cmrSealReady()?(isLoad()?'Plomba CMR jest zapisana.':'CMR z załadunku jest gotowy do wglądu.'):(isLoad()?'Naklej plombę na pustym tyle ostatniej strony CMR i zeskanuj QR.':'Po dotarciu przygotuj dokumenty i zeskanuj istniejącą plombę CMR.');}
@@ -257,7 +298,8 @@ function actionView(){
   if(screen==='review'){text=`Zakończ ${isLoad()?'załadunek':'rozładunek'}`;action='finish';disabled=!allReady();back='documents';}
   if(screen==='chat'){text='Załącz dokumenty';action='chat-attach';disabled=!current().started||!current().physicalConfirmed;caption='Zdjęcia są przypisane do konkretnych sztuk; CMR pozostaje osobnym dokumentem.';}
   if(screen==='success'){text='Kolejny punkt na trasie';action='next-point';}
-  return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(action==='chat-attach'?'clip':action==='finish'?'check':'arrow')}${text}</button></div>${caption?`<p class="action-caption">${caption}</p>`:''}`;
+  const actionIcon=action==='chat-attach'?'clip':action==='finish'?'check':action==='cancel-arrival'?'close':'arrow';
+  return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
 }
 
 function designNotes(){
@@ -279,7 +321,7 @@ function updateScreenList(){
 
 function render(){
   const scroll=$('#app-scroll').scrollTop;
-  const views={info:()=>infoView(),travel:()=>infoView(true),photos:piecesView,seals:cmrSealView,documents:documentsView,review:reviewView,chat:chatView,success:successView};
+  const views={info:infoView,travel:travelView,photos:piecesView,seals:cmrSealView,documents:documentsView,review:reviewView,chat:chatView,success:successView};
   $('#app').innerHTML=views[state.screen]();
   $('#app-action').innerHTML=actionView();
   $('#design-context').innerHTML=designNotes();
@@ -344,10 +386,8 @@ function bindView(){
   if($('#copy-reference'))$('#copy-reference').onclick=async()=>{try{await navigator.clipboard.writeText(optional().ref);toast('REF został skopiowany.');}catch{openModal('copy');}};
   $('#main-action').onclick=()=>{
     const action=$('#main-action').dataset.action;
-    if(action==='arrive'){
-      current().arrived=true;
-      go(isLoad()?'info':'seals');
-    }
+    if(action==='start-arrival')startArrivalCountdown();
+    if(action==='cancel-arrival')cancelArrivalCountdown(true);
     if(action==='start'){
       if(!current().physicalConfirmed||!count()||(!isLoad()&&!cmrSealReady()))return;
       current().started=true;
@@ -543,6 +583,7 @@ function saveQR(target,raw){
 }
 
 function reset(){
+  cancelArrivalCountdown(false);
   Object.values(state.operations).forEach(operation=>{operation.items.forEach(revokePiece);operation.documents.forEach(revoke);});
   state.operations={load:fresh('load'),unload:fresh('unload')};
   state.operation='load';
