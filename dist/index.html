@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f3">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="description" content="SuperSpedytor: nawigacja do punktu, potwierdzenie dotarcia, plomby QR, zdjęcia sztuk oraz dokumentacja CMR.">
+  <meta name="description" content="SuperSpedytor: nawigacja do załadunku, rozładunku, parkingu i tankowania, dokumentacja ładunku oraz wydatki kierowcy.">
   <title>Super Spedytor — tryb kierowcy</title>
   <link rel="stylesheet" href="driver.css">
   <link rel="stylesheet" href="flow.css">
@@ -36,11 +36,16 @@
     <symbol id="i-help" viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2M4 11H2v7h4v-7ZM20 11h2v7h-4v-7ZM18 18v3h-6"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4ZM8 8h8M8 12h5"/></symbol>
     <symbol id="i-clip" viewBox="0 0 24 24"><path d="m9 15 7-7a3 3 0 0 0-4-4L4 12a5 5 0 0 0 7 7l9-9M7 13l7-7"/></symbol>
+    <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M4 21V3h10v18M3 21h13M7 7h4M14 8h3l3 3v7a2 2 0 0 1-4 0v-5h-2M18 10l2-2"/></symbol>
+    <symbol id="i-parking" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9M9 13h4"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2ZM9 8h6M9 12h6M9 16h3"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/></symbol>
   </defs></svg>
 
   <header class="studio-header">
     <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
-    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 05</span></div>
+    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 06</span></div>
     <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
   </header>
 
@@ -48,10 +53,10 @@
     <aside class="studio-sidebar">
       <div class="eyebrow">SUPERSPEDYTOR / DRIVER</div>
       <h1>Jedno zadanie.<br><span>Jeden ekran.</span></h1>
-      <p class="intro">Plomba. QR. Dwa zdjęcia.<br>Każda sztuka ładunku osobno.</p>
+      <p class="intro">Ładunek. Parking. Tankowanie.<br>Każdy punkt prowadzi kierowcę krok po kroku.</p>
       <label class="scenario-picker"><span>PRZYKŁAD DANYCH ZLECENIA</span><select id="scenario-select"><option value="basic">Firma + kraj + pinezka</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
-      <div class="operation-label">PODGLĄD OPERACJI</div>
-      <div class="operation-switch" role="group" aria-label="Rodzaj operacji"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button></div>
+      <div class="operation-label">PODGLĄD PUNKTU NA TRASIE</div>
+      <div class="operation-switch route-type-switch" role="group" aria-label="Rodzaj punktu na trasie"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button><button data-route-stop="parking">Parking</button><button data-route-stop="fueling">Tankowanie</button></div>
       <label class="mobile-stage"><span>DANE ZLECENIA</span><select id="mobile-scenario" aria-label="Przykład danych zlecenia"><option value="basic">Podstawowe</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
       <nav class="screen-list" aria-label="Ekrany prototypu">
         <button data-screen="travel"><span class="screen-num">↗</span><span>Widok w drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
@@ -81,7 +86,7 @@
 
     <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> PROSTY PRZEBIEG OPERACJI</div><div id="design-context"></div>
       <div class="design-palette"><div class="swatches"><span style="--swatch:#f5f5f3"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#ff6a1a"></span><span style="--swatch:#202124"></span></div><span>Pomarańcz AMG. Jasne powierzchnie.</span></div>
-      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Przed każdą operacją kierowca widzi mapę i duży przycisk „Nawiguj”. Potwierdzenie „Dotarłem” uruchamia pięciosekundowe odliczanie, podczas którego można je wycofać. Na rozładunku kolejnym obowiązkowym krokiem jest skan plomby CMR.</p></div>
+      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Mapa prowadzi również na parking i tankowanie. Na stacji karta oraz demonstracyjny PIN pojawiają się dopiero po dotarciu, a zakończenie wymaga zdjęć i kompletnego wydatku.</p></div>
     </aside>
   </div>
   <input id="file-input" type="file" accept="image/*" capture="environment" hidden>

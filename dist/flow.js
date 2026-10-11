@@ -17,6 +17,21 @@ const assignment={
   delivery,
   cargo:{name:'Sprzęt w skrzyniach transportowych',quantity:2,unit:'skrzynie',mass:240,dimensions:'120 × 80 × 100 cm / szt.',demo:true}
 };
+const routeStopDefinitions={
+  parking:{
+    title:'Parking',genitive:'parking',icon:'parking',country:'DE',countryName:'Niemcy',
+    company:'A7 Truck Parking Wörnitz',address:'Bastenauer Straße 12, 91637 Wörnitz, Niemcy',
+    note:'Miejsce demonstracyjne · parking dla pojazdów ciężarowych',
+    details:[['Rezerwacja','Do 06:00'],['Ochrona','24/7'],['Miejsce','P-18']]
+  },
+  fueling:{
+    title:'Tankowanie',genitive:'tankowanie',icon:'fuel',country:'DE',countryName:'Niemcy',
+    company:'DKV Truck Station Wörnitz',address:'Bastenauer Straße 10, 91637 Wörnitz, Niemcy',
+    note:'Stacja demonstracyjna · sieć DKV',
+    details:[['Sieć','DKV'],['Stanowisko','Truck 04'],['Paliwo','Diesel / AdBlue']],
+    card:{name:'Karta DKV · demonstracyjna',number:'•••• 7842',pin:'2486',vehicle:'Pojazd demonstracyjny · TRUCK 01'}
+  }
+};
 const scenarios={
   basic:{
     load:{ref:null,contact:null,instructions:null,notes:[],photos:[],gate:null,parking:null,warehouse:null,ramp:null},
@@ -60,13 +75,22 @@ const fresh=(mode='load',pieces=mode==='load'?defaultPieces():defaultUnloadPiece
   loadingDocuments:mode==='unload'?(values.loadingDocuments||demoLoadingDocuments()):[],
   documents:[],
   documentsComplete:false,
+  messages:[],
   finished:false,
   step:'info'
 });
-const state={operation:'load',screen:'info',returnScreen:'info',scenario:'basic',language:'it',manualLanguage:false,operations:{load:fresh('load'),unload:fresh('unload')},modal:null};
+const freshRouteStop=type=>({
+  type,screen:'travel',returnScreen:'travel',arrived:false,finished:false,messages:[],
+  photos:type==='fueling'?{receipt:null,dispenser:null,nozzle:null}:null,
+  expense:type==='fueling'?{country:'DE',fuelType:'Diesel',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null
+});
+const state={operation:'load',routeStop:null,screen:'info',returnScreen:'info',scenario:'basic',language:'it',manualLanguage:false,operations:{load:fresh('load'),unload:fresh('unload')},routeStops:{parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},modal:null};
 const dictionary={pl:{pickup:'ZAŁADUNEK',delivery:'ROZŁADUNEK',flag:'🇵🇱'},en:{pickup:'PICKUP',delivery:'DELIVERY',flag:'🇬🇧'},de:{pickup:'BELADUNG',delivery:'ENTLADUNG',flag:'🇩🇪'},it:{pickup:'CARICO',delivery:'SCARICO',flag:'🇮🇹'}};
 
 const current=()=>state.operations[state.operation];
+const currentStop=()=>state.routeStop?state.routeStops[state.routeStop]:null;
+const stopDefinition=()=>state.routeStop?routeStopDefinitions[state.routeStop]:null;
+const cargoMode=()=>!state.routeStop;
 const isLoad=()=>state.operation==='load';
 const operationName=()=>isLoad()?'Załadunek':'Rozładunek';
 const operationGenitive=()=>isLoad()?'załadunku':'rozładunku';
@@ -103,11 +127,12 @@ function cancelArrivalCountdown(showToast=false){
 }
 function startArrivalCountdown(){
   cancelArrivalCountdown(false);
-  const operation=state.operation;
+  const operation=state.routeStop||state.operation;
   arrivalCountdown={operation,remaining:5,timer:null};
   render();
   arrivalCountdown.timer=setInterval(()=>{
-    if(!arrivalCountdown||arrivalCountdown.operation!==operation||state.operation!==operation||state.screen!=='travel'){
+    const activeOperation=state.routeStop||state.operation;
+    if(!arrivalCountdown||arrivalCountdown.operation!==operation||activeOperation!==operation||state.screen!=='travel'){
       cancelArrivalCountdown(false);
       return;
     }
@@ -115,8 +140,8 @@ function startArrivalCountdown(){
     if(arrivalCountdown.remaining<=0){
       clearInterval(arrivalCountdown.timer);
       arrivalCountdown=null;
-      current().arrived=true;
-      go(isLoad()?'info':'seals');
+      if(state.routeStop){currentStop().arrived=true;goStop('info');}
+      else{current().arrived=true;go(isLoad()?'info':'seals');}
       return;
     }
     render();
@@ -155,15 +180,40 @@ function go(screen){
   render();
   $('#app-scroll').scrollTop=0;
 }
+function goStop(screen){
+  if(arrivalCountdown)cancelArrivalCountdown(false);
+  const stop=currentStop();
+  if(!stop)return;
+  if(screen==='chat'&&state.screen!=='chat')stop.returnScreen=state.screen;
+  closeModal(false);
+  state.screen=screen;
+  stop.screen=screen;
+  if(screen==='travel')stop.arrived=false;
+  if(screen==='info')stop.arrived=true;
+  render();
+  $('#app-scroll').scrollTop=0;
+}
 function switchOperation(operation,screen='info'){
   cancelArrivalCountdown(false);
+  state.routeStop=null;
   state.operation=operation;
   if(!state.manualLanguage)state.language=operation==='load'?'it':'en';
   go(screen);
 }
+function switchRouteStop(type,screen='travel'){
+  cancelArrivalCountdown(false);
+  state.routeStop=type;
+  const stop=currentStop();
+  state.screen=screen||stop.screen;
+  stop.screen=state.screen;
+  closeModal(false);
+  render();
+  $('#app-scroll').scrollTop=0;
+}
 function switchScenario(value){
   cancelArrivalCountdown(false);
   state.scenario=value;
+  if(state.routeStop){render();return;}
   state.screen=current().arrived?(current().finished?'success':current().step):'travel';
   render();
   $('#app-scroll').scrollTop=0;
@@ -279,14 +329,83 @@ function reviewView(){
   const sequence=isLoad()?'sztuki ładunku → plomba CMR → skan CMR':'plomba CMR → sztuki ładunku → skan CMR po rozładunku';
   return `<div class="app-content"><button class="subpage-back" id="review-back">${icon('back')} Wróć do skanu CMR</button><div class="overline">SPRAWDŹ PRZED ZAKOŃCZENIEM</div><h2 class="stage-title">Dokumentacja gotowa</h2><p class="stage-description">Wymagana kolejność została wykonana dla zlecenia ${assignment.id}.</p><section class="panel review-checklist"><div>${icon('check')}<span>Sztuki ładunku<small>${cargoDetail}</small></span><b>${count()}/${count()}</b></div><div>${icon('check')}<span>Zdjęcia sztuk ładunku<small>${photoDetail}</small></span><b>${photoTotal}/${photoTotal}</b></div><div>${icon('check')}<span>Plomba CMR<small>${cmrDetail} · ${esc(current().cmrSeal)}</small></span><b>1/1</b></div><div>${icon('check')}<span>Pełny skan dokumentu CMR<small>${current().documents.length} ${current().documents.length===1?'plik':'pliki'} · kompletność potwierdzona</small></span><b>OK</b></div></section><p class="small-note">Zakończenie jest dostępne dopiero po wykonaniu całej sekwencji: ${sequence}.</p></div>`;
 }
+function chatMessagesView(messages){
+  return messages.map(message=>`<div class="chat-message-own"><p>${esc(message.text)}</p><small>Kierowca · ${esc(message.time)}</small></div>`).join('');
+}
+function chatComposerView(){
+  return `<div class="chat-composer"><input id="chat-message" maxlength="500" autocomplete="off" placeholder="Napisz wiadomość do spedytora" aria-label="Wiadomość do spedytora"><button id="chat-send" aria-label="Wyślij wiadomość">${icon('arrow')}</button></div><p class="chat-demo-note">Prototyp: wiadomość pozostaje tylko w tym podglądzie.</p>`;
+}
 function chatView(){
   const record=current(),photos=photoRecords(record),autoCount=[...photos,...record.documents].filter(item=>item.chatSynced).length,photoTarget=count()*(isLoad()?2:1),sides=isLoad()?['near','far']:['unload'];
   const instruction=allReady()?'Dokumentacja wszystkich sztuk, plomba CMR i skan CMR są kompletne.':isLoad()?'Najpierw udokumentuj każdą sztukę, następnie plombę CMR, a na końcu dołącz skan CMR.':'Najpierw zeskanuj plombę CMR, następnie udokumentuj każdą sztukę, a na końcu dołącz skan CMR po rozładunku.';
-  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${assignment.id} · spedytor</small></span><span class="badge orange">Podgląd</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie po rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${assignment.id} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie po rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
 }
 function successView(){
   const photoTotal=count()*(isLoad()?2:1);
   return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('check')}</span><h2>${operationName()} zakończony</h2><p>${esc(currentPlace().company)}<br>Dokumentacja jest kompletna w tym podglądzie.</p><div class="summary-line">${icon('check')} Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')} ${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia po rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')} Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')} Pełny skan CMR <b>OK</b></div></section><p class="small-note">To demonstracja. Żadne pliki ani wiadomości nie zostały wysłane do rzeczywistego systemu.</p></div>`;
+}
+function stopMapCard(){
+  const stop=stopDefinition();
+  return `<section class="travel-map-card route-stop-map" aria-label="Mapa dojazdu: ${esc(stop.title)}"><div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A7</span><span class="travel-map-road road-two">E50</span><span class="travel-map-pin">${icon(stop.icon)}</span><span class="travel-map-label">${esc(stop.title)}</span></div><div class="travel-destination"><span class="travel-destination-icon">${icon(stop.icon)}</span><div><small>${esc(stop.title.toUpperCase())} · ${esc(stop.country)}</small><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></div></div><a class="travel-navigate-button" href="${navigationUrl(stop)}" target="_blank" rel="noopener" aria-label="Nawiguj: ${esc(stop.company)}"><span class="travel-navigate-icon">${icon('nav')}</span><span><strong>Nawiguj</strong><small>Otwórz trasę w Google Maps</small></span>${icon('arrow')}</a><div class="route-stop-details">${stop.details.map(([label,value])=>`<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div></section>`;
+}
+function stopTravelView(){
+  const stop=stopDefinition(),hint=state.routeStop==='fueling'?'Po dotarciu zobaczysz kartę przypisaną do tankowania i demonstracyjny kod PIN.':'Po dotarciu zobaczysz numer miejsca oraz najważniejsze informacje o parkingu.';
+  return `<div class="app-content travel-screen"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon(stop.icon)}</span><div><small>PUNKT NA TRASIE · ${esc(stop.country)}</small><h2>${esc(stop.title)}</h2></div><span class="badge orange">W drodze</span></div>${stopMapCard()}<div class="travel-next-hint">${icon('info')}<p><strong>Po potwierdzeniu dotarcia</strong>${hint}</p></div></div>`;
+}
+function parkingInfoView(){
+  const stop=stopDefinition();
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('parking')}</span><div><small>DOTARŁEŚ NA PARKING</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel parking-arrival-card"><div class="parking-place-number">P-18</div><div><small>PRZYDZIELONE MIEJSCE</small><h3>Zaparkuj na miejscu P-18</h3><p>Rezerwacja demonstracyjna jest ważna do 06:00. Parking posiada ochronę 24/7.</p></div></section><section class="panel route-arrival-summary">${stop.details.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</section><p class="small-note">Prototyp: miejsce, rezerwacja i dane parkingu są demonstracyjne.</p></div>`;
+}
+function fuelingInfoView(){
+  const stop=stopDefinition(),card=stop.card;
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('fuel')}</span><div><small>DOTARŁEŚ NA TANKOWANIE</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel station-arrival-card"><div class="section-kicker">${icon('pin')} STACJA</div><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></section><section class="fuel-card" aria-label="Karta do tankowania i demonstracyjny PIN"><div class="fuel-card-top"><span>${icon('card')}</span><small>DANE DEMONSTRACYJNE</small></div><strong>${esc(card.name)}</strong><div class="fuel-card-number">${esc(card.number)}</div><div class="fuel-card-meta"><span><small>PIN</small><b>${esc(card.pin)}</b></span><span><small>Pojazd</small><b>${esc(card.vehicle)}</b></span></div></section><div class="fuel-before-note">${icon('info')}<p><strong>Przed tankowaniem</strong>Sprawdź stację, kartę i pojazd. Po tankowaniu naciśnij „Zakończyłem tankowanie”.</p></div></div>`;
+}
+const fuelPhotoLabels={receipt:['receipt','Paragon','Cały paragon z widoczną kwotą i stacją'],dispenser:['fuel','Dystrybutor','Widoczne litry i kwota na dystrybutorze'],nozzle:['camera','Pistolet w pojeździe','Pistolet wsadzony do tankowanego pojazdu']};
+const fuelPhotosReady=()=>Object.values(currentStop().photos).every(Boolean);
+const positiveNumber=value=>Number(String(value).replace(',','.'))>0;
+const fuelExpenseReady=()=>{
+  const expense=currentStop().expense;
+  return Boolean(expense.country&&expense.fuelType&&positiveNumber(expense.liters)&&positiveNumber(expense.price)&&(!expense.withAdBlue||(positiveNumber(expense.adBlueLiters)&&positiveNumber(expense.adBluePrice))));
+};
+const fuelingReady=()=>fuelPhotosReady()&&fuelExpenseReady();
+const expenseCurrency=()=>currentStop().expense.country==='PL'?'PLN':'EUR';
+function fuelPhotoButton(key){
+  const record=currentStop().photos[key],[photoIcon,title,hint]=fuelPhotoLabels[key];
+  return `<button class="fuel-photo-button ${record?'done':''}" data-fuel-photo="${key}">${record?`<img src="${record.url}" alt="${esc(title)}">`:`<span>${icon(photoIcon)}</span>`}<div><strong>${esc(title)}</strong><small>${record?'Zdjęcie dodane':esc(hint)}</small></div>${icon(record?'check':'arrow')}</button>`;
+}
+function fuelingDocumentationView(){
+  const expense=currentStop().expense,currency=expenseCurrency(),photoCount=Object.values(currentStop().photos).filter(Boolean).length;
+  return `<div class="app-content"><div class="stage-header route-stage-header"><button id="stop-stage-back" aria-label="Wróć do danych karty">${icon('back')}</button><div><span>TANKOWANIE · DOKUMENTACJA</span><b>WYDATEK KIEROWCY</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Udokumentuj tankowanie</h2><p class="stage-description">Dodaj trzy zdjęcia, a następnie uzupełnij wydatek. Bez kompletu nie można zakończyć tankowania.</p><div class="fuel-section-heading"><h3>Zdjęcia z tankowania</h3><span>${photoCount}/3</span></div><div class="fuel-photo-list">${Object.keys(fuelPhotoLabels).map(fuelPhotoButton).join('')}</div><div class="fuel-section-heading expense-heading"><h3>Dodaj wydatek</h3><span>${fuelExpenseReady()?'Gotowy':'Wymagane pola'}</span></div><section class="panel expense-form"><label><span>Kraj wydatku *</span><select id="expense-country" class="text-input"><option value="DE" ${expense.country==='DE'?'selected':''}>Niemcy</option><option value="PL" ${expense.country==='PL'?'selected':''}>Polska</option><option value="NL" ${expense.country==='NL'?'selected':''}>Holandia</option><option value="IT" ${expense.country==='IT'?'selected':''}>Włochy</option></select></label><label><span>Rodzaj paliwa *</span><select id="fuel-type" class="text-input"><option value="Diesel" ${expense.fuelType==='Diesel'?'selected':''}>Diesel</option><option value="HVO 100" ${expense.fuelType==='HVO 100'?'selected':''}>HVO 100</option><option value="Benzyna" ${expense.fuelType==='Benzyna'?'selected':''}>Benzyna</option></select></label><div class="expense-two-columns"><label><span>Litry paliwa *</span><input id="fuel-liters" class="text-input" inputmode="decimal" value="${esc(expense.liters)}" placeholder="np. 420,50"></label><label><span>Cena za litr (${currency}) *</span><input id="fuel-price" class="text-input" inputmode="decimal" value="${esc(expense.price)}" placeholder="np. 1,72"></label></div><label class="check-row adblue-toggle"><input id="with-adblue" type="checkbox" ${expense.withAdBlue?'checked':''}><span>Tankowałem również AdBlue</span></label>${expense.withAdBlue?`<div class="adblue-fields"><div class="adblue-title">${icon('drop')}<span><strong>AdBlue</strong><small>W systemie zapisze się jako osobny wydatek.</small></span></div><div class="expense-two-columns"><label><span>Litry AdBlue *</span><input id="adblue-liters" class="text-input" inputmode="decimal" value="${esc(expense.adBlueLiters)}" placeholder="np. 32,00"></label><label><span>Cena za litr (${currency}) *</span><input id="adblue-price" class="text-input" inputmode="decimal" value="${esc(expense.adBluePrice)}" placeholder="np. 0,79"></label></div></div>`:''}</section><div class="fuel-system-note">${icon('info')}<p>Kierowca uzupełnia paliwo i AdBlue na jednym ekranie. SuperSpedytor zapisze je jako ${expense.withAdBlue?'dwa oddzielne wydatki':'jeden wydatek'}.</p></div></div>`;
+}
+function routeStopSuccessView(){
+  const stop=stopDefinition();
+  if(state.routeStop==='parking')return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('parking')}</span><h2>Postój rozpoczęty</h2><p>${esc(stop.company)}<br>Miejsce P-18 · dane demonstracyjne</p><div class="summary-line">${icon('check')} Potwierdzenie dotarcia <b>OK</b></div><div class="summary-line">${icon('check')} Miejsce parkingowe <b>P-18</b></div></section></div>`;
+  const expense=currentStop().expense;
+  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('fuel')}</span><h2>Tankowanie zapisane</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia z tankowania <b>3/3</b></div><div class="summary-line">${icon('check')} ${esc(expense.fuelType)} <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section><p class="small-note">To demonstracja. Wydatek i zdjęcia nie zostały zapisane w rzeczywistym systemie.</p></div>`;
+}
+function stopChatView(){
+  const stop=stopDefinition(),record=currentStop();
+  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do punktu na trasie">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor CWP</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor CWP</span><p>${state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. Po tankowaniu dodaj wymagane zdjęcia oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-18.'}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
+}
+function stopActionView(){
+  const screen=state.screen,stop=currentStop(),definition=stopDefinition();
+  let text='',action='',disabled=false,caption='';
+  if(screen==='travel'){
+    const countdown=arrivalCountdown?.operation===state.routeStop?arrivalCountdown:null;
+    text=countdown?`Cofnij potwierdzenie · ${countdown.remaining} s`:`Dotarłem na ${definition.genitive}`;
+    action=countdown?'cancel-arrival':'start-arrival';
+    caption=countdown?'Dotarcie zostanie potwierdzone automatycznie. Naciśnij przycisk, aby wycofać.':'Po naciśnięciu masz 5 sekund na wycofanie potwierdzenia.';
+  }
+  if(screen==='info'){text=state.routeStop==='fueling'?'Zakończyłem tankowanie':'Rozpocznij postój';action=state.routeStop==='fueling'?'fuel-document':'stop-finish';caption=state.routeStop==='fueling'?'Następnie dodasz trzy zdjęcia i wydatek.':'Potwierdź rozpoczęcie postoju na przydzielonym miejscu.';}
+  if(screen==='photos'){text='Zapisz wydatek i zakończ';action='fuel-finish';disabled=!fuelingReady();caption=fuelingReady()?'Zdjęcia i dane wydatku są kompletne.':`Zdjęcia ${Object.values(stop.photos).filter(Boolean).length}/3 · uzupełnij wszystkie wymagane pola.`;}
+  if(screen==='review'){text='Kolejny punkt na trasie';action='stop-next';}
+  if(screen==='chat')return '<p class="action-caption chat-action-caption">Wiadomości w tym prototypie są symulowane.</p>';
+  const actionIcon=action==='cancel-arrival'?'close':action==='fuel-finish'||action==='stop-finish'?'check':'arrow';
+  return `<div class="flow-actions"><button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
+}
+function stopDesignNotes(){
+  if(state.routeStop==='parking')return `<h2>Parking.<br>Bez zgadywania.</h2><p class="note-description">Kierowca widzi parking, dokładny adres, przydzielone miejsce i najważniejsze informacje przed dotarciem.</p><div class="design-progress"><div class="design-progress-title">PUNKT NA TRASIE<span>${currentStop().arrived?'2':'1'}/2</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Mapa i nawigacja na parking</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().finished?'done':''}"><span class="design-step-num">02</span><span>Miejsce parkingowe i potwierdzenie postoju</span></div></div>`;
+  return `<h2>Karta po dotarciu.<br>Dowody po tankowaniu.</h2><p class="note-description">Przed dojazdem kierowca widzi stację. Karta i demonstracyjny PIN pojawiają się dopiero na miejscu.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${currentStop().finished?'3':state.screen==='photos'?'2':'1'}/3</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Stacja i nawigacja</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().arrived?'done':''}"><span class="design-step-num">02</span><span>Karta, PIN i tankowanie</span></div><div class="design-step ${state.screen==='photos'?'current':currentStop().finished?'done':''}"><span class="design-step-num">03</span><span>3 zdjęcia i wydatek kierowcy</span></div></div><div class="design-shared"><strong>Paliwo + AdBlue bez dublowania pracy</strong><p>Kierowca uzupełnia jeden ekran, a system rejestruje dwa osobne wydatki.</p></div>`;
 }
 function actionView(){
   const screen=state.screen;
@@ -302,7 +421,7 @@ function actionView(){
   if(screen==='seals'){text=isLoad()?'Dalej: skan CMR':'Dalej: informacje o rozładunku';action=isLoad()?'documents':'info';disabled=!cmrSealReady();back=isLoad()?'photos':'travel';caption=cmrSealReady()?(isLoad()?'Plomba CMR jest zapisana.':'CMR z załadunku jest gotowy do wglądu.'):(isLoad()?'Naklej plombę na pustym tyle ostatniej strony CMR i zeskanuj QR.':'Po dotarciu przygotuj dokumenty i zeskanuj istniejącą plombę CMR.');}
   if(screen==='documents'){text='Dalej: sprawdź i zakończ';action='review';disabled=!documentReady();back=isLoad()?'seals':'photos';caption=documentReady()?'Pełny CMR jest gotowy.':isLoad()?'Dodaj pełny CMR i potwierdź jego czytelność.':'Dodaj pełny CMR po rozładunku i potwierdź jego czytelność.';}
   if(screen==='review'){text=`Zakończ ${isLoad()?'załadunek':'rozładunek'}`;action='finish';disabled=!allReady();back='documents';}
-  if(screen==='chat'){text='Załącz dokumenty';action='chat-attach';disabled=!current().started||!current().physicalConfirmed;caption='Zdjęcia są przypisane do konkretnych sztuk; CMR pozostaje osobnym dokumentem.';}
+  if(screen==='chat'){text='Załącz dokumenty';action='chat-attach';caption='Możesz pisać od razu. Zdjęcia są przypisane do konkretnych sztuk, a CMR pozostaje osobnym dokumentem.';}
   if(screen==='success'){text='Kolejny punkt na trasie';action='next-point';}
   const actionIcon=action==='chat-attach'?'clip':action==='finish'?'check':action==='cancel-arrival'?'close':'arrow';
   return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
@@ -314,8 +433,21 @@ function designNotes(){
 }
 
 function updateScreenList(){
+  if(state.routeStop){
+    const labels=state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Zdjęcia i wydatek'],review:['03','Tankowanie zapisane']};
+    const order=state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','review'];
+    $$('.screen-list [data-screen]').forEach(button=>{button.hidden=!labels[button.dataset.screen];});
+    order.forEach(screen=>{
+      const button=$(`.screen-list [data-screen="${screen}"]`),label=labels[screen];
+      button.querySelector('.screen-num').textContent=label[0];
+      button.querySelectorAll('span')[1].textContent=label[1];
+      $('.screen-list').appendChild(button);
+    });
+    return;
+  }
   const labels=isLoad()?{info:['00','Zlecenie i załadunek'],photos:['01','Sztuki ładunku'],seals:['02','Plomba ostatniej strony CMR'],documents:['03','Skan dokumentu CMR'],review:['04','Sprawdź i zakończ']}:{seals:['00','Po dotarciu: plomba CMR'],info:['01','Informacje o rozładunku'],photos:['02','Plomby i zdjęcia sztuk'],documents:['03','Skan CMR po rozładunku'],review:['04','Sprawdź i zakończ']};
   const nav=$('.screen-list'),order=isLoad()?['travel','info','photos','seals','documents','review']:['travel','seals','info','photos','documents','review'];
+  $$('.screen-list [data-screen]').forEach(button=>{button.hidden=false;});
   order.forEach(screen=>nav.appendChild($(`.screen-list [data-screen="${screen}"]`)));
   $$('.screen-list [data-screen]').forEach(button=>{
     const label=labels[button.dataset.screen];
@@ -327,16 +459,36 @@ function updateScreenList(){
 
 function render(){
   const scroll=$('#app-scroll').scrollTop;
+  if(state.routeStop){
+    const views={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingDocumentationView,review:routeStopSuccessView,chat:stopChatView};
+    $('#app').innerHTML=views[state.screen]();
+    $('#app-action').innerHTML=stopActionView();
+    $('#design-context').innerHTML=stopDesignNotes();
+    $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${{travel:'W DRODZE',info:'NA MIEJSCU',photos:'DOKUMENTACJA',review:'GOTOWE',chat:'CZAT'}[state.screen]}`;
+    $$('[data-operation]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
+    $$('[data-route-stop]').forEach(button=>{const active=button.dataset.routeStop===state.routeStop;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+    updateScreenList();
+    $$('.screen-list [data-screen]').forEach(button=>button.classList.toggle('active',button.dataset.screen===state.screen));
+    $('#scenario-select').disabled=true;
+    $('#mobile-scenario').disabled=true;
+    $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav===(state.screen==='chat'?'chat':'now')));
+    bindStopView();
+    $('#app-scroll').scrollTop=scroll;
+    return;
+  }
   const views={info:infoView,travel:travelView,photos:piecesView,seals:cmrSealView,documents:documentsView,review:reviewView,chat:chatView,success:successView};
   $('#app').innerHTML=views[state.screen]();
   $('#app-action').innerHTML=actionView();
   $('#design-context').innerHTML=designNotes();
   $('#preview-label').textContent=`${operationName().toUpperCase()} / ${{info:'INFORMACJE',travel:'W DRODZE',photos:'SZTUKI ŁADUNKU',seals:'PLOMBA CMR',documents:'SKAN CMR',review:'ZAKOŃCZENIE',chat:'CZAT',success:'GOTOWE'}[state.screen]}`;
   $$('[data-operation]').forEach(button=>{button.classList.toggle('active',button.dataset.operation===state.operation);button.setAttribute('aria-pressed',String(button.dataset.operation===state.operation));});
+  $$('[data-route-stop]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
   $$('.screen-list [data-screen]').forEach(button=>button.classList.toggle('active',button.dataset.screen===state.screen));
   updateScreenList();
   $('#scenario-select').value=state.scenario;
   $('#mobile-scenario').value=state.scenario;
+  $('#scenario-select').disabled=false;
+  $('#mobile-scenario').disabled=false;
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav===(state.screen==='chat'?'chat':'now')));
   bindView();
   $('#app-scroll').scrollTop=scroll;
@@ -349,6 +501,54 @@ function removePiece(index){
   current().physicalConfirmed=false;
   render();
   toast(`Usunięto sztukę. Pozostało: ${count()}.`);
+}
+
+function sendChatMessage(record){
+  const input=$('#chat-message'),text=input?.value.trim();
+  if(!text){input?.focus();return;}
+  record.messages.push({text,time:'10:42'});
+  render();
+  $('#app-scroll').scrollTop=$('#app-scroll').scrollHeight;
+  toast('Wiadomość została dodana do czatu demonstracyjnego.');
+}
+
+function bindChatComposer(record){
+  if($('#chat-send'))$('#chat-send').onclick=()=>sendChatMessage(record);
+  if($('#chat-message'))$('#chat-message').onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage(record);}};
+}
+
+function bindStopAction(){
+  if(!$('#main-action'))return;
+  $('#main-action').onclick=()=>{
+    const action=$('#main-action').dataset.action;
+    if(action==='start-arrival')startArrivalCountdown();
+    if(action==='cancel-arrival')cancelArrivalCountdown(true);
+    if(action==='fuel-document')goStop('photos');
+    if(action==='stop-finish'){currentStop().finished=true;goStop('review');}
+    if(action==='fuel-finish'&&fuelingReady()){currentStop().finished=true;goStop('review');}
+    if(action==='stop-next')switchOperation('load','travel');
+  };
+}
+
+function refreshStopAction(){
+  $('#app-action').innerHTML=stopActionView();
+  bindStopAction();
+}
+
+function bindStopView(){
+  bindStopAction();
+  if($('#stop-stage-back'))$('#stop-stage-back').onclick=()=>goStop('info');
+  if($('#stop-chat-back'))$('#stop-chat-back').onclick=()=>goStop(currentStop().returnScreen||'travel');
+  $$('[data-stop-chat]').forEach(button=>button.onclick=()=>goStop('chat'));
+  bindChatComposer(currentStop());
+  $$('[data-fuel-photo]').forEach(button=>button.onclick=()=>openModal('fuel-photo',{key:button.dataset.fuelPhoto}));
+  if($('#expense-country'))$('#expense-country').onchange=event=>{currentStop().expense.country=event.target.value;render();};
+  if($('#fuel-type'))$('#fuel-type').onchange=event=>{currentStop().expense.fuelType=event.target.value;refreshStopAction();};
+  if($('#fuel-liters'))$('#fuel-liters').oninput=event=>{currentStop().expense.liters=event.target.value;refreshStopAction();};
+  if($('#fuel-price'))$('#fuel-price').oninput=event=>{currentStop().expense.price=event.target.value;refreshStopAction();};
+  if($('#with-adblue'))$('#with-adblue').onchange=event=>{currentStop().expense.withAdBlue=event.target.checked;render();};
+  if($('#adblue-liters'))$('#adblue-liters').oninput=event=>{currentStop().expense.adBlueLiters=event.target.value;refreshStopAction();};
+  if($('#adblue-price'))$('#adblue-price').oninput=event=>{currentStop().expense.adBluePrice=event.target.value;refreshStopAction();};
 }
 
 function bindView(){
@@ -389,6 +589,7 @@ function bindView(){
   if($('#stage-back'))$('#stage-back').onclick=()=>{if(!isLoad()&&state.screen==='seals'){go('travel');return;}const flow=operationFlow();go(flow[Math.max(0,flow.indexOf(state.screen)-1)]);};
   if($('#review-back'))$('#review-back').onclick=()=>go('documents');
   if($('#chat-back'))$('#chat-back').onclick=()=>go(state.returnScreen);
+  bindChatComposer(current());
   if($('#copy-reference'))$('#copy-reference').onclick=async()=>{try{await navigator.clipboard.writeText(optional().ref);toast('REF został skopiowany.');}catch{openModal('copy');}};
   $('#main-action').onclick=()=>{
     const action=$('#main-action').dataset.action;
@@ -400,7 +601,7 @@ function bindView(){
       go('photos');
     }
     if(['info','photos','seals','documents','review'].includes(action))go(action);
-    if(action==='chat-attach'&&current().started&&current().physicalConfirmed)openModal('chat-attach');
+    if(action==='chat-attach')openModal('chat-attach');
     if(action==='finish'&&allReady())openModal('finish');
     if(action==='next-point'){
       if(isLoad()){
@@ -440,7 +641,6 @@ function openModal(type,target){
     if(target.kind==='cmr'&&!cmrSealReady()){toast(isLoad()?'Najpierw naklej plombę na pustym tyle ostatniej strony CMR i zeskanuj QR.':'Najpierw zeskanuj istniejącą plombę CMR.');return;}
     if(target.kind!=='cmr'&&!current().items[target.pieceIndex]?.seal){toast(isLoad()?'Najpierw naklej i zeskanuj plombę tej sztuki.':'Najpierw zeskanuj istniejącą plombę tej sztuki.');return;}
   }
-  if(type==='chat-attach'&&(!current().started||!current().physicalConfirmed)){toast(isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.');return;}
   if(type==='scan'){
     const allowed=isLoad()?(target.kind==='cmr'?current().cmrLabel:current().items[target.index]?.label):true;
     if(!allowed)return;
@@ -464,6 +664,13 @@ function openModal(type,target){
     title='Załącz dokumenty';
     body=`<p>Wybierz konkretną sztukę i ujęcie albo dokument CMR. Kolejność procesu nadal obowiązuje.</p><div class="attachment-kind-list">${attachmentChoices()}</div>`;
   }
+  if(type==='fuel-photo'){
+    const [,label,hint]=fuelPhotoLabels[target.key];
+    target={...target,kind:'fuel-photo',routeStop:'fueling'};
+    state.modal.target=target;
+    title=label;
+    body=`<p>${esc(hint)}.</p><div class="fuel-photo-modal-icon">${icon(fuelPhotoLabels[target.key][0])}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub zdjęcie z urządzenia</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Prototyp: zdjęcie pozostaje w tej karcie i nie jest wysyłane do systemu.</p>`;
+  }
   if(type==='scan'){
     const cmr=target.kind==='cmr',piece=cmr?null:current().items[target.index];
     const expected=cmr?current().expectedCmrSeal:piece.expectedSeal;
@@ -485,6 +692,11 @@ function openModal(type,target){
     title='Pomoc przy zleceniu';
     body=`<p>${assignment.id} · ${esc(currentPlace().company)}</p><div class="help-options"><button id="help-chat">${icon('chat')}Otwórz czat ze spedytorem</button>${optional().contact?.phone?`<a class="help-contact-link" href="tel:${optional().contact.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Kontakt na miejscu: ${esc(optional().contact.name)}</a>`:''}</div>`;
   }
+  if(type==='route-help'){
+    const stop=stopDefinition();
+    title=`Pomoc · ${stop.title}`;
+    body=`<p>${esc(stop.company)}<br>${esc(stop.address)}</p><div class="help-options"><button id="help-stop-chat">${icon('chat')}Otwórz czat ze spedytorem CWP</button><a class="help-contact-link" href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Zadzwoń do CWP · ${esc(dispatcher.phone)}</a></div><p class="small-note">Prototyp: kontakt i dane punktu są demonstracyjne.</p>`;
+  }
   if(type==='finish'){
     title=`Zakończyć ${isLoad()?'załadunek':'rozładunek'}?`;
     const photoTotal=count()*(isLoad()?2:1);
@@ -498,7 +710,7 @@ function openModal(type,target){
   $$('[data-attachment-kind]').forEach(button=>button.onclick=()=>openModal('attachment',{kind:button.dataset.attachmentKind,pieceIndex:button.dataset.attachmentPiece!==undefined?Number(button.dataset.attachmentPiece):undefined,source:'chat'}));
   if($('#save-piece'))$('#save-piece').onclick=()=>savePiece(target.index);
   if($('#choose-file'))$('#choose-file').onclick=()=>{
-    uploadTarget={operation:state.operation,...target};
+    uploadTarget=target.routeStop?{...target}:{operation:state.operation,...target};
     const input=$('#file-input');
     input.value='';
     input.multiple=target.kind==='cmr';
@@ -507,6 +719,15 @@ function openModal(type,target){
     input.click();
   };
   if($('#use-demo'))$('#use-demo').onclick=()=>{
+    if(target.routeStop==='fueling'){
+      const previous=state.routeStops.fueling.photos[target.key];
+      revoke(previous);
+      state.routeStops.fueling.photos[target.key]={hash:`demo-fuel-${target.key}`,demo:true,kind:'fuel-photo',name:fuelPhotoLabels[target.key][1],mime:'image/svg+xml',url:demoPhoto(target.key==='receipt'?0:1),source:'fuel-operation'};
+      closeModal(false);
+      render();
+      toast('Zdjęcie z tankowania zostało dodane.');
+      return;
+    }
     let record;
     if(target.kind==='cmr'){
       let page=1;
@@ -530,6 +751,7 @@ function openModal(type,target){
   if($('#qr-code'))$('#qr-code').onkeydown=event=>{if(event.key==='Enter')saveQR(target,event.target.value);};
   if($('#cwp-chat'))$('#cwp-chat').onclick=()=>go('chat');
   if($('#help-chat'))$('#help-chat').onclick=()=>go('chat');
+  if($('#help-stop-chat'))$('#help-stop-chat').onclick=()=>goStop('chat');
   if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!allReady())return;current().finished=true;go('success');};
   if($('#confirm-reset'))$('#confirm-reset').onclick=()=>reset();
   $('.modal-sheet').focus();
@@ -591,8 +813,11 @@ function saveQR(target,raw){
 function reset(){
   cancelArrivalCountdown(false);
   Object.values(state.operations).forEach(operation=>{operation.items.forEach(revokePiece);operation.documents.forEach(revoke);});
+  Object.values(state.routeStops).forEach(stop=>{if(stop.photos)Object.values(stop.photos).forEach(revoke);});
   state.operations={load:fresh('load'),unload:fresh('unload')};
+  state.routeStops={parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')};
   state.operation='load';
+  state.routeStop=null;
   state.scenario='basic';
   state.language='it';
   state.manualLanguage=false;
@@ -608,6 +833,23 @@ $('#file-input').onchange=async event=>{
   uploadBusy=true;
   const target={...uploadTarget};
   let added=0;
+  if(target.routeStop==='fueling'){
+    try{
+      const file=files[0];
+      if(!file.type.startsWith('image/')){toast('Wybierz zdjęcie JPG, PNG lub WebP.');return;}
+      if(file.size>20*1024*1024){toast('Wybierz zdjęcie do 20 MB.');return;}
+      const url=URL.createObjectURL(file);
+      if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      const previous=state.routeStops.fueling.photos[target.key];
+      revoke(previous);
+      state.routeStops.fueling.photos[target.key]={hash:`fuel-${target.key}-${Date.now()}`,url,name:file.name,mime:file.type,demo:false,kind:'fuel-photo',source:'fuel-operation'};
+      closeModal(false);
+      render();
+      toast('Zdjęcie z tankowania zostało dodane.');
+    }catch(error){toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}
+    finally{uploadBusy=false;}
+    return;
+  }
   try{
     for(const file of files){
       const pdf=file.type==='application/pdf'||(/\.pdf$/i.test(file.name)&&!file.type);
@@ -629,10 +871,17 @@ $('#file-input').onchange=async event=>{
 };
 
 $$('[data-operation]').forEach(button=>button.onclick=()=>switchOperation(button.dataset.operation));
-$$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>go(button.dataset.screen));
+$$('[data-route-stop]').forEach(button=>button.onclick=()=>switchRouteStop(button.dataset.routeStop,'travel'));
+$$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>state.routeStop?goStop(button.dataset.screen):go(button.dataset.screen));
 $('#scenario-select').onchange=event=>switchScenario(event.target.value);
 $('#mobile-scenario').onchange=event=>switchScenario(event.target.value);
 $$('[data-nav]').forEach(button=>button.onclick=()=>{
+  if(state.routeStop){
+    if(button.dataset.nav==='now')goStop(currentStop().finished?'review':currentStop().returnScreen==='chat'?'travel':currentStop().screen==='chat'?(currentStop().returnScreen||'travel'):currentStop().screen);
+    if(button.dataset.nav==='chat')goStop('chat');
+    if(button.dataset.nav==='help')openModal('route-help');
+    return;
+  }
   if(button.dataset.nav==='now')go(current().arrived?(current().finished?'success':current().step):'travel');
   if(button.dataset.nav==='chat')go('chat');
   if(button.dataset.nav==='help')openModal('help');
