@@ -2,7 +2,9 @@ name: Sprawdź i opublikuj podgląd
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - codex/tacho-panel
   workflow_dispatch:
 
 permissions:
