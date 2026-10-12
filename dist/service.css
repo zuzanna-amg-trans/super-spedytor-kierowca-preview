@@ -121,12 +121,12 @@
 
 /* Vehicle inventory protocol: a second module inside the Service area. */
 .service-module-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0 0 15px;padding:5px;border:1px solid #e0e4dc;border-radius:14px;background:#ecefea}
-.service-module-switch button{min-width:0;min-height:58px;display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;color:#798274;text-align:left}
-.service-module-switch button>.icon{width:20px;height:20px;flex-shrink:0}
+.service-module-switch button{min-width:0;min-height:58px;display:flex;align-items:center;gap:6px;padding:8px 6px;border-radius:10px;color:#798274;text-align:left}
+.service-module-switch button>.icon{width:17px;height:17px;flex-shrink:0}
 .service-module-switch button>span{min-width:0}
 .service-module-switch strong,.service-module-switch small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.service-module-switch strong{font-size:11px;line-height:1.45}
-.service-module-switch small{margin-top:2px;font-size:8px;line-height:1.35;color:#90998b}
+.service-module-switch strong{font-size:9px;line-height:1.45}
+.service-module-switch small{margin-top:2px;font-size:7px;line-height:1.35;color:#90998b}
 .service-module-switch button.active{background:#fff;color:#a34616;box-shadow:0 3px 9px rgba(54,61,54,.08)}
 .service-module-switch button.active small{color:#aa795e}
 .inventory-screen{padding-bottom:36px}
