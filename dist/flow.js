@@ -6,44 +6,76 @@ const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/><
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const has=value=>value!==null&&value!==undefined&&String(value).trim()!=='';
 const materialWord=value=>value===1?'materiał':(value%10>=2&&value%10<=4&&(value%100<12||value%100>14)?'materiały':'materiałów');
-const dispatcher={name:'Spedytor CWP',phone:'+48 000 000 000',demo:true};
-const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.address||`${place.company}, ${place.countryName}`)}`;
+const dispatcher={name:'Spedytor testowy',phone:'+48 000 000 000',demo:true};
+const mapTarget=place=>has(place.latitude)&&has(place.longitude)?`${place.latitude},${place.longitude}`:(place.address||`${place.company}, ${place.countryName}`);
+const locationUrl=place=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapTarget(place))}`;
+const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapTarget(place))}`;
+const androidShell=document.documentElement.classList.contains('android-shell');
+const previewMode=new URLSearchParams(window.location.search).get('preview')==='1';
+const collectionPreviewRole=new URLSearchParams(window.location.search).get('cmrView')==='handover'?'transferor':'receiver';
+const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
+const nativeHasArrival=stopId=>{
+  try{return androidShell&&Boolean(window.SuperSpedytorNative?.hasArrival(stopId));}catch{return false;}
+};
+const nativeConfirmArrival=operation=>{
+  try{if(androidShell)window.SuperSpedytorNative?.markArrivalConfirmed(routePointIds[operation]);}catch{}
+};
+const nativeReset=()=>{
+  try{if(androidShell)window.SuperSpedytorNative?.resetDemo();}catch{}
+};
+const nativeOpenExternal=url=>{
+  try{if(androidShell)window.SuperSpedytorNative?.openExternal(url);}catch{}
+};
 
-const pickup={company:'Cardo Roma Hotel',address:'Viale del Pattinaggio 100, 00144 Roma RM, Włochy',country:'IT',countryName:'Włochy',map:'https://maps.app.goo.gl/VHKsFNUHtNADEfki6'};
-const delivery={company:'One World Rental Europe B.V.',address:'Brugge 14–16, 2993 LB Barendrecht, Holandia',country:'NL',countryName:'Holandia',map:'https://maps.app.goo.gl/yeTaQnNQw4w2F6YN6'};
+const pickup={company:'Magazyn demonstracyjny Alfa',address:'Punkt demonstracyjny A · Warszawa',country:'PL',countryName:'Polska',latitude:52.22970,longitude:21.01220};
+const delivery={company:'Centrum demonstracyjne Beta',address:'Punkt demonstracyjny B · Poznań',country:'PL',countryName:'Polska',latitude:52.40640,longitude:16.92520};
 const assignment={
-  id:'SS/26/105/H',
+  id:'DEMO/0001',
   pickup,
   delivery,
   cargo:{name:'Sprzęt w skrzyniach transportowych',quantity:2,unit:'skrzynie',mass:240,dimensions:'120 × 80 × 100 cm / szt.',demo:true}
 };
 const routeStopDefinitions={
+  collection:{
+    title:'Dokumenty CMR',genitive:'przekazanie dokumentów',icon:'envelope',country:'PL',countryName:'Polska',
+    company:'Spotkanie kierowców na trasie',address:'Miejsce ustalone między kierowcami',
+    note:'Oryginały CMR z ładunków, które zostały już rozładowane'
+  },
   parking:{
-    title:'Parking',genitive:'parking',icon:'parking',country:'DE',countryName:'Niemcy',
-    company:'A7 Truck Parking Wörnitz',address:'Bastenauer Straße 12, 91637 Wörnitz, Niemcy',
+    title:'Parking',genitive:'parking',icon:'parking',country:'PL',countryName:'Polska',
+    company:'Parking demonstracyjny',address:'Punkt demonstracyjny P · Łódź',latitude:51.75920,longitude:19.45600,
     note:'Miejsce demonstracyjne · parking dla pojazdów ciężarowych',
-    details:[['Rezerwacja','Do 06:00'],['Ochrona','24/7'],['Miejsce','P-18']]
+    details:[['Rezerwacja','Do 18:00'],['Ochrona','24/7'],['Miejsce','P-01']]
   },
   fueling:{
-    title:'Tankowanie',genitive:'tankowanie',icon:'fuel',country:'DE',countryName:'Niemcy',
-    company:'DKV Truck Station Wörnitz',address:'Bastenauer Straße 10, 91637 Wörnitz, Niemcy',
-    note:'Stacja demonstracyjna · sieć DKV',
-    details:[['Sieć','DKV'],['Paliwo','Diesel'],['Dodatkowo','AdBlue']],
-    card:{name:'Karta DKV · demonstracyjna',number:'•••• 7842',pin:'2486',vehicle:'Pojazd demonstracyjny · TRUCK 01'}
+    title:'Tankowanie',genitive:'tankowanie',icon:'fuel',country:'PL',countryName:'Polska',
+    company:'Stacja demonstracyjna',address:'Punkt demonstracyjny T · Łódź',latitude:51.76020,longitude:19.45800,
+    note:'Stacja demonstracyjna · operator testowy',
+    details:[['Sieć','Testowa'],['Paliwo','Diesel'],['Dodatkowo','AdBlue']],
+    card:{name:'Karta paliwowa · demonstracyjna',number:'•••• 0000',pin:'0000',vehicle:'Pojazd demonstracyjny'}
   }
 };
+const collectionSources=[
+  {id:'driver-demo-a',name:'Kierowca demonstracyjny A',vehicle:'Pojazd DEMO 01'},
+  {id:'driver-demo-b',name:'Kierowca demonstracyjny B',vehicle:'Pojazd DEMO 02'}
+];
+const collectionOrders=[
+  {id:'handover-demo-1',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0001',qrCode:'DEMO-CMR-0001',unloadedAt:'11 paź · 16:40'},
+  {id:'handover-demo-2',sourceId:'driver-demo-b',orderId:'DEMO/CMR/0002',qrCode:'DEMO-CMR-0002',unloadedAt:'12 paź · 08:15'},
+  {id:'handover-demo-3',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0003',qrCode:'DEMO-CMR-0003',unloadedAt:'12 paź · 09:20'}
+];
 const scenarios={
   basic:{
     load:{ref:null,contact:null,instructions:null,notes:[],photos:[],gate:null,parking:null,warehouse:null,ramp:null},
     unload:{ref:null,contact:null,instructions:null,notes:[],photos:[],gate:null,parking:null,warehouse:null,ramp:null}
   },
   contact:{
-    load:{ref:null,contact:{name:'Joanne Herman',phone:'+44 7779651471'},instructions:'Towar jest przechowywany w „Sferze nr 1”.',notes:['Osoba kontaktowa będzie na miejscu jutro rano w celu załadunku.'],photos:[],gate:null,parking:null,warehouse:null,ramp:null},
-    unload:{ref:null,contact:{name:'Magazyn One World Rental',phone:'+31 10 000 0000'},instructions:'Po przyjeździe zgłoś się do magazynu B. Skrzynie zostaw w wyznaczonej strefie rozładunku przy rampie 4.',notes:['Przed odjazdem poproś osobę kontaktową o potwierdzenie odbioru.'],photos:[],gate:'B',parking:'P2',warehouse:'B',ramp:'4'}
+    load:{ref:null,contact:{name:'Kontakt testowy A',phone:'+48 000 000 001'},instructions:'Towar jest przechowywany w demonstracyjnej strefie nr 1.',notes:['Kontakt testowy będzie na miejscu w oknie załadunku.'],photos:[],gate:null,parking:null,warehouse:null,ramp:null},
+    unload:{ref:null,contact:{name:'Kontakt testowy B',phone:'+48 000 000 002'},instructions:'Po przyjeździe zgłoś się do magazynu testowego B. Skrzynie zostaw w strefie rozładunku przy rampie 4.',notes:['Przed odjazdem poproś kontakt testowy o potwierdzenie odbioru.'],photos:[],gate:'B',parking:'P2',warehouse:'B',ramp:'4'}
   },
   materials:{
-    load:{ref:'REF-DEMO-0814',refDemo:true,contact:{name:'Joanne Herman',phone:'+44 7779651471'},instructions:'Towar jest przechowywany w „Sferze nr 1”.',notes:['Osoba kontaktowa będzie na miejscu jutro rano w celu załadunku.'],photos:[{name:'Zdjęcie miejsca odbioru',url:demoPhoto(1),demo:true},{name:'Zdjęcie przygotowanego ładunku',url:demoPhoto(0),demo:true}],gate:null,parking:null,warehouse:null,ramp:null},
-    unload:{ref:'DEL-DEMO-0814',refDemo:true,contact:{name:'Magazyn One World Rental',phone:'+31 10 000 0000'},instructions:'Wjedź bramą B i podjedź pod rampę 4. Skrzynie zostaw w oznaczonej strefie B obok regałów.',notes:['Nie zostawiaj ładunku w ciągu komunikacyjnym.'],photos:[{name:'Miejsce pozostawienia ładunku',url:demoPhoto(1),demo:true},{name:'Wjazd do strefy rozładunku',url:demoPhoto(0),demo:true}],gate:'B',parking:'P2',warehouse:'B',ramp:'4'}
+    load:{ref:'REF-DEMO-0001',refDemo:true,contact:{name:'Kontakt testowy A',phone:'+48 000 000 001'},instructions:'Towar jest przechowywany w demonstracyjnej strefie nr 1.',notes:['Kontakt testowy będzie na miejscu w oknie załadunku.'],photos:[{name:'Zdjęcie miejsca odbioru',url:demoPhoto(1),demo:true},{name:'Zdjęcie przygotowanego ładunku',url:demoPhoto(0),demo:true}],gate:null,parking:null,warehouse:null,ramp:null},
+    unload:{ref:'DEL-DEMO-0001',refDemo:true,contact:{name:'Kontakt testowy B',phone:'+48 000 000 002'},instructions:'Wjedź bramą B i podjedź pod rampę 4. Skrzynie zostaw w oznaczonej strefie testowej B.',notes:['Nie zostawiaj ładunku w ciągu komunikacyjnym.'],photos:[{name:'Miejsce pozostawienia ładunku',url:demoPhoto(1),demo:true},{name:'Wjazd do strefy rozładunku',url:demoPhoto(0),demo:true}],gate:'B',parking:'P2',warehouse:'B',ramp:'4'}
   }
 };
 
@@ -62,7 +94,7 @@ const makePiece=(number,values={})=>({
 const demoLoadingPhoto=(number,side)=>({hash:`loading-photo-${number}-${side}`,demo:true,kind:`photo-${side}`,mime:'image/svg+xml',name:`Sztuka-${number}-${side}`,url:demoPhoto(side==='near'?0:1),source:'load-operation',chatSynced:true});
 const demoLoadingDocuments=()=>[{hash:'loading-cmr-demo-1',demo:true,kind:'cmr',mime:'image/svg+xml',name:'CMR-z-zaladunku-strona-1',source:'load-operation',chatSynced:true}];
 const defaultPieces=()=>Array.from({length:assignment.cargo.quantity},(_,index)=>makePiece(index+1));
-const defaultUnloadPieces=()=>Array.from({length:assignment.cargo.quantity},(_,index)=>makePiece(index+1,{expectedSeal:`SS-260814-${String(index+1).padStart(2,'0')}`,loadingPhotos:{near:demoLoadingPhoto(index+1,'near'),far:demoLoadingPhoto(index+1,'far')}}));
+const defaultUnloadPieces=()=>Array.from({length:assignment.cargo.quantity},(_,index)=>makePiece(index+1,{expectedSeal:`DEMO-PL-${String(index+1).padStart(2,'0')}`,loadingPhotos:{near:demoLoadingPhoto(index+1,'near'),far:demoLoadingPhoto(index+1,'far')}}));
 const fresh=(mode='load',pieces=mode==='load'?defaultPieces():defaultUnloadPieces(),values={})=>({
   mode,
   arrived:true,
@@ -71,7 +103,7 @@ const fresh=(mode='load',pieces=mode==='load'?defaultPieces():defaultUnloadPiece
   items:pieces,
   cmrLabel:false,
   cmrSeal:null,
-  expectedCmrSeal:values.expectedCmrSeal||(mode==='unload'?'SS-260814-CMR':null),
+  expectedCmrSeal:values.expectedCmrSeal||(mode==='unload'?'DEMO-PL-CMR':null),
   loadingDocuments:mode==='unload'?(values.loadingDocuments||demoLoadingDocuments()):[],
   documents:[],
   documentsComplete:false,
@@ -84,7 +116,91 @@ const freshRouteStop=type=>({
   photos:type==='fueling'?{receipt:null,dispenser:null,nozzle:null}:null,
   expense:type==='fueling'?{country:'DE',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null
 });
-const state={operation:'load',routeStop:null,screen:'info',returnScreen:'info',scenario:'basic',language:'it',manualLanguage:false,operations:{load:fresh('load'),unload:fresh('unload')},routeStops:{parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},modal:null};
+const freshHandoverGroup=source=>({
+  sourceId:source.id,prepared:false,preparedAt:null,documents:[],
+  envelope:{contentsConfirmed:false,sealCode:null,sealedAt:null},syncState:'LOCAL_ONLY'
+});
+const freshDocumentCollection=()=>({
+  type:'collection',role:collectionPreviewRole,transferorSourceId:collectionSources[0].id,activeSourceId:null,
+  screen:'info',returnScreen:'info',started:false,finished:false,messages:[],groups:collectionSources.map(freshHandoverGroup),syncState:'LOCAL_ONLY'
+});
+const serviceDailyStorageKey='super-spedytor-service-daily-v1';
+const serviceDateKey=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+const servicePromptSlot=(date=new Date())=>date.getHours()<15?'morning':'evening';
+function readServiceDailyRecord(){
+  try{
+    const record=JSON.parse(localStorage.getItem(serviceDailyStorageKey)||'null');
+    return record&&typeof record==='object'?record:null;
+  }catch{return null;}
+}
+function writeServiceDailyRecord(changes={}){
+  try{
+    const today=serviceDateKey(),stored=readServiceDailyRecord();
+    const base=stored?.date===today?stored:{date:today,status:'due',promptSlots:[]};
+    const record={...base,...changes,date:today};
+    localStorage.setItem(serviceDailyStorageKey,JSON.stringify(record));
+    return record;
+  }catch{return null;}
+}
+function clearServiceDailyRecord(){
+  try{localStorage.removeItem(serviceDailyStorageKey);}catch{}
+}
+function serviceCompletedToday(){
+  const record=readServiceDailyRecord();
+  return Boolean(record?.date===serviceDateKey()&&record.status==='done');
+}
+function markServiceDailyDone(time){
+  writeServiceDailyRecord({status:'done',completedAt:new Date().toISOString(),submittedAt:time,snoozeUntil:null});
+}
+function markServiceDailyDue(){
+  const record=readServiceDailyRecord();
+  writeServiceDailyRecord({status:'due',completedAt:null,submittedAt:null,promptSlots:record?.date===serviceDateKey()?record.promptSlots||[]:[]});
+}
+function serviceReminderDue(){
+  const now=new Date(),record=readServiceDailyRecord();
+  if(record?.date===serviceDateKey(now)&&record.status==='done')return false;
+  if(record?.date!==serviceDateKey(now))return true;
+  if(record.snoozeUntil&&Date.now()<new Date(record.snoozeUntil).getTime())return false;
+  return !(record.promptSlots||[]).includes(servicePromptSlot(now));
+}
+function recordServiceReminderShown(){
+  const now=new Date(),record=readServiceDailyRecord();
+  const slots=record?.date===serviceDateKey(now)?record.promptSlots||[]:[];
+  writeServiceDailyRecord({status:'due',promptSlots:[...new Set([...slots,servicePromptSlot(now)])],lastPromptedAt:now.toISOString(),snoozeUntil:null});
+}
+function postponeServiceReminder(){
+  const now=new Date(),later=new Date(now),record=readServiceDailyRecord();
+  if(now.getHours()<18)later.setHours(18,0,0,0);else later.setTime(now.getTime()+60*60*1000);
+  const slots=(record?.date===serviceDateKey(now)?record.promptSlots||[]:[]).filter(slot=>slot!==servicePromptSlot(now));
+  writeServiceDailyRecord({status:'due',promptSlots:slots,snoozeUntil:later.toISOString()});
+  return now.getHours()<18?'wieczorem po otwarciu aplikacji':'za godzinę po ponownym otwarciu aplikacji';
+}
+function updateServiceNavIndicator(){
+  const button=$('[data-nav="service"]');
+  if(!button)return;
+  const due=!serviceCompletedToday();
+  button.classList.toggle('service-due',due);
+  button.setAttribute('aria-label',due?'Serwis — dzisiejsza ankieta do wypełnienia':'Serwis — dzisiejsza ankieta wykonana');
+}
+function maybeShowDailyServiceReminder(){
+  if(state.modal||state.serviceOpen||!serviceReminderDue())return;
+  recordServiceReminderShown();
+  openModal('daily-service',{});
+}
+const freshServiceSurvey=()=>({
+  date:serviceDateKey(),
+  oil:'',adBlue:'',serviceDistance:'',afterService:false,note:'',
+  photos:{oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},
+  submitted:false,submittedAt:null
+});
+const initialLoad=fresh('load');
+if(androidShell)initialLoad.arrived=nativeHasArrival(routePointIds.load);
+const state={operation:'load',routeStop:null,screen:androidShell&&!initialLoad.arrived?'travel':'info',returnScreen:'info',scenario:'basic',language:'pl',manualLanguage:false,operations:{load:initialLoad,unload:fresh('unload')},routeStops:{collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},serviceOpen:false,serviceSurvey:freshServiceSurvey(),modal:null};
+function ensureServiceSurveyToday(){
+  if(state.serviceSurvey.date===serviceDateKey())return;
+  Object.values(state.serviceSurvey.photos).forEach(revoke);
+  state.serviceSurvey=freshServiceSurvey();
+}
 const dictionary={pl:{pickup:'ZAŁADUNEK',delivery:'ROZŁADUNEK',flag:'🇵🇱'},en:{pickup:'PICKUP',delivery:'DELIVERY',flag:'🇬🇧'},de:{pickup:'BELADUNG',delivery:'ENTLADUNG',flag:'🇩🇪'},it:{pickup:'CARICO',delivery:'SCARICO',flag:'🇮🇹'}};
 
 const current=()=>state.operations[state.operation];
@@ -107,6 +223,15 @@ const documentationSteps=()=>isLoad()?['photos','seals','documents']:['seals','p
 const operationFlow=()=>isLoad()?['info',...documentationSteps(),'review']:['seals','info','photos','documents','review'];
 const progress=()=>isLoad()?[cargoReady(),cmrSealReady(),documentReady()]:[cmrSealReady(),cargoReady(),documentReady()];
 const completedPieces=()=>current().items.filter(item=>pieceReady(item)).length;
+const collection=()=>state.routeStops.collection;
+const collectionSource=id=>collectionSources.find(source=>source.id===id)||collectionSources[0];
+const collectionGroup=(sourceId=collection().activeSourceId)=>sourceId?collection().groups.find(group=>group.sourceId===sourceId)||null:null;
+const collectionGroupOrders=(group=collectionGroup())=>group?collectionOrders.filter(order=>order.sourceId===group.sourceId):[];
+const availableCollectionOrders=(group=collectionGroup())=>group?collectionGroupOrders(group).filter(order=>!group.documents.some(record=>record.handoverId===order.id)):[];
+const collectionDocumentsReady=(group=collectionGroup())=>Boolean(group&&collectionGroupOrders(group).length>0&&group.documents.length===collectionGroupOrders(group).length&&group.documents.every(record=>record.confirmed));
+const collectionEnvelopeReady=(group=collectionGroup())=>Boolean(group&&collectionDocumentsReady(group)&&group.envelope.contentsConfirmed&&group.envelope.sealCode);
+const allCollectionGroupsReady=()=>collection().groups.every(group=>collectionEnvelopeReady(group));
+const nextPendingCollectionGroup=()=>collection().groups.find(group=>!collectionEnvelopeReady(group));
 
 let toastTimer,uploadTarget,focusBeforeModal,uploadBusy=false,arrivalCountdown=null;
 
@@ -118,6 +243,20 @@ function toast(message){
 }
 function revoke(record){if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
+
+function openService(){
+  cancelArrivalCountdown(false);
+  closeModal(false);
+  state.serviceOpen=true;
+  render();
+  $('#app-scroll').scrollTop=0;
+}
+function closeService(){
+  state.serviceOpen=false;
+  closeModal(false);
+  render();
+  $('#app-scroll').scrollTop=0;
+}
 
 function cancelArrivalCountdown(showToast=false){
   if(!arrivalCountdown)return;
@@ -140,6 +279,7 @@ function startArrivalCountdown(){
     if(arrivalCountdown.remaining<=0){
       clearInterval(arrivalCountdown.timer);
       arrivalCountdown=null;
+      nativeConfirmArrival(operation);
       if(state.routeStop){currentStop().arrived=true;goStop('info');}
       else{current().arrived=true;go(isLoad()?'info':'seals');}
       return;
@@ -150,6 +290,7 @@ function startArrivalCountdown(){
 
 function go(screen){
   if(arrivalCountdown)cancelArrivalCountdown(false);
+  state.serviceOpen=false;
   const arrivalSeal=screen==='seals'&&!isLoad()&&current().arrived;
   if(['photos','seals','documents','review'].includes(screen)&&(!current().started||!current().physicalConfirmed)&&!arrivalSeal){
     toast(isLoad()?'Najpierw potwierdź wykonanie załadunku.':'Najpierw potwierdź liczbę sztuk przeznaczonych do rozładunku.');
@@ -182,8 +323,15 @@ function go(screen){
 }
 function goStop(screen){
   if(arrivalCountdown)cancelArrivalCountdown(false);
+  state.serviceOpen=false;
   const stop=currentStop();
   if(!stop)return;
+  if(state.routeStop==='collection'){
+    if(collection().role!=='receiver'&&screen!=='info'){toast('To konto ma tylko zadanie przygotowania własnych dokumentów.');return;}
+    if(screen==='photos'&&(!collection().started||!collectionGroup())){toast('Najpierw zeskanuj QR pierwszego dokumentu CMR. System sam rozpozna kierowcę.');return;}
+    if(screen==='documents'&&!collectionDocumentsReady()){toast('Najpierw zeskanuj i sprawdź wszystkie CMR-y tego kierowcy.');return;}
+    if(screen==='review'&&!collectionEnvelopeReady()){toast('Najpierw potwierdź zawartość, naklej nieużytą plombę i zeskanuj jej QR.');return;}
+  }
   if(screen==='chat'&&state.screen!=='chat')stop.returnScreen=state.screen;
   closeModal(false);
   state.screen=screen;
@@ -202,6 +350,7 @@ function switchOperation(operation,screen='info'){
 }
 function switchRouteStop(type,screen='travel'){
   cancelArrivalCountdown(false);
+  state.serviceOpen=false;
   state.routeStop=type;
   const stop=currentStop();
   state.screen=screen||stop.screen;
@@ -223,7 +372,7 @@ function languageControl(){
 }
 function pageHeading(travel=false){
   const place=currentPlace();
-  return `<div class="operation-heading"><div><div class="overline">${esc(assignment.id)} · PUNKT ${isLoad()?'1':'2'}/2</div><h2>${operationName()}</h2></div><div class="header-tools"><a class="tool-button location-tool" href="${place.map}" target="_blank" rel="noopener" aria-label="Otwórz pinezkę lokalizacji"><span>${icon('pin')}</span><small>Pinezka</small></a><a class="tool-button location-tool" href="${navigationUrl(place)}" target="_blank" rel="noopener" aria-label="Rozpocznij nawigację do punktu"><span>${icon('nav')}</span><small>Nawiguj</small></a>${languageControl()}</div></div><div class="heading-status"><span class="badge ${travel?'orange':'green'}">${icon(travel?'route':'check')}${travel?'W drodze':'Jesteś na miejscu'}</span><span class="arrival-time">${place.country} · ${place.countryName}</span></div>`;
+  return `<div class="operation-heading"><div><div class="overline">${esc(assignment.id)} · PUNKT ${isLoad()?'1':'2'}/2</div><h2>${operationName()}</h2></div><div class="header-tools">${languageControl()}</div></div><div class="heading-status"><span class="badge ${travel?'orange':'green'}">${icon(travel?'route':'check')}${travel?'W drodze':'Jesteś na miejscu'}</span><span class="arrival-time">${place.country} · ${place.countryName}</span></div>`;
 }
 function travelCargoView(){
   const title=isLoad()?'Co będziesz ładować':'Co będziesz rozładowywać';
@@ -231,20 +380,36 @@ function travelCargoView(){
   const totalMass=current().items.reduce((sum,piece)=>sum+(Number(piece.mass)||0),0);
   return `<div class="travel-cargo-preview" aria-label="${title}"><div class="travel-cargo-heading"><span>${icon('box')}</span><div><small>${title}</small><strong>${quantity}${totalMass?` · ${totalMass} kg`:''}</strong></div></div><div class="travel-cargo-list">${current().items.map((piece,index)=>`<div class="travel-cargo-item"><span class="piece-index">${index+1}</span><div><strong>${esc(piece.name)}</strong><small>${[piece.description,has(piece.mass)?`${piece.mass} kg`:null,piece.dimensions].filter(has).map(esc).join(' · ')}</small></div></div>`).join('')}</div></div>`;
 }
+function locationActionsView(place,extraClass=''){
+  const canNavigate=has(place.address)||(has(place.latitude)&&has(place.longitude));
+  if(!canNavigate)return '';
+  return `<div class="place-location-actions ${extraClass}"><a class="place-location-button pin-action" href="${locationUrl(place)}" rel="noopener" aria-label="Pokaż punkt na mapie bez wyznaczania trasy"><span>${icon('pin')}</span><small>Pinezka</small></a><a class="place-location-button navigation-action" href="${navigationUrl(place)}" rel="noopener" aria-label="Rozpocznij nawigację do punktu"><span>${icon('nav')}</span><small>Nawiguj</small></a></div>`;
+}
+function unloadBeforeArrivalView(){
+  if(isLoad())return '';
+  const pieces=current().items.map((piece,index)=>({piece,index,seal:piece.expectedSeal})).filter(item=>has(item.seal));
+  const cmrSeal=current().expectedCmrSeal;
+  const photos=(optional().photos||[]).map((photo,index)=>({photo,index})).filter(({photo})=>has(photo?.url));
+  if(!pieces.length&&!has(cmrSeal)&&!photos.length)return '';
+  const seals=pieces.map(({piece,index,seal})=>`<div class="unload-next-row"><span>Plomba ładunku · sztuka ${index+1}</span><strong>${esc(seal)}</strong><small>${esc(piece.name)}</small></div>`).join('');
+  const cmr=has(cmrSeal)?`<div class="unload-next-row"><span>Plomba dokumentu CMR</span><strong>${esc(cmrSeal)}</strong><small>Numer zapisany podczas załadunku</small></div>`:'';
+  const suppliedPhotos=photos.length?`<div class="unload-place-photo-title">${icon('camera')}<span><strong>Zdjęcia miejsca rozładunku</strong><small>Sprawdź przed dojazdem</small></span></div><div class="unload-place-photos">${photos.map(({photo,index})=>`<button type="button" data-supplied-photo="${index}" aria-label="Otwórz: ${esc(photo.name)}"><img src="${photo.url}" alt="${esc(photo.name)}${photo.demo?' — przykład demonstracyjny':''}"><span>${esc(photo.name)}</span></button>`).join('')}</div>`:'';
+  return `<section class="panel unload-next-panel" aria-label="Informacje potrzebne przed rozładunkiem"><div class="section-kicker">${icon('qr')} PRZED DOJAZDEM</div><h3>Plomby ładunku</h3>${seals}${cmr}<div class="unload-next-instruction">${icon('info')}<div><p><strong>Numery są dostępne już w trasie.</strong> Po dotarciu porównaj je z plombami fizycznie znajdującymi się na sztukach i na CMR.</p></div></div>${suppliedPhotos}<div class="unload-photo-rule">${icon('camera')}<p><strong>Zdjęcie z rozładunku</strong>Po zdjęciu każdej sztuki z pojazdu zrób jej zdjęcie na rampie albo na ziemi. Aplikacja poprosi o nie w kroku dokumentacji.</p></div></section>`;
+}
 function travelView(){
   const place=currentPlace(),data=optional();
   const access=[has(data.gate)?`Brama ${data.gate}`:null,has(data.parking)?`Parking ${data.parking}`:null,has(data.ramp)?`Rampa ${data.ramp}`:null].filter(Boolean);
   const nextStep=isLoad()?'Po potwierdzeniu dotarcia zobaczysz informacje o załadunku i listę sztuk.':'Po potwierdzeniu dotarcia aplikacja od razu poprosi o zeskanowanie plomby CMR.';
-  return `<div class="app-content travel-screen">${pageHeading(true)}<section class="travel-map-card" aria-label="Mapa dojazdu do punktu ${operationGenitive()}"><div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-street thin" d="M121 -14 C127 44 152 67 197 91 S282 128 315 220"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A15</span><span class="travel-map-road road-two">N210</span><span class="travel-map-pin">${icon('pin')}</span><span class="travel-map-label">Punkt ${operationGenitive()}</span></div><div class="travel-destination"><span class="travel-destination-icon">${icon('pin')}</span><div><small>${isLoad()?'ZAŁADUNEK':'ROZŁADUNEK'} · ${esc(place.country)}</small><h3>${esc(place.company)}</h3><p>${esc(place.address||place.countryName)}</p>${access.length?`<div class="travel-access">${access.map(item=>`<span>${esc(item)}</span>`).join('')}</div>`:''}</div></div><a class="travel-navigate-button" href="${navigationUrl(place)}" target="_blank" rel="noopener" aria-label="Nawiguj do punktu ${operationGenitive()}"><span class="travel-navigate-icon">${icon('nav')}</span><span><strong>Nawiguj</strong><small>Otwórz trasę w Google Maps</small></span>${icon('arrow')}</a>${travelCargoView()}</section><div class="travel-next-hint">${icon(isLoad()?'info':'qr')}<p><strong>${isLoad()?'Po dotarciu':'Na rozładunku najpierw CMR'}</strong>${nextStep}</p></div></div>`;
+  return `<div class="app-content travel-screen">${pageHeading(true)}<section class="travel-map-card" aria-label="Mapa dojazdu do punktu ${operationGenitive()}"><div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-street thin" d="M121 -14 C127 44 152 67 197 91 S282 128 315 220"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A15</span><span class="travel-map-road road-two">N210</span><span class="travel-map-pin">${icon('pin')}</span><span class="travel-map-label">Punkt ${operationGenitive()}</span></div><div class="travel-destination"><span class="travel-destination-icon">${icon('pin')}</span><div><small>${isLoad()?'ZAŁADUNEK':'ROZŁADUNEK'} · ${esc(place.country)}</small><h3>${esc(place.company)}</h3><div class="travel-address-row"><p>${esc(place.address||place.countryName)}</p>${locationActionsView(place,'travel-location-actions')}</div>${access.length?`<div class="travel-access">${access.map(item=>`<span>${esc(item)}</span>`).join('')}</div>`:''}</div></div>${travelCargoView()}</section>${unloadBeforeArrivalView()}<div class="travel-next-hint">${icon(isLoad()?'info':'qr')}<p><strong>${isLoad()?'Po dotarciu':'Na rozładunku najpierw CMR'}</strong>${nextStep}</p></div></div>`;
 }
 function placeView(){
   const place=currentPlace(),data=optional();
   const fields=[['Brama',data.gate],['Parking',data.parking],['Magazyn',data.warehouse],['Rampa',data.ramp]].filter(([,value])=>has(value));
-  return `<section class="panel place-panel"><div class="section-kicker">${icon('pin')} FIRMA ${isLoad()?'ZAŁADOWCY':'ODBIORCY'}</div><h3>${esc(place.company)}</h3>${has(place.address)?`<p class="address">${esc(place.address)}</p>`:''}${fields.length?`<div class="gate-chips optional-place-fields">${fields.map(([label,value])=>`<div class="gate-chip"><small>${label}</small><b>${esc(value)}</b></div>`).join('')}</div>`:''}</section>`;
+  return `<section class="panel place-panel"><div class="section-kicker">${icon('pin')} FIRMA ${isLoad()?'ZAŁADOWCY':'ODBIORCY'}</div><h3>${esc(place.company)}</h3><div class="place-address-row">${has(place.address)?`<p class="address">${esc(place.address)}</p>`:''}${locationActionsView(place)}</div>${fields.length?`<div class="gate-chips optional-place-fields">${fields.map(([label,value])=>`<div class="gate-chip"><small>${label}</small><b>${esc(value)}</b></div>`).join('')}</div>`:''}</section>`;
 }
 function destinationView(){
   const place=isLoad()?assignment.delivery:assignment.pickup;
-  return `<section class="panel destination-panel"><div class="section-kicker">${icon('route')} ${isLoad()?'DOKĄD JEDZIE ŁADUNEK':'SKĄD JEDZIE ŁADUNEK'} / ${dictionary[state.language][isLoad()?'delivery':'pickup']}</div><h4>${esc(place.company)}</h4><p>${esc(place.countryName)}${has(place.address)?`<br>${esc(place.address)}`:''}</p><a href="${place.map}" target="_blank" rel="noopener">Otwórz lokalizację ${icon('arrow')}</a></section>`;
+  return `<section class="panel destination-panel"><div class="section-kicker">${icon('route')} ${isLoad()?'DOKĄD JEDZIE ŁADUNEK':'SKĄD JEDZIE ŁADUNEK'} / ${dictionary[state.language][isLoad()?'delivery':'pickup']}</div><h4>${esc(place.company)}</h4><p>${esc(place.countryName)}${has(place.address)?`<br>${esc(place.address)}`:''}</p><a href="${locationUrl(place)}" target="_blank" rel="noopener">Otwórz lokalizację ${icon('arrow')}</a></section>`;
 }
 function cargoView(){
   return `<div class="cargo-list" aria-label="Lista sztuk ładunku ze zlecenia">${current().items.map((piece,index)=>`<section class="panel cargo-list-item"><div class="cargo-list-heading"><span class="piece-index">${index+1}</span><div><small>SZTUKA ${index+1} Z ${count()}</small><h4>${esc(piece.name)}</h4></div></div><p>${esc(piece.description)}</p><dl><div><dt>Masa</dt><dd>${has(piece.mass)?`${esc(piece.mass)} kg`:'Nie podano'}</dd></div><div><dt>Wymiary</dt><dd>${has(piece.dimensions)?esc(piece.dimensions):'Nie podano'}</dd></div></dl>${!isLoad()?`<div class="cargo-seal-reference"><span>Numer plomby z załadunku</span><strong>${esc(piece.expectedSeal||'Nie zapisano')}</strong></div>`:''}</section>`).join('')}</div><div class="cargo-total">${icon('box')}<span><strong>${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'} w zleceniu</strong><small>${assignment.cargo.mass} kg łącznie</small></span></div>`;
@@ -265,10 +430,10 @@ function piecesManager(){
   return `<div class="cargo-items-manager"><div class="cargo-items-title"><span>Faktyczne sztuki ładunku</span><b>${count()}</b></div>${current().items.map((piece,index)=>pieceSummary(piece,index,editable)).join('')}${editable?`<div class="cargo-count-actions"><button id="add-cargo-piece">${icon('plus')}<span><strong>Towaru jest więcej?</strong><small>Dodaj sztukę i jej szczegóły</small></span></button><button id="remove-last-piece" ${count()===1?'disabled':''}>${icon('close')}<span><strong>Towaru jest mniej?</strong><small>Usuń ostatnią sztukę</small></span></button></div>`:''}</div>`;
 }
 function infoView(){
-  const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie po rozładunku.';
+  const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie z rozładunku.';
   const quantity=`${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'}`;
   const confirmation=isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Sprawdziłem, że do rozładowania są ${quantity} ładunku zgodne ze zleceniem.`;
-  return `<div class="app-content">${pageHeading()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś do CWP</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
+  return `<div class="app-content">${pageHeading()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
 }
 function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
@@ -277,7 +442,7 @@ function stepHeader(screen,title,description){
 function sourceLabel(record){return record.source==='chat'?'Dodano z czatu':record.chatSynced?'Automatycznie w czacie':record.demo?'Dodano przykład':'Dodano z tego ekranu';}
 
 function piecePhotoButton(piece,index,side){
-  const photo=piece.photos[side],near=side==='near',title=side==='unload'?'Zdjęcie po rozładunku':near?'Zdjęcie z bliska':'Zdjęcie z daleka',enabled=Boolean(piece.seal);
+  const photo=piece.photos[side],near=side==='near',title=side==='unload'?'Zdjęcie z rozładunku':near?'Zdjęcie z bliska':'Zdjęcie z daleka',enabled=Boolean(piece.seal);
   const emptyHint=side==='unload'?(enabled?'Po rozładunku: na rampie lub na ziemi':'Najpierw zeskanuj plombę'):enabled?'Zrób lub dodaj zdjęcie':'Najpierw zeskanuj plombę';
   return `<button class="piece-photo-button ${photo?'done':''}" data-piece-photo="${index}" data-photo-side="${side}" ${enabled?'':'disabled'}>${photo?`<img src="${photo.url}" alt="${title} · ${esc(piece.name)}">`:`<span class="piece-photo-icon">${icon('camera')}</span>`}<span><strong>${title}</strong><small>${photo?sourceLabel(photo):emptyHint}</small></span>${photo?icon('check'):icon('arrow')}</button>`;
 }
@@ -290,12 +455,12 @@ function pieceTaskCard(piece,index){
   const load=isLoad(),taskCount=(load?[piece.label,piece.seal,piece.photos.near,piece.photos.far]:[piece.seal,piece.photos.unload]).filter(Boolean).length,total=load?4:2;
   const sealStep=load?`<label class="check-row"><input type="checkbox" data-piece-label="${index}" ${piece.label?'checked':''}><span>Plomba jest naklejona na opakowaniu</span></label>`:`<div class="expected-seal"><span>Numer plomby z załadunku</span><strong>${esc(piece.expectedSeal||'Nie zapisano')}</strong><small>Zeskanuj istniejącą plombę. Nie naklejaj nowej.</small></div>`;
   const photos=load?`${piecePhotoButton(piece,index,'near')}${piecePhotoButton(piece,index,'far')}`:piecePhotoButton(piece,index,'unload');
-  return `<section class="panel piece-task-card ${pieceReady(piece)?'complete':''}"><div class="piece-task-heading"><span class="piece-index">${index+1}</span><div><h3>${esc(piece.name)}</h3><p>${[piece.description,has(piece.mass)?`${piece.mass} kg`:null,piece.dimensions].filter(has).map(esc).join(' · ')}</p></div><span class="piece-task-progress">${taskCount}/${total}</span></div>${load?'':loadingPhotosView(piece)}<div class="piece-seal-line">${sealStep}<div class="seal-code-row">${piece.seal?`<strong>${esc(piece.seal)}</strong>`:'<span>Kod jeszcze nieodczytany</span>'}<button class="scan-button ${piece.seal?'scanned':''}" data-piece-scan="${index}" ${load&&!piece.label?'disabled':''}>${icon(piece.seal?'check':'qr')}${piece.seal?'Zmień':'Skanuj QR'}</button></div></div><div class="piece-photo-grid ${load?'':'single-photo'}">${photos}</div>${pieceReady(piece)?`<div class="piece-complete-note">${icon('check')} ${load?`Sztuka ${index+1} ma komplet zdjęć`:`Sztuka ${index+1} ma skan plomby i zdjęcie po rozładunku`}</div>`:''}</section>`;
+  return `<section class="panel piece-task-card ${pieceReady(piece)?'complete':''}"><div class="piece-task-heading"><span class="piece-index">${index+1}</span><div><h3>${esc(piece.name)}</h3><p>${[piece.description,has(piece.mass)?`${piece.mass} kg`:null,piece.dimensions].filter(has).map(esc).join(' · ')}</p></div><span class="piece-task-progress">${taskCount}/${total}</span></div>${load?'':loadingPhotosView(piece)}<div class="piece-seal-line">${sealStep}<div class="seal-code-row">${piece.seal?`<strong>${esc(piece.seal)}</strong>`:'<span>Kod jeszcze nieodczytany</span>'}<button class="scan-button ${piece.seal?'scanned':''}" data-piece-scan="${index}" ${load&&!piece.label?'disabled':''}>${icon(piece.seal?'check':'qr')}${piece.seal?'Zmień':'Skanuj QR'}</button></div></div><div class="piece-photo-grid ${load?'':'single-photo'}">${photos}</div>${pieceReady(piece)?`<div class="piece-complete-note">${icon('check')} ${load?`Sztuka ${index+1} ma komplet zdjęć`:`Sztuka ${index+1} ma skan plomby i zdjęcie z rozładunku`}</div>`:''}</section>`;
 }
 function piecesView(){
   const header=isLoad()?stepHeader('photos','Każda sztuka osobno','Dla każdej sztuki zachowaj kolejność: naklej plombę, zeskanuj QR, zrób zdjęcie z bliska i zdjęcie z daleka.'):stepHeader('photos','Plomby i zdjęcia sztuk','Porównaj towar ze zdjęciami z załadunku, zeskanuj istniejącą plombę, a po zdjęciu towaru z pojazdu zrób zdjęcie na rampie albo na ziemi, jeśli rozładunek odbywa się poza rampą.');
-  const sequence=isLoad()?'<span>1</span> Naklej plombę <b>→</b><span>2</span> Skan QR <b>→</b><span>3</span> Zdjęcie z bliska <b>→</b><span>4</span> Zdjęcie z daleka':'<span>1</span> Sprawdź zdjęcia z załadunku <b>→</b><span>2</span> Skan plomby <b>→</b><span>3</span> Rozładuj <b>→</b><span>4</span> Zdjęcie po rozładunku';
-  return `<div class="app-content">${header}<div class="piece-sequence-note">${sequence}</div>${current().items.map(pieceTaskCard).join('')}<div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcie po rozładunku każdej sztuki'} od razu ${isLoad()?'pojawią':'pojawi'} się w czacie zlecenia.</span></div></div>`;
+  const sequence=isLoad()?'<span>1</span> Naklej plombę <b>→</b><span>2</span> Skan QR <b>→</b><span>3</span> Zdjęcie z bliska <b>→</b><span>4</span> Zdjęcie z daleka':'<span>1</span> Sprawdź zdjęcia z załadunku <b>→</b><span>2</span> Skan plomby <b>→</b><span>3</span> Rozładuj <b>→</b><span>4</span> Zdjęcie z rozładunku';
+  return `<div class="app-content">${header}<div class="piece-sequence-note">${sequence}</div>${current().items.map(pieceTaskCard).join('')}<div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcie z rozładunku każdej sztuki'} od razu ${isLoad()?'pojawią':'pojawi'} się w czacie zlecenia.</span></div></div>`;
 }
 function cmrSealView(){
   const load=isLoad();
@@ -306,8 +471,8 @@ function cmrSealView(){
   const afterScan=!load&&current().cmrSeal?`<section class="prior-cmr-section"><div class="section-heading"><h3>CMR z załadunku</h3><span>Pokazany automatycznie</span></div><p class="prior-cmr-intro">Plomba jest zgodna. Poniżej znajduje się skan CMR wykonany podczas pierwszej operacji — załadunku.</p>${current().loadingDocuments.map((record,index)=>loadingDocumentRecordView(record,index)).join('')}</section>`:'';
   return `<div class="app-content">${header}${evidence}<section class="panel cmr-seal-card"><div class="cmr-seal-illustration"><span>${icon('doc')}</span><span class="cmr-sticker">QR</span></div>${card}<div class="seal-code-row">${current().cmrSeal?`<strong>${esc(current().cmrSeal)}</strong>`:'<span>Kod plomby CMR nieodczytany</span>'}<button class="scan-button ${current().cmrSeal?'scanned':''}" id="scan-cmr-seal" ${load&&!current().cmrLabel?'disabled':''}>${icon(current().cmrSeal?'check':'qr')}${scanLabel}</button></div></section>${afterScan}${load?`<div class="shared-hint">${icon('info')} Po zapisaniu QR przejdziesz do skanu wypełnionego dokumentu CMR.</div>`:''}</div>`;
 }
-function demoDocument(page=1,operation=state.operation){
-  return `<div class="demo-document"><div class="document-paper"><h4>CMR</h4><p>MIĘDZYNARODOWY SAMOCHODOWY LIST PRZEWOZOWY</p><p>Cardo Roma Hotel → One World Rental Europe B.V.</p><p>Zlecenie ${assignment.id}</p><div class="paper-grid"></div><div class="paper-signature">${operation==='load'?'Nadawca':'Odbiorca'} · ${page}</div></div><div class="demo-label">DOKUMENT DEMONSTRACYJNY</div></div>`;
+function demoDocument(page=1,operation=state.operation,orderId=assignment.id){
+  return `<div class="demo-document"><div class="document-paper"><h4>CMR</h4><p>MIĘDZYNARODOWY SAMOCHODOWY LIST PRZEWOZOWY</p><p>Magazyn demonstracyjny Alfa → Centrum demonstracyjne Beta</p><p>Zlecenie ${esc(orderId)}</p><div class="paper-grid"></div><div class="paper-signature">${operation==='load'?'Nadawca':'Odbiorca'} · ${page}</div></div><div class="demo-label">DOKUMENT DEMONSTRACYJNY</div></div>`;
 }
 function loadingDocumentRecordView(record,index){
   return `<div class="document-page prior-document-page"><h4>${record.mime==='application/pdf'?'Plik PDF':`Strona ${index+1}`}</h4>${record.demo?demoDocument(index+1,'load'):record.mime==='application/pdf'?`<a href="${record.url}" target="_blank" rel="noopener" class="pdf-preview">${icon('doc')}<strong>${esc(record.name)}</strong><span>Otwórz CMR z załadunku ${icon('arrow')}</span></a>`:`<img class="document-image" src="${record.url}" alt="Skan CMR wykonany przy załadunku">`}<div class="document-source">CMR z załadunku · tylko do wglądu</div></div>`;
@@ -325,7 +490,7 @@ function documentsView(){
   return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index)).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>Każda strona CMR lub plik PDF od razu pojawi się w czacie zlecenia.</span></div></div>`;
 }
 function reviewView(){
-  const photoTotal=count()*(isLoad()?2:1),cargoDetail=isLoad()?'Każda ma plombę, QR oraz zdjęcie z bliska i z daleka':'Każda ma zgodny skan plomby oraz zdjęcie po rozładunku',photoDetail=isLoad()?'Dwa osobne ujęcia każdej pozycji':'Jedno zdjęcie po rozładunku każdej pozycji',cmrDetail=isLoad()?'Plomba na pustym tyle ostatniej strony':'Numer zgodny z plombą zapisaną przy załadunku';
+  const photoTotal=count()*(isLoad()?2:1),cargoDetail=isLoad()?'Każda ma plombę, QR oraz zdjęcie z bliska i z daleka':'Każda ma zgodny skan plomby oraz zdjęcie z rozładunku',photoDetail=isLoad()?'Dwa osobne ujęcia każdej pozycji':'Jedno zdjęcie z rozładunku każdej pozycji',cmrDetail=isLoad()?'Plomba na pustym tyle ostatniej strony':'Numer zgodny z plombą zapisaną przy załadunku';
   const sequence=isLoad()?'sztuki ładunku → plomba CMR → skan CMR':'plomba CMR → sztuki ładunku → skan CMR po rozładunku';
   return `<div class="app-content"><button class="subpage-back" id="review-back">${icon('back')} Wróć do skanu CMR</button><div class="overline">SPRAWDŹ PRZED ZAKOŃCZENIEM</div><h2 class="stage-title">Dokumentacja gotowa</h2><p class="stage-description">Wymagana kolejność została wykonana dla zlecenia ${assignment.id}.</p><section class="panel review-checklist"><div>${icon('check')}<span>Sztuki ładunku<small>${cargoDetail}</small></span><b>${count()}/${count()}</b></div><div>${icon('check')}<span>Zdjęcia sztuk ładunku<small>${photoDetail}</small></span><b>${photoTotal}/${photoTotal}</b></div><div>${icon('check')}<span>Plomba CMR<small>${cmrDetail} · ${esc(current().cmrSeal)}</small></span><b>1/1</b></div><div>${icon('check')}<span>Pełny skan dokumentu CMR<small>${current().documents.length} ${current().documents.length===1?'plik':'pliki'} · kompletność potwierdzona</small></span><b>OK</b></div></section><p class="small-note">Zakończenie jest dostępne dopiero po wykonaniu całej sekwencji: ${sequence}.</p></div>`;
 }
@@ -338,11 +503,11 @@ function chatComposerView(){
 function chatView(){
   const record=current(),photos=photoRecords(record),autoCount=[...photos,...record.documents].filter(item=>item.chatSynced).length,photoTarget=count()*(isLoad()?2:1),sides=isLoad()?['near','far']:['unload'];
   const instruction=allReady()?'Dokumentacja wszystkich sztuk, plomba CMR i skan CMR są kompletne.':isLoad()?'Najpierw udokumentuj każdą sztukę, następnie plombę CMR, a na końcu dołącz skan CMR.':'Najpierw zeskanuj plombę CMR, następnie udokumentuj każdą sztukę, a na końcu dołącz skan CMR po rozładunku.';
-  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${assignment.id} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie po rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${assignment.id} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie z rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
 }
 function successView(){
   const photoTotal=count()*(isLoad()?2:1);
-  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('check')}</span><h2>${operationName()} zakończony</h2><p>${esc(currentPlace().company)}<br>Dokumentacja jest kompletna w tym podglądzie.</p><div class="summary-line">${icon('check')} Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')} ${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia po rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')} Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')} Pełny skan CMR <b>OK</b></div></section><p class="small-note">To demonstracja. Żadne pliki ani wiadomości nie zostały wysłane do rzeczywistego systemu.</p></div>`;
+  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('check')}</span><h2>${operationName()} zakończony</h2><p>${esc(currentPlace().company)}<br>Dokumentacja jest kompletna w tym podglądzie.</p><div class="summary-line">${icon('check')} Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')} ${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')} Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')} Pełny skan CMR <b>OK</b></div></section><p class="small-note">To demonstracja. Żadne pliki ani wiadomości nie zostały wysłane do rzeczywistego systemu.</p></div>`;
 }
 function stopMapCard(){
   const stop=stopDefinition();
@@ -354,7 +519,7 @@ function stopTravelView(){
 }
 function parkingInfoView(){
   const stop=stopDefinition();
-  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('parking')}</span><div><small>DOTARŁEŚ NA PARKING</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel parking-arrival-card"><div class="parking-place-number">P-18</div><div><small>PRZYDZIELONE MIEJSCE</small><h3>Zaparkuj na miejscu P-18</h3><p>Rezerwacja demonstracyjna jest ważna do 06:00. Parking posiada ochronę 24/7.</p></div></section><section class="panel route-arrival-summary">${stop.details.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</section><p class="small-note">Prototyp: miejsce, rezerwacja i dane parkingu są demonstracyjne.</p></div>`;
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('parking')}</span><div><small>DOTARŁEŚ NA PARKING</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel parking-arrival-card"><div class="parking-place-number">P-01</div><div><small>PRZYDZIELONE MIEJSCE</small><h3>Zaparkuj na miejscu P-01</h3><p>Rezerwacja demonstracyjna jest ważna do 18:00. Parking posiada ochronę 24/7.</p></div></section><section class="panel route-arrival-summary">${stop.details.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</section><p class="small-note">Prototyp: miejsce, rezerwacja i dane parkingu są demonstracyjne.</p></div>`;
 }
 function fuelingInfoView(){
   const stop=stopDefinition(),card=stop.card;
@@ -393,17 +558,67 @@ function fuelingExpenseView(){
 }
 function routeStopSuccessView(){
   const stop=stopDefinition();
-  if(state.routeStop==='parking')return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('parking')}</span><h2>Postój rozpoczęty</h2><p>${esc(stop.company)}<br>Miejsce P-18 · dane demonstracyjne</p><div class="summary-line">${icon('check')} Potwierdzenie dotarcia <b>OK</b></div><div class="summary-line">${icon('check')} Miejsce parkingowe <b>P-18</b></div></section></div>`;
+  if(state.routeStop==='parking')return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('parking')}</span><h2>Postój rozpoczęty</h2><p>${esc(stop.company)}<br>Miejsce P-01 · dane demonstracyjne</p><div class="summary-line">${icon('check')} Potwierdzenie dotarcia <b>OK</b></div><div class="summary-line">${icon('check')} Miejsce parkingowe <b>P-01</b></div></section></div>`;
   const expense=currentStop().expense;
   return `<div class="app-content"><button class="subpage-back" id="fuel-expense-back">${icon('back')} Wróć do wydatku</button><section class="panel completion-panel"><span class="success-icon">${icon('fuel')}</span><h2>Wydatek zapisany</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia w trakcie tankowania <b>2/2</b></div><div class="summary-line">${icon('check')} Paragon <b>1/1</b></div><div class="summary-line">${icon('check')} Diesel <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section><p class="small-note">To demonstracja. Wydatek i zdjęcia nie zostały zapisane w rzeczywistym systemie.</p></div>`;
 }
+function collectionHeader(screen,title,description){
+  const steps=['info','photos','documents','review'],index=steps.indexOf(screen),record=collection();
+  const group=collectionGroup(),done=[record.started,collectionDocumentsReady(group),collectionEnvelopeReady(group),record.finished];
+  return `<div class="stage-header">${screen!=='info'?`<button data-collection-back="${steps[Math.max(0,index-1)]}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:'<span class="collection-header-icon">'+icon('envelope')+'</span>'}<div><span>Dokumenty CMR · ${record.role==='transferor'?'twoje dokumenty':'odbiór na trasie'}</span><b>${record.role==='transferor'?'OTWARTA KOPERTA':screen==='info'?'WYBIERZ KIEROWCĘ':`KROK ${index+1} Z 4`}</b></div></div>${record.role==='receiver'?`<div class="stage-progress" aria-label="Postęp odbioru dokumentów">${steps.map((step,stepIndex)=>`<span class="${stepIndex===index?'current':done[stepIndex]?'done':''}"></span>`).join('')}</div>`:''}<h2 class="stage-title collection-stage-title">${title}</h2><p class="stage-description collection-stage-description">${description}</p>`;
+}
+function transferorCollectionView(){
+  const record=collection(),group=collectionGroup(record.transferorSourceId),source=collectionSource(group.sourceId),orders=collectionGroupOrders(group);
+  return `${collectionHeader('info','Przygotuj swoje dokumenty','Aplikacja pokazuje wyłącznie dokumenty przypisane do Twojego konta. Włóż je do jednej koperty, ale jej jeszcze nie zamykaj.')}<section class="panel collection-handover-card ${group.prepared?'prepared':''}"><div class="collection-handover-person"><span>${icon(group.prepared?'check':'envelope')}</span><div><small>ZALOGOWANY KIEROWCA · TWOJA KOPERTA</small><h3>${esc(source.name)}</h3><p>${esc(source.vehicle)}</p></div></div><div class="section-kicker">DOKUMENTY DO PRZEKAZANIA · ${orders.length}</div><div class="collection-envelope-list">${orders.map((order,index)=>`<div><span>${index+1}</span><p><strong>${esc(order.orderId)}</strong><small>Rozładunek potwierdzony · QR na dokumencie</small></p>${icon('check')}</div>`).join('')}</div><div class="collection-open-warning">${icon('info')}<p><strong>Przygotuj tylko otwartą kopertę</strong>Włóż wszystkie wymienione CMR-y. Nie naklejaj plomby i nie zamykaj koperty — osoba odbierająca zrobi to po kontroli dokumentów.</p></div>${group.prepared?`<div class="collection-prepared-state">${icon('check')}<p><strong>Dokumenty przygotowane</strong>Otwarta koperta jest gotowa do przekazania. Na tym etapie nie ma jeszcze przypisanej plomby.</p></div>`:''}</section>`;
+}
+function receiverCollectionInfoView(){
+  const record=collection(),active=collectionGroup(),activeSource=active?collectionSource(active.sourceId):null,hasOpenEnvelope=Boolean(active&&!collectionEnvelopeReady(active)&&record.started);
+  if(hasOpenEnvelope)return `${collectionHeader('info',`Dokończ odbiór od kierowcy`,`${activeSource.name} ma rozpoczętą kopertę. Wróć do niej i zakończ wszystkie CMR-y przed wyborem kolejnej osoby.`)}<section class="panel collection-active-driver"><div class="collection-active-driver-icon">${icon('envelope')}</div><div><small>AKTYWNA KOPERTA</small><h3>${esc(activeSource.name)}</h3><p>${esc(activeSource.vehicle)}</p><div class="collection-order-chips">${collectionGroupOrders(active).map(order=>`<span>${esc(order.orderId)}</span>`).join('')}</div></div></section><div class="collection-open-warning collection-large-instruction">${icon('info')}<p><strong>Teraz zajmujesz się tylko tym kierowcą</strong>Nie rozpoczynaj odbioru od innej osoby, dopóki ta koperta nie zostanie sprawdzona i zaplombowana.</p></div>`;
+  return `${collectionHeader('info','Od którego kierowcy odbierasz dokumenty?','Wybierz osobę, z którą właśnie się spotkałeś. Po wyborze zobaczysz wyłącznie jej CMR-y i jej oddzielną kopertę.')}<div class="collection-queue-title"><span>KIEROWCY I CMR-Y DO ODBIORU</span><b>${record.groups.filter(collectionEnvelopeReady).length}/${record.groups.length} koperty gotowe</b></div><div class="collection-driver-queue collection-driver-choice-list">${record.groups.map(group=>{const item=collectionSource(group.sourceId),orders=collectionGroupOrders(group),sealed=collectionEnvelopeReady(group);const content=`<span class="collection-driver-state">${sealed?icon('check'):icon('envelope')}</span><span class="collection-driver-choice-content"><strong>${esc(item.name)}</strong><small>${esc(item.vehicle)}</small><span class="collection-driver-orders">${orders.map(order=>`<b>${esc(order.orderId)}</b>`).join('')}</span>${sealed?`<em>Koperta zamknięta · plomba ${esc(group.envelope.sealCode)}</em>`:`<span class="collection-driver-choice-action">Odbieram dokumenty od tego kierowcy ${icon('arrow')}</span>`}</span>`;return sealed?`<div class="collection-driver-choice complete">${content}</div>`:`<button data-collection-source="${esc(group.sourceId)}" class="collection-driver-choice" aria-label="Odbieram dokumenty od: ${esc(item.name)}">${content}</button>`;}).join('')}</div><div class="collection-large-instruction collection-selection-help">${icon('info')}<p><strong>Jedna osoba = jedna koperta</strong>Najpierw wybierz kierowcę. Potem skanuj i sprawdzaj wyłącznie jego dokumenty.</p></div>`;
+}
+function collectionInfoView(){
+  return `<div class="app-content">${collection().role==='transferor'?transferorCollectionView():receiverCollectionInfoView()}</div>`;
+}
+function collectionDocumentPreview(record,index){
+  const source=collectionSource(record.sourceId),locked=Boolean(collectionGroup(record.sourceId).envelope.sealCode);
+  const preview=record.demo?demoDocument(1,'unload',record.orderId):record.mime==='application/pdf'?`<a href="${record.url}" target="_blank" rel="noopener" class="pdf-preview">${icon('doc')}<strong>${esc(record.name)}</strong><span>Otwórz skan CMR z systemu ${icon('arrow')}</span></a>`:`<img class="collection-document-image" src="${record.url}" alt="Skan CMR z systemu dla zlecenia ${esc(record.orderId)}">`;
+  return `<section class="panel collection-document-card ${record.confirmed?'confirmed':''}"><div class="collection-document-heading"><span class="number-circle">${index+1}</span><div>${index===0?'<span class="collection-newest-badge">NAJNOWSZY SKAN</span>':''}<small>${esc(source.name)} · ${esc(record.scannedAt||'przed chwilą')}</small><h3>${esc(record.orderId)}</h3></div>${locked?'':`<button data-remove-collection-document="${index}" aria-label="Usuń odczyt QR dokumentu ${index+1}">${icon('close')}</button>`}</div><div class="collection-match-status">${icon('check')} QR rozpoznany · wyświetlono właściwy skan CMR</div><div class="collection-preview">${preview}</div><label class="check-row collection-confirmation"><input type="checkbox" data-confirm-collection-document="${index}" ${record.confirmed?'checked':''} ${locked?'disabled':''}><span>Porównałem papierowy oryginał z wyświetlonym skanem CMR. Dokumenty są zgodne.</span></label></section>`;
+}
+function collectionScanView(){
+  const group=collectionGroup(),source=collectionSource(group.sourceId),orders=collectionGroupOrders(group),confirmed=group.documents.filter(document=>document.confirmed).length,pending=availableCollectionOrders(group);
+  return `<div class="app-content">${collectionHeader('photos',`Odbierasz dokumenty od: ${source.name}`,'Skup się teraz wyłącznie na tej osobie. Każdy nowo zeskanowany CMR pojawi się na samej górze listy.')}<div class="collection-driver-ribbon"><span>${icon('envelope')}</span><p><small>AKTYWNA KOPERTA</small><strong>${esc(source.name)}</strong>${esc(source.vehicle)}</p><b>${group.documents.length}/${orders.length}</b></div>${group.envelope.sealCode?'':pending.length?`<button class="collection-add-document collection-scan-primary" id="collection-add-document">${icon('qr')}<span><strong>${group.documents.length?'Skanuj następny CMR':'Skanuj pierwszy CMR'}</strong><small>Oczekiwane dokumenty: ${orders.length}. Po skanie dokument pojawi się poniżej.</small></span>${icon('arrow')}</button>`:''}<div class="collection-counter"><span>${icon('qr')}<strong>Zeskanowane: ${group.documents.length} z ${orders.length}</strong></span><b>Sprawdzone: ${confirmed}/${orders.length}</b></div>${group.documents.map(collectionDocumentPreview).join('')}${!pending.length&&!group.envelope.sealCode?`<div class="collection-prepared-state collection-large-instruction">${icon('check')}<p><strong>Wszystkie CMR-y są zeskanowane</strong>Sprawdź zgodność każdego dokumentu, a następnie przejdź do zamknięcia tej koperty.</p></div>`:''}<div class="collection-chain-note collection-large-instruction">${icon('info')}<p><strong>Aktualna koperta: ${esc(source.name)}</strong>Wkładaj tutaj tylko dokumenty tej osoby. CMR innego kierowcy nie zostanie dodany do tej koperty.</p></div></div>`;
+}
+function collectionEnvelopeView(){
+  const group=collectionGroup(),source=collectionSource(group.sourceId),sealed=Boolean(group.envelope.sealCode);
+  return `<div class="app-content">${collectionHeader('documents',`Zamknij kopertę · ${source.name}`,'Wybierz nieużytą plombę, naklej ją na zamknięcie koperty i zeskanuj jej QR. Dopiero ten odczyt przypisze numer plomby do koperty.')}<section class="panel collection-envelope-card"><div class="collection-envelope-visual"><span>${icon('envelope')}</span>${sealed?`<b>${icon('check')}</b>`:'<i>QR</i>'}</div><div class="collection-envelope-owner"><small>KOPERTA KIEROWCY</small><strong>${esc(source.name)}</strong><span>${esc(source.vehicle)}</span></div>${sealed?`<div class="collection-assigned-seal compact"><span>PLOMBA PRZYPISANA PRZY ZAMKNIĘCIU</span><strong>${esc(group.envelope.sealCode)}</strong></div>`:`<div class="collection-open-warning">${icon('info')}<p><strong>Plomba nie jest jeszcze przypisana</strong>Najpierw sprawdź zawartość. Potem weź dowolną nieużytą plombę, naklej ją na kopertę i zeskanuj QR — wtedy numer zostanie zapisany przy tej kopercie.</p></div>`}<div class="section-kicker">ZAWARTOŚĆ · ${group.documents.length} CMR</div><div class="collection-envelope-list">${group.documents.map((document,index)=>`<div><span>${index+1}</span><p><strong>${esc(document.orderId)}</strong><small>${esc(source.name)} · QR dokumentu sprawdzony</small></p>${icon('check')}</div>`).join('')}</div><label class="check-row collection-envelope-confirm"><input id="collection-envelope-confirm" type="checkbox" ${group.envelope.contentsConfirmed?'checked':''} ${sealed?'disabled':''}><span>Sprawdziłem zawartość i włożyłem do tej koperty wszystkie wymienione oryginały CMR tego kierowcy.</span></label><div class="seal-code-row">${sealed?`<strong>${esc(group.envelope.sealCode)}</strong>`:'<span>Brak przypisanej plomby</span>'}<button class="scan-button ${sealed?'scanned':''}" id="scan-collection-envelope" ${group.envelope.contentsConfirmed&&!sealed?'':'disabled'}>${icon(sealed?'check':'qr')}${sealed?'Zamknięta':'Naklej i skanuj plombę'}</button></div></section>${sealed?`<div class="collection-locked-note">${icon('check')}<p><strong>Ta koperta jest zamknięta</strong>Plomba ${esc(group.envelope.sealCode)} została przypisana w chwili skanowania. Dokumenty kierowcy ${esc(source.name)} są zablokowane.</p></div>`:`<p class="small-note">Numer plomby nie jest wybierany wcześniej. System sprawdzi jedynie, czy zeskanowany QR nie został już użyty.</p>`}</div>`;
+}
+function collectionReviewView(){
+  const record=collection(),group=collectionGroup(),source=collectionSource(group.sourceId),totalDocuments=record.groups.reduce((sum,item)=>sum+item.documents.length,0);
+  if(record.finished)return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('envelope')}</span><h2>Odbiór zabezpieczony</h2><p>${totalDocuments} ${totalDocuments===1?'oryginał CMR został rozdzielony':'oryginały CMR zostały rozdzielone'} do osobnych, zaplombowanych kopert kierowców.</p><div class="summary-line">${icon('check')} Kierowcy przekazujący <b>${record.groups.length}</b></div><div class="summary-line">${icon('check')} Osobne koperty <b>${record.groups.length}</b></div>${record.groups.map(item=>{const owner=collectionSource(item.sourceId);return `<div class="summary-line">${icon('check')} ${esc(owner.name)} <b>${esc(item.envelope.sealCode)}</b></div>`;}).join('')}<div class="summary-line">${icon('clock')} Synchronizacja z TMS <b>OCZEKUJE</b></div></section><p class="small-note">To demonstracja offline. Zapis nie został potwierdzony przez produkcyjny Super Spedytor.</p></div>`;
+  return `<div class="app-content">${collectionHeader('review',`Koperta zamknięta · ${source.name}`,'Sprawdź dokumenty i plombę tej osoby. Każdy kolejny kierowca przechodzi identyczny proces we własnej kopercie.')}<section class="panel review-checklist"><div>${icon('check')}<span>Kierowca przekazujący<small>${esc(source.vehicle)}</small></span><b>${esc(source.name)}</b></div><div>${icon('check')}<span>Oryginały porównane ze skanami<small>${group.documents.map(document=>esc(document.orderId)).join(' · ')}</small></span><b>${group.documents.length}</b></div><div>${icon('check')}<span>Osobna koperta<small>Nie zawiera dokumentów innych kierowców.</small></span><b>1</b></div><div>${icon('check')}<span>Plomba koperty<small>Przypisana w chwili naklejenia i zeskanowania QR.</small></span><b>${esc(group.envelope.sealCode)}</b></div></section><div class="collection-chain-note">${icon('info')}<p><strong>${allCollectionGroupsReady()?'Wszystkie koperty są gotowe':'Następny kierowca otrzyma nową kopertę'}</strong>${allCollectionGroupsReady()?'Możesz zakończyć cały odbiór i zapisać go do kolejki synchronizacji.':'Nie otwieraj ani nie uzupełniaj ponownie tej zaplombowanej koperty.'}</p></div></div>`;
+}
 function stopChatView(){
   const stop=stopDefinition(),record=currentStop();
-  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do punktu na trasie">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor CWP</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor CWP</span><p>${state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. W trakcie tankowania dodaj zdjęcie dystrybutora i pistoletu, a po zakończeniu — paragon oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-18.'}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
+  const instruction=state.routeStop==='collection'?'Dla każdego kierowcy użyj osobnej koperty. Skanuj QR z papierowych CMR-ów, porównuj je z właściwymi skanami z systemu, a plombę przypisz dopiero przy zamknięciu koperty.':state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. W trakcie tankowania dodaj zdjęcie dystrybutora i pistoletu, a po zakończeniu — paragon oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-01.';
+  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do zadania">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor testowy</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor testowy</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
 }
 function stopActionView(){
   const screen=state.screen,stop=currentStop(),definition=stopDefinition();
   let text='',action='',disabled=false,caption='';
+  if(state.routeStop==='collection'){
+    const group=collection().role==='transferor'?collectionGroup(collection().transferorSourceId):collectionGroup(),orders=collectionGroupOrders(group);
+    if(screen==='info'&&collection().role==='transferor'){text=group.prepared?'Dokumenty przygotowane':'Potwierdź przygotowanie otwartej koperty';action=group.prepared?'collection-prepared':'collection-prepare';disabled=group.prepared;caption=group.prepared?'Czekaj na osobę odbierającą. Nie zaklejaj koperty i nie naklejaj plomby.':'Włóż wymienione dokumenty do koperty, ale jej nie zamykaj i nie używaj plomby.';}
+    if(screen==='info'&&collection().role==='receiver'){
+      if(group&&collection().started&&!collectionEnvelopeReady(group)){text=`Kontynuuj kopertę · ${collectionSource(group.sourceId).name}`;action='collection-resume';caption='Nie rozpoczynaj dokumentów innej osoby, dopóki ta koperta nie zostanie zaplombowana.';}
+      else return nextPendingCollectionGroup()?'<p class="action-caption collection-selection-caption">Wybierz powyżej przycisk „Odbieram dokumenty od tego kierowcy”.</p>':'<p class="action-caption collection-selection-caption">Wszystkie osobne koperty są już zamknięte.</p>';
+    }
+    if(screen==='photos'){text='Dalej: zamknij tę kopertę';action='collection-envelope';disabled=!collectionDocumentsReady(group);caption=group.documents.length?collectionDocumentsReady(group)?'Wszystkie oryginały tego kierowcy porównano ze skanami CMR z systemu.':`Odczytane QR-y ${group.documents.length}/${orders.length} · porównaj każdy podgląd z oryginałem.`:`Zeskanuj QR na ${orders.length} ${orders.length===1?'dokumencie':'dokumentach'} tego kierowcy.`;}
+    if(screen==='documents'){text='Dalej: sprawdź tę kopertę';action='collection-review';disabled=!collectionEnvelopeReady(group);caption=collectionEnvelopeReady(group)?'Koperta tego kierowcy jest zamknięta, a zeskanowana plomba została do niej przypisana.':'Potwierdź zawartość, naklej nieużytą plombę i zeskanuj jej QR.';}
+    if(screen==='review'&&!allCollectionGroupsReady()){text='Wybierz następnego kierowcę';action='collection-next-driver';caption='Wrócisz do listy osób i rozpoczniesz dla wybranego kierowcy nową, oddzielną kopertę.';}
+    if(screen==='review'&&allCollectionGroupsReady()){text=collection().finished?'Wróć do trasy':'Zakończ cały odbiór CMR';action=collection().finished?'collection-next':'collection-finish';disabled=!allCollectionGroupsReady();caption=collection().finished?'Zapis pozostaje lokalny do czasu potwierdzenia przez TMS.':`Gotowe ${collection().groups.length}/${collection().groups.length} osobne koperty.`;}
+    if(screen==='chat')return '<p class="action-caption chat-action-caption">Wiadomości w tym prototypie są symulowane.</p>';
+    return `<div class="flow-actions"><button class="primary-button" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(action==='collection-finish'?'check':action==='collection-next'?'route':'arrow')}${text}</button></div>${caption?`<p class="action-caption">${caption}</p>`:''}`;
+  }
   if(screen==='travel'){
     const countdown=arrivalCountdown?.operation===state.routeStop?arrivalCountdown:null;
     text=countdown?`Cofnij potwierdzenie · ${countdown.remaining} s`:`Dotarłem na ${definition.genitive}`;
@@ -419,6 +634,12 @@ function stopActionView(){
   return `<div class="flow-actions"><button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
 }
 function stopDesignNotes(){
+  if(state.routeStop==='collection'){
+    const activeScreen=state.screen==='chat'?(collection().returnScreen||'info'):state.screen;
+    const steps=[['info','Wybór kierowcy z listy'],['photos','Najnowszy skan CMR na górze'],['documents','Naklejenie i przypisanie plomby'],['review','Potwierdzenie zamkniętej koperty']];
+    const activeIndex=Math.max(0,steps.findIndex(([screen])=>screen===activeScreen));
+    return `<h2>Wybierz osobę.<br>Skup się na jednej kopercie.</h2><p class="note-description">Kierowca wybiera z przydzielonej listy osobę, od której właśnie odbiera dokumenty. Potem cały ekran pokazuje wyłącznie jej CMR-y, a najnowszy skan trafia na górę.</p><div class="design-progress"><div class="design-progress-title">ODBIÓR CMR<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Jedna otwarta koperta naraz</strong><p>Kolejną osobę można wybrać dopiero po zeskanowaniu plomby bieżącej koperty. Przed zamknięciem nie ma przypisanego numeru plomby.</p></div>`;
+  }
   if(state.routeStop==='parking')return `<h2>Parking.<br>Bez zgadywania.</h2><p class="note-description">Kierowca widzi parking, dokładny adres, przydzielone miejsce i najważniejsze informacje przed dotarciem.</p><div class="design-progress"><div class="design-progress-title">PUNKT NA TRASIE<span>${currentStop().arrived?'2':'1'}/2</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Mapa i nawigacja na parking</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().finished?'done':''}"><span class="design-step-num">02</span><span>Miejsce parkingowe i potwierdzenie postoju</span></div></div>`;
   const activeScreen=state.screen==='chat'?(currentStop().returnScreen||'travel'):state.screen;
   const steps=[['travel','Stacja i nawigacja'],['info','Karta i PIN'],['photos','Dwa zdjęcia w trakcie tankowania'],['documents','Paragon i wydatek']];
@@ -434,8 +655,17 @@ function actionView(){
     action=countdown?'cancel-arrival':'start-arrival';
     caption=countdown?'Dotarcie zostanie potwierdzone automatycznie. Naciśnij przycisk, aby wycofać.':'Po naciśnięciu masz 5 sekund na wycofanie potwierdzenia.';
   }
-  if(screen==='info'){text=current().started?'Przejdź do dokumentacji':isLoad()?'Załadunek wykonany · dalej':'Rozpocznij dokumentowanie rozładunku';action='start';disabled=!current().physicalConfirmed||!count()||(!isLoad()&&!cmrSealReady());caption=current().started?'Dodane materiały pozostają w dokumentacji.':isLoad()?'Sprawdź liczbę i szczegóły każdej sztuki.':!cmrSealReady()?'Najpierw po dotarciu zeskanuj plombę CMR.':'Sprawdź informacje i liczbę sztuk przed rozpoczęciem rozładunku.';}
-  if(screen==='photos'){text=isLoad()?'Dalej: plomba CMR':'Dalej: skan CMR po rozładunku';action=isLoad()?'seals':'documents';disabled=!cargoReady();back='info';caption=cargoReady()?(isLoad()?'Każda sztuka ładunku ma komplet zdjęć.':'Każda sztuka ma skan plomby i zdjęcie po rozładunku.'):`Gotowe sztuki · ${completedPieces()}/${count()}`;}
+  if(screen==='info'){
+    text=current().started?'Przejdź do dokumentacji':isLoad()?'Załadunek wykonany · dalej':'Rozpocznij dokumentowanie rozładunku';
+    action='start';
+    disabled=!count()||(!isLoad()&&!cmrSealReady());
+    caption=current().started
+      ?'Dodane materiały pozostają w dokumentacji.'
+      :!current().physicalConfirmed
+        ?isLoad()?'Zaznacz potwierdzenie wykonania załadunku na końcu listy.':'Zaznacz potwierdzenie liczby sztuk do rozładunku.'
+        :isLoad()?'Potwierdzenie gotowe · możesz przejść dalej.':'Sprawdź informacje i liczbę sztuk przed rozpoczęciem rozładunku.';
+  }
+  if(screen==='photos'){text=isLoad()?'Dalej: plomba CMR':'Dalej: skan CMR po rozładunku';action=isLoad()?'seals':'documents';disabled=!cargoReady();back='info';caption=cargoReady()?(isLoad()?'Każda sztuka ładunku ma komplet zdjęć.':'Każda sztuka ma skan plomby i zdjęcie z rozładunku.'):`Gotowe sztuki · ${completedPieces()}/${count()}`;}
   if(screen==='seals'){text=isLoad()?'Dalej: skan CMR':'Dalej: informacje o rozładunku';action=isLoad()?'documents':'info';disabled=!cmrSealReady();back=isLoad()?'photos':'travel';caption=cmrSealReady()?(isLoad()?'Plomba CMR jest zapisana.':'CMR z załadunku jest gotowy do wglądu.'):(isLoad()?'Naklej plombę na pustym tyle ostatniej strony CMR i zeskanuj QR.':'Po dotarciu przygotuj dokumenty i zeskanuj istniejącą plombę CMR.');}
   if(screen==='documents'){text='Dalej: sprawdź i zakończ';action='review';disabled=!documentReady();back=isLoad()?'seals':'photos';caption=documentReady()?'Pełny CMR jest gotowy.':isLoad()?'Dodaj pełny CMR i potwierdź jego czytelność.':'Dodaj pełny CMR po rozładunku i potwierdź jego czytelność.';}
   if(screen==='review'){text=`Zakończ ${isLoad()?'załadunek':'rozładunek'}`;action='finish';disabled=!allReady();back='documents';}
@@ -446,14 +676,105 @@ function actionView(){
 }
 
 function designNotes(){
-  const done=progress(),names=isLoad()?['Każda sztuka: plomba, QR i dwa zdjęcia','Plomba na pustym tyle ostatniej strony CMR','Pełny skan dokumentu CMR']:['Przygotuj CMR, zeskanuj plombę i pokaż CMR z załadunku','Zdjęcia z załadunku, skan plomby i zdjęcie po rozładunku','Pełny skan CMR po rozładunku'],screens=documentationSteps();
+  const done=progress(),names=isLoad()?['Każda sztuka: plomba, QR i dwa zdjęcia','Plomba na pustym tyle ostatniej strony CMR','Pełny skan dokumentu CMR']:['Przygotuj CMR, zeskanuj plombę i pokaż CMR z załadunku','Zdjęcia z załadunku, skan plomby i zdjęcie z rozładunku','Pełny skan CMR po rozładunku'],screens=documentationSteps();
   return `<h2>${isLoad()?'Najpierw plomba.<br>Potem CMR.':'Dotarłem.<br>Potem CMR.'}</h2><p class="note-description">${isLoad()?'Każda sztuka przechodzi własną sekwencję. Dopiero po niej kierowca nakleja plombę na pustym tyle ostatniej strony CMR i dosyła skan dokumentu.':'Bezpośrednio po potwierdzeniu dotarcia kierowca skanuje plombę CMR i widzi dokument z załadunku. Dopiero potem sprawdza miejsce, instrukcje i sztuki przeznaczone do rozładunku.'}</p><div class="design-progress"><div class="design-progress-title">DOKUMENTACJA<span>${done.filter(Boolean).length}/3</span></div>${names.map((name,index)=>`<div class="design-step ${done[index]?'done':state.screen===screens[index]?'current':''}"><span class="design-step-num">${done[index]?icon('check'):String(index+1).padStart(2,'0')}</span><span>${name}</span></div>`).join('')}</div><div class="design-shared"><strong>Dowody z załadunku są pod ręką</strong><p>${isLoad()?'Każda pozycja ma własną plombę, QR oraz ujęcie z bliska i z daleka.':'Po skanie plomby CMR pojawia się wcześniejszy dokument, a przy każdej sztuce automatycznie widać jej zdjęcia z załadunku.'}</p></div>`;
+}
+
+const serviceTaskKeys=['oil','adBlue','serviceDistance','dpf'];
+const serviceTaskMeta={
+  oil:{icon:'oil',title:'Poziom oleju',description:'Sfotografuj wskazanie i wpisz poziom.',unit:'%',placeholder:'np. 85',max:100},
+  adBlue:{icon:'drop',title:'Poziom AdBlue',description:'Sfotografuj wskazanie i wpisz poziom.',unit:'%',placeholder:'np. 60',max:100},
+  serviceDistance:{icon:'service',title:'Dystans do przeglądu',description:'Sfotografuj licznik i wpisz pozostały dystans.',unit:'km',placeholder:'np. 12500'},
+  dpf:{icon:'filter',title:'Zdjęcie DPF',description:'Zrób czytelne zdjęcie wskazania filtra DPF.'}
+};
+function serviceValueValid(key){
+  if(key==='dpf')return true;
+  const raw=state.serviceSurvey[key];
+  if(!has(raw))return false;
+  const value=Number(String(raw).replace(',','.'));
+  if(!Number.isFinite(value)||value<0)return false;
+  return serviceTaskMeta[key].max===undefined||value<=serviceTaskMeta[key].max;
+}
+function serviceTaskReady(key){return Boolean(state.serviceSurvey.photos[key])&&serviceValueValid(key);}
+function serviceCompletedCount(){return serviceTaskKeys.filter(serviceTaskReady).length;}
+function serviceReady(){return serviceCompletedCount()===serviceTaskKeys.length;}
+function servicePhotoButton(key,compact=false){
+  const record=state.serviceSurvey.photos[key];
+  const label=key==='message'?'Zdjęcie komunikatu':serviceTaskMeta[key].title;
+  return `<button class="service-photo-button ${compact?'compact':''} ${record?'done':''}" data-service-photo="${key}" aria-label="${record?'Zmień':'Dodaj'} zdjęcie: ${esc(label)}">${record?`<img src="${record.url}" alt="${esc(label)}">`:`<span class="service-photo-icon">${icon('camera')}</span>`}<span class="service-photo-copy"><strong>${record?'Zdjęcie dodane':'Dodaj zdjęcie'}</strong><small>${record?'Dotknij, aby zmienić':'Aparat lub galeria'}</small></span>${icon(record?'check':'plus')}</button>`;
+}
+function serviceTaskCard(key,index){
+  const meta=serviceTaskMeta[key],done=serviceTaskReady(key),photo=servicePhotoButton(key);
+  const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>Wartość *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
+  return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3>${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
+}
+function serviceSurveyView(){
+  const done=serviceCompletedCount(),survey=state.serviceSurvey,dailyDone=survey.submitted||serviceCompletedToday(),dailyRecord=readServiceDailyRecord();
+  const status=dailyDone?'Wykonana dzisiaj':done===4?'Gotowa do zapisu':'Do uzupełnienia';
+  const savedTime=survey.submittedAt||dailyRecord?.submittedAt||'';
+  return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge ${dailyDone?'saved':done===4?'ready':''}">${status}</b></div><p class="service-intro">Zrób zdjęcia komputera pokładowego i uzupełnij cztery pozycje. Dzięki temu serwis widzi stan pojazdu przed trasą.</p><section class="service-daily-status ${dailyDone?'done':''}"><span>${icon(dailyDone?'check':'bell')}</span><div><strong>${dailyDone?'Dzisiejsza kontrola wykonana':'Do wypełnienia dzisiaj'}</strong><small>${dailyDone?`Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.`:'Wypełnij rano przed trasą albo wieczorem po zakończeniu jazdy.'}</small></div><b>RAZ DZIENNIE</b></section>${survey.submitted?`<div class="service-saved-banner">${icon('check')}<p><strong>Ankieta jest kompletna</strong>Zapisano w tym podglądzie o ${esc(survey.submittedAt)}. Wersja offline nie wysyła danych do backendu.</p></div>`:''}<section class="service-progress-card"><div><span>POSTĘP ANKIETY</span><strong id="service-progress-count">${done}/4</strong></div><div class="service-progress-track"><span id="service-progress-bar" style="width:${done/4*100}%"></span></div><p>Każda pozycja wymaga zdjęcia. Olej, AdBlue i przegląd wymagają również wartości.</p></section><section class="panel service-message-card"><div class="service-message-heading"><span>${icon('camera')}</span><div><h3>Komunikaty serwisowe</h3><p>Kontrolki lub komunikaty z deski rozdzielczej · opcjonalne</p></div><b>Opcjonalne</b></div>${servicePhotoButton('message',true)}<label for="service-note"><span>Opis komunikatu</span><textarea id="service-note" maxlength="300" placeholder="Wpisz lub podyktuj, co pojawiło się na desce rozdzielczej">${esc(survey.note)}</textarea></label></section><div class="service-list-heading"><div><span>WYMAGANE</span><h3>Zdjęcia i wartości</h3></div><b>${done}/4 gotowe</b></div>${serviceTaskKeys.map(serviceTaskCard).join('')}<label class="panel check-row service-after-check"><input id="service-after" type="checkbox" ${survey.afterService?'checked':''}><span><strong>Po przeglądzie</strong><small>Zaznacz, jeśli pojazd właśnie wrócił z przeglądu.</small></span></label><p class="service-offline-note">${icon('info')}To ekran demonstracyjny. Dane pozostają na urządzeniu do czasu podłączenia API Super Spedytora.</p></div>`;
+}
+function serviceActionView(){
+  const done=serviceCompletedCount(),submitted=state.serviceSurvey.submitted;
+  if(submitted)return `<div class="flow-actions"><button class="primary-button" id="service-close">${icon('check')}Zamknij ankietę</button></div><p class="action-caption">Ankieta została zapisana wyłącznie w tej wersji demonstracyjnej.</p>`;
+  return `<div class="flow-actions"><button class="primary-button" id="service-save" ${serviceReady()?'':'disabled'}>${icon('check')}Zapisz ankietę</button></div><p class="action-caption">${done===4?'Wszystkie wymagane pozycje są kompletne.':`Uzupełnione ${done}/4 · dodaj brakujące zdjęcia i wartości.`}</p>`;
+}
+function serviceDesignNotes(){
+  const done=serviceCompletedCount();
+  return `<h2>Jedna kontrola.<br>Cztery dowody.</h2><p class="note-description">Ekran oddziela obowiązkowe od opcjonalnych danych. Kierowca od razu widzi, czego brakuje, a zapis odblokowuje się dopiero przy komplecie.</p><div class="design-progress"><div class="design-progress-title">ANKIETA SERWISOWA<span>${done}/4</span></div>${serviceTaskKeys.map((key,index)=>`<div class="design-step ${serviceTaskReady(key)?'done':index===done?'current':''}"><span class="design-step-num">${serviceTaskReady(key)?icon('check'):String(index+1).padStart(2,'0')}</span><span>${serviceTaskMeta[key].title}</span></div>`).join('')}</div><div class="design-shared"><strong>Aparat i galeria</strong><p>Każdą fotografię można wykonać aparatem albo wybrać z urządzenia. Komunikaty serwisowe są celowo opcjonalne.</p></div>`;
+}
+function refreshServiceProgress(){
+  const done=serviceCompletedCount();
+  if($('#service-progress-count'))$('#service-progress-count').textContent=`${done}/4`;
+  if($('#service-progress-bar'))$('#service-progress-bar').style.width=`${done/4*100}%`;
+  const listStatus=$('.service-list-heading b');
+  if(listStatus)listStatus.textContent=`${done}/4 gotowe`;
+  serviceTaskKeys.forEach(key=>{
+    const card=$(`[data-service-task="${key}"]`);
+    if(!card)return;
+    const ready=serviceTaskReady(key);
+    card.classList.toggle('complete',ready);
+    const status=$('.service-task-status',card);
+    if(status)status.textContent=ready?'Gotowe':'Wymagane';
+  });
+  const badge=$('.service-state-badge');
+  if(badge){badge.textContent=done===4?'Gotowa do zapisu':'Do uzupełnienia';badge.classList.toggle('ready',done===4);badge.classList.remove('saved');}
+  updateServiceNavIndicator();
+  $('#app-action').innerHTML=serviceActionView();
+  bindServiceAction();
+}
+function markServiceEdited(){
+  if(state.serviceSurvey.submitted||serviceCompletedToday()){
+    state.serviceSurvey.submitted=false;
+    state.serviceSurvey.submittedAt=null;
+    markServiceDailyDue();
+  }
+}
+function bindServiceAction(){
+  if($('#service-save'))$('#service-save').onclick=()=>{
+    if(!serviceReady())return;
+    state.serviceSurvey.submitted=true;
+    state.serviceSurvey.submittedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    markServiceDailyDone(state.serviceSurvey.submittedAt);
+    render();
+    toast('Ankieta serwisowa została zapisana lokalnie.');
+  };
+  if($('#service-close'))$('#service-close').onclick=()=>closeService();
+}
+function bindServiceView(){
+  bindServiceAction();
+  if($('#service-back'))$('#service-back').onclick=()=>closeService();
+  $$('[data-service-photo]').forEach(button=>button.onclick=()=>openModal('service-photo',{key:button.dataset.servicePhoto,service:true,kind:'service-photo'}));
+  $$('[data-service-value]').forEach(input=>input.oninput=event=>{markServiceEdited();state.serviceSurvey[event.target.dataset.serviceValue]=event.target.value;refreshServiceProgress();});
+  if($('#service-note'))$('#service-note').oninput=event=>{markServiceEdited();state.serviceSurvey.note=event.target.value;refreshServiceProgress();};
+  if($('#service-after'))$('#service-after').onchange=event=>{markServiceEdited();state.serviceSurvey.afterService=event.target.checked;refreshServiceProgress();};
 }
 
 function updateScreenList(){
   if(state.routeStop){
-    const labels=state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Tankowanie i 2 zdjęcia'],documents:['03','Paragon i wydatek'],review:['04','Wydatek zapisany']};
-    const order=state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','documents','review'];
+    const transferor=state.routeStop==='collection'&&collection().role==='transferor';
+    const labels=transferor?{info:['01','Przygotuj swoje dokumenty']}:state.routeStop==='collection'?{info:['01','Wybierz kierowcę'],photos:['02','Skanuj i sprawdzaj CMR-y'],documents:['03','Naklej i przypisz plombę'],review:['04','Sprawdź tę kopertę']}:state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Tankowanie i 2 zdjęcia'],documents:['03','Paragon i wydatek'],review:['04','Wydatek zapisany']};
+    const order=transferor?['info']:state.routeStop==='collection'?['info','photos','documents','review']:state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','documents','review'];
     $$('.screen-list [data-screen]').forEach(button=>{button.hidden=!labels[button.dataset.screen];});
     order.forEach(screen=>{
       const button=$(`.screen-list [data-screen="${screen}"]`),label=labels[screen];
@@ -477,12 +798,31 @@ function updateScreenList(){
 
 function render(){
   const scroll=$('#app-scroll').scrollTop;
+  ensureServiceSurveyToday();
+  updateServiceNavIndicator();
+  if(state.serviceOpen){
+    $('#app').innerHTML=serviceSurveyView();
+    $('#app-action').innerHTML=serviceActionView();
+    $('#design-context').innerHTML=serviceDesignNotes();
+    $('#preview-label').textContent='SERWIS / ANKIETA';
+    $$('[data-operation],[data-route-stop]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
+    $$('.screen-list [data-screen]').forEach(button=>button.classList.remove('active'));
+    $('#scenario-select').disabled=true;
+    $('#mobile-scenario').disabled=true;
+    $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='service'));
+    bindServiceView();
+    $('#app-scroll').scrollTop=scroll;
+    return;
+  }
   if(state.routeStop){
-    const views={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingInProgressView,documents:fuelingExpenseView,review:routeStopSuccessView,chat:stopChatView};
+    const collectionViews={info:collectionInfoView,photos:collectionScanView,documents:collectionEnvelopeView,review:collectionReviewView,chat:stopChatView};
+    const ordinaryViews={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingInProgressView,documents:fuelingExpenseView,review:routeStopSuccessView,chat:stopChatView};
+    const views=state.routeStop==='collection'?collectionViews:ordinaryViews;
     $('#app').innerHTML=views[state.screen]();
     $('#app-action').innerHTML=stopActionView();
     $('#design-context').innerHTML=stopDesignNotes();
-    $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${{travel:'W DRODZE',info:'NA MIEJSCU',photos:'W TRAKCIE',documents:'WYDATEK',review:'GOTOWE',chat:'CZAT'}[state.screen]}`;
+    const stopStage=state.routeStop==='collection'?{info:'START',photos:'SKANOWANIE',documents:'KOPERTA',review:collection().finished?'GOTOWE':'KONTROLA',chat:'CZAT'}:{travel:'W DRODZE',info:'NA MIEJSCU',photos:'W TRAKCIE',documents:'WYDATEK',review:'GOTOWE',chat:'CZAT'};
+    $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${stopStage[state.screen]}`;
     $$('[data-operation]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
     $$('[data-route-stop]').forEach(button=>{const active=button.dataset.routeStop===state.routeStop;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
     updateScreenList();
@@ -545,6 +885,23 @@ function bindStopAction(){
     if(action==='fuel-end'&&fuelingPhotosReady())goStop('documents');
     if(action==='stop-finish'){currentStop().finished=true;goStop('review');}
     if(action==='fuel-finish'&&fuelingReady()){currentStop().finished=true;goStop('review');}
+    if(action==='collection-prepare'){
+      const group=collectionGroup(collection().transferorSourceId);
+      group.prepared=true;
+      group.preparedAt=new Date().toISOString();
+      render();
+      toast('Dokumenty są przygotowane. Koperta pozostaje otwarta.');
+    }
+    if(action==='collection-resume'&&collectionGroup())goStop('photos');
+    if(action==='collection-envelope'&&collectionDocumentsReady())goStop('documents');
+    if(action==='collection-review'&&collectionEnvelopeReady())goStop('review');
+    if(action==='collection-next-driver'){
+      collection().activeSourceId=null;
+      collection().started=false;
+      goStop('info');
+    }
+    if(action==='collection-finish'&&allCollectionGroupsReady()){collection().finished=true;collection().syncState='PENDING_SYNC';collection().groups.forEach(group=>group.syncState='PENDING_SYNC');render();toast('Każdą kopertę zapisano osobno. Odbiór oczekuje na potwierdzenie TMS.');}
+    if(action==='collection-next')switchOperation('load','travel');
     if(action==='stop-next')switchOperation('load','travel');
   };
 }
@@ -557,6 +914,22 @@ function refreshStopAction(){
 
 function bindStopView(){
   bindStopAction();
+  if(state.routeStop==='collection'){
+    $$('[data-collection-back]').forEach(button=>button.onclick=()=>goStop(button.dataset.collectionBack));
+    $$('[data-collection-source]').forEach(button=>button.onclick=()=>{
+      const group=collectionGroup(button.dataset.collectionSource);
+      if(!group||collectionEnvelopeReady(group))return;
+      collection().activeSourceId=group.sourceId;
+      collection().started=true;
+      goStop('photos');
+      toast(`Odbierasz dokumenty od: ${collectionSource(group.sourceId).name}.`);
+    });
+    if($('#collection-add-document'))$('#collection-add-document').onclick=()=>openModal('collection-scan');
+    $$('[data-confirm-collection-document]').forEach(input=>input.onchange=()=>{const group=collectionGroup();group.documents[Number(input.dataset.confirmCollectionDocument)].confirmed=input.checked;group.envelope.contentsConfirmed=false;render();});
+    $$('[data-remove-collection-document]').forEach(button=>button.onclick=()=>{const group=collectionGroup();if(group.envelope.sealCode)return;const record=group.documents.splice(Number(button.dataset.removeCollectionDocument),1)[0];revoke(record);group.envelope.contentsConfirmed=false;render();toast('Odczyt QR usunięto z tej koperty.');});
+    if($('#collection-envelope-confirm'))$('#collection-envelope-confirm').onchange=event=>{collectionGroup().envelope.contentsConfirmed=event.target.checked;render();};
+    if($('#scan-collection-envelope'))$('#scan-collection-envelope').onclick=()=>openModal('scan',{kind:'collection-envelope'});
+  }
   $$('[data-stop-back]').forEach(button=>button.onclick=()=>goStop(button.dataset.stopBack));
   if($('#fuel-expense-back'))$('#fuel-expense-back').onclick=()=>{currentStop().finished=false;goStop('documents');};
   if($('#stop-chat-back'))$('#stop-chat-back').onclick=()=>goStop(currentStop().returnScreen||'travel');
@@ -616,7 +989,18 @@ function bindView(){
     if(action==='start-arrival')startArrivalCountdown();
     if(action==='cancel-arrival')cancelArrivalCountdown(true);
     if(action==='start'){
-      if(!current().physicalConfirmed||!count()||(!isLoad()&&!cmrSealReady()))return;
+      if(!count()||(!isLoad()&&!cmrSealReady()))return;
+      if(!current().physicalConfirmed){
+        const confirmation=$('.loading-confirmation'),checkbox=$('#physical-confirm');
+        confirmation?.classList.remove('needs-attention');
+        if(confirmation)void confirmation.offsetWidth;
+        confirmation?.classList.add('needs-attention');
+        confirmation?.scrollIntoView({behavior:'smooth',block:'center'});
+        checkbox?.focus({preventScroll:true});
+        toast(isLoad()?'Zaznacz potwierdzenie, że fizyczny załadunek został wykonany.':'Zaznacz potwierdzenie liczby sztuk do rozładunku.');
+        setTimeout(()=>confirmation?.classList.remove('needs-attention'),2400);
+        return;
+      }
       current().started=true;
       go('photos');
     }
@@ -626,8 +1010,8 @@ function bindView(){
     if(action==='next-point'){
       if(isLoad()){
         const loadOperation=state.operations.load;
-        const pieces=loadOperation.items.map((piece,index)=>makePiece(index+1,{name:piece.name,description:piece.description,mass:piece.mass,dimensions:piece.dimensions,expectedSeal:piece.seal||`SS-260814-${String(index+1).padStart(2,'0')}`,loadingPhotos:{near:piece.photos.near||demoLoadingPhoto(index+1,'near'),far:piece.photos.far||demoLoadingPhoto(index+1,'far')}}));
-        state.operations.unload=fresh('unload',pieces,{expectedCmrSeal:loadOperation.cmrSeal||'SS-260814-CMR',loadingDocuments:loadOperation.documents.length?loadOperation.documents:demoLoadingDocuments()});
+        const pieces=loadOperation.items.map((piece,index)=>makePiece(index+1,{name:piece.name,description:piece.description,mass:piece.mass,dimensions:piece.dimensions,expectedSeal:piece.seal||`DEMO-PL-${String(index+1).padStart(2,'0')}`,loadingPhotos:{near:piece.photos.near||demoLoadingPhoto(index+1,'near'),far:piece.photos.far||demoLoadingPhoto(index+1,'far')}}));
+        state.operations.unload=fresh('unload',pieces,{expectedCmrSeal:loadOperation.cmrSeal||'DEMO-PL-CMR',loadingDocuments:loadOperation.documents.length?loadOperation.documents:demoLoadingDocuments()});
         switchOperation('unload','travel');
       }else go('info');
     }
@@ -649,7 +1033,7 @@ function attachmentChoices(){
   const pieceChoices=current().items.flatMap((piece,index)=>isLoad()?[
     {kind:'photo-near',icon:'camera',label:`Sztuka ${index+1} · z bliska`,hint:piece.photos.near?'Już dodane — możesz zmienić':piece.seal?'Dodaj zdjęcie':'Najpierw zeskanuj plombę',pieceIndex:index,disabled:!piece.seal},
     {kind:'photo-far',icon:'camera',label:`Sztuka ${index+1} · z daleka`,hint:piece.photos.far?'Już dodane — możesz zmienić':piece.seal?'Dodaj zdjęcie':'Najpierw zeskanuj plombę',pieceIndex:index,disabled:!piece.seal}
-  ]:[{kind:'photo-unload',icon:'camera',label:`Sztuka ${index+1} · zdjęcie po rozładunku`,hint:piece.photos.unload?'Już dodane — możesz zmienić':piece.seal?'Na rampie lub na ziemi':'Najpierw zeskanuj plombę',pieceIndex:index,disabled:!piece.seal}]);
+  ]:[{kind:'photo-unload',icon:'camera',label:`Sztuka ${index+1} · zdjęcie z rozładunku`,hint:piece.photos.unload?'Już dodane — możesz zmienić':piece.seal?'Na rampie lub na ziemi':'Najpierw zeskanuj plombę',pieceIndex:index,disabled:!piece.seal}]);
   const choices=[...pieceChoices,{kind:'cmr',icon:'doc',label:'Dokument CMR',hint:current().documents.length?'Już dodany — możesz dołączyć kolejną stronę':cmrSealReady()?'Wszystkie strony lub plik PDF':'Najpierw zeskanuj plombę CMR',disabled:!cmrSealReady()}];
   return choices.map(choice=>`<button data-attachment-kind="${choice.kind}" ${choice.pieceIndex!==undefined?`data-attachment-piece="${choice.pieceIndex}"`:''} ${choice.disabled?'disabled':''}>${icon(choice.icon)}<span><strong>${esc(choice.label)}</strong><small>${esc(choice.hint)}</small></span>${icon('arrow')}</button>`).join('');
 }
@@ -662,7 +1046,8 @@ function openModal(type,target){
     if(target.kind!=='cmr'&&!current().items[target.pieceIndex]?.seal){toast(isLoad()?'Najpierw naklej i zeskanuj plombę tej sztuki.':'Najpierw zeskanuj istniejącą plombę tej sztuki.');return;}
   }
   if(type==='scan'){
-    const allowed=isLoad()?(target.kind==='cmr'?current().cmrLabel:current().items[target.index]?.label):true;
+    const collectionEnvelope=target.kind==='collection-envelope';
+    const allowed=collectionEnvelope?collectionDocumentsReady()&&collectionGroup().envelope.contentsConfirmed:isLoad()?(target.kind==='cmr'?current().cmrLabel:current().items[target.index]?.label):true;
     if(!allowed)return;
   }
   if(type==='finish'&&!allReady())return;
@@ -673,11 +1058,11 @@ function openModal(type,target){
   if(type==='piece-form'){
     const editing=target.index!==null,item=editing?current().items[target.index]:null;
     title=editing?'Edytuj szczegóły sztuki':'Dodaj sztukę ładunku';
-    body=`<p>${isLoad()?'Każda sztuka otrzyma własną plombę, QR i dwa zdjęcia.':'Każda sztuka będzie miała numer plomby z załadunku, skan QR i zdjęcie po rozładunku.'}</p><label class="field-label" for="piece-name">Nazwa lub rodzaj sztuki *</label><input id="piece-name" class="text-input" maxlength="80" value="${esc(item?.name||'')}" placeholder="np. Skrzynia transportowa 3"><label class="field-label" for="piece-description">Opis zawartości</label><textarea id="piece-description" class="text-input piece-textarea" maxlength="180" placeholder="np. Sprzęt eventowy w opakowaniu">${esc(item?.description||'')}</textarea><div class="piece-form-grid"><label><span class="field-label">Waga w kg</span><input id="piece-mass" class="text-input" type="number" min="0" step="0.1" value="${has(item?.mass)?esc(item.mass):''}" placeholder="120"></label><label><span class="field-label">Wymiary</span><input id="piece-dimensions" class="text-input" maxlength="60" value="${esc(item?.dimensions||'')}" placeholder="120 × 80 × 100 cm"></label></div><p id="piece-error" class="field-error" role="alert"></p><button class="primary-button" id="save-piece">${icon(editing?'check':'plus')}${editing?'Zapisz szczegóły':'Dodaj sztukę'}</button>`;
+    body=`<p>${isLoad()?'Każda sztuka otrzyma własną plombę, QR i dwa zdjęcia.':'Każda sztuka będzie miała numer plomby z załadunku, skan QR i zdjęcie z rozładunku.'}</p><label class="field-label" for="piece-name">Nazwa lub rodzaj sztuki *</label><input id="piece-name" class="text-input" maxlength="80" value="${esc(item?.name||'')}" placeholder="np. Skrzynia transportowa 3"><label class="field-label" for="piece-description">Opis zawartości</label><textarea id="piece-description" class="text-input piece-textarea" maxlength="180" placeholder="np. Sprzęt eventowy w opakowaniu">${esc(item?.description||'')}</textarea><div class="piece-form-grid"><label><span class="field-label">Waga w kg</span><input id="piece-mass" class="text-input" type="number" min="0" step="0.1" value="${has(item?.mass)?esc(item.mass):''}" placeholder="120"></label><label><span class="field-label">Wymiary</span><input id="piece-dimensions" class="text-input" maxlength="60" value="${esc(item?.dimensions||'')}" placeholder="120 × 80 × 100 cm"></label></div><p id="piece-error" class="field-error" role="alert"></p><button class="primary-button" id="save-piece">${icon(editing?'check':'plus')}${editing?'Zapisz szczegóły':'Dodaj sztukę'}</button>`;
   }
   if(type==='attachment'){
     const piece=target.kind==='cmr'?null:current().items[target.pieceIndex];
-    title=target.kind==='cmr'?'Dodaj skan CMR':target.kind==='photo-near'?`Sztuka ${target.pieceIndex+1} · z bliska`:target.kind==='photo-far'?`Sztuka ${target.pieceIndex+1} · z daleka`:`Sztuka ${target.pieceIndex+1} · zdjęcie po rozładunku`;
+    title=target.kind==='cmr'?'Dodaj skan CMR':target.kind==='photo-near'?`Sztuka ${target.pieceIndex+1} · z bliska`:target.kind==='photo-far'?`Sztuka ${target.pieceIndex+1} · z daleka`:`Sztuka ${target.pieceIndex+1} · zdjęcie z rozładunku`;
     body=`<p>${esc(attachmentDescription(target.kind,piece))}</p>${target.kind==='cmr'?demoDocument():`<img class="photo-preview" src="${demoPhoto(target.kind==='photo-near'?0:1)}" alt="Przykładowe ujęcie ładunku — ilustracja">`}<button class="primary-button" id="choose-file">${icon('camera')}${target.kind==='cmr'?'Aparat, zdjęcia lub PDF':'Aparat lub zdjęcie z urządzenia'}</button><button class="secondary-button" id="use-demo">${target.kind==='cmr'?'Dodaj przykładową stronę':'Wypróbuj na zdjęciu przykładowym'}</button><p class="small-note">${target.source==='chat'?'Załącznik z czatu uzupełni również ekran operacji. ':''}Prototyp: wybrane pliki pozostają w tej karcie i nie są wysyłane do systemu.</p>`;
   }
   if(type==='chat-attach'){
@@ -691,12 +1076,26 @@ function openModal(type,target){
     title=label;
     body=`<p>${esc(hint)}.</p><div class="fuel-photo-modal-icon">${icon(fuelPhotoLabels[target.key][0])}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub zdjęcie z urządzenia</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Prototyp: zdjęcie pozostaje w tej karcie i nie jest wysyłane do systemu.</p>`;
   }
+  if(type==='service-photo'){
+    const meta=target.key==='message'?{title:'Komunikat serwisowy',description:'Zrób zdjęcie kontrolki albo komunikatu widocznego na desce rozdzielczej.',icon:'camera'}:{title:serviceTaskMeta[target.key].title,description:serviceTaskMeta[target.key].description,icon:serviceTaskMeta[target.key].icon};
+    title=meta.title;
+    body=`<p>${esc(meta.description)}</p><div class="fuel-photo-modal-icon service-photo-modal-icon">${icon(meta.icon)}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub galeria</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Wersja preview: zdjęcie pozostaje tylko na tym urządzeniu i nie jest wysyłane do backendu.</p>`;
+  }
+  if(type==='collection-scan'){
+    const group=collectionGroup(),source=group?collectionSource(group.sourceId):null,available=group?availableCollectionOrders(group):[];
+    const first=available[0];
+    target={kind:'collection-document',routeStop:'collection',sourceId:group?.sourceId||null,demoQrCode:first?.qrCode||null};
+    state.modal.target=target;
+    title=group?`${group.documents.length?'Kolejny':'Pierwszy'} CMR · ${source.name}`:'Najpierw wybierz kierowcę';
+    body=available.length?`<p>Odbierasz dokumenty od kierowcy <strong>${esc(source.name)}</strong>. Zeskanowany QR musi należeć do tej osoby.</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Skanuj CMR kierowcy ${esc(source.name)}</span></div><button class="primary-button" id="simulate-collection-document">${icon('qr')}Symuluj odczyt QR dokumentu</button><label for="collection-document-qr" class="field-label">Lub wpisz kod QR dokumentu</label><input id="collection-document-qr" class="text-input" autocomplete="off" maxlength="64" placeholder="np. ${esc(first.qrCode)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-collection-document">Pokaż właściwy skan CMR</button><p class="small-note">Po odczycie nowy dokument pojawi się na samej górze listy CMR-ów tej osoby.</p>`:`<p>Wszystkie oczekiwane dokumenty tego kierowcy zostały już zeskanowane.</p>`;
+  }
   if(type==='scan'){
-    const cmr=target.kind==='cmr',piece=cmr?null:current().items[target.index];
-    const expected=cmr?current().expectedCmrSeal:piece.expectedSeal;
-    title=cmr?'Plomba CMR':`Plomba · sztuka ${target.index+1}`;
-    const scanInstruction=isLoad()?(cmr?'Zeskanuj kod QR z etykiety naklejonej na pustym tyle ostatniej strony CMR.':`Skieruj aparat na etykietę fizycznie przyklejoną do opakowania sztuki „${esc(piece.name)}”.`):(cmr?`Zeskanuj plombę znajdującą się na tyle dokumentu CMR. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`:`Zeskanuj istniejącą plombę sztuki „${esc(piece.name)}”. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`);
-    body=`<p>${scanInstruction}</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Podgląd skanera — odczyt symulowany</span></div><button class="primary-button" id="simulate-scan">${icon('qr')}Symuluj odczyt QR</button><label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(expected||(cmr?'SS-260814-CMR':`SS-260814-${String(target.index+1).padStart(2,'0')}`))}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
+    const collectionEnvelope=target.kind==='collection-envelope',cmr=target.kind==='cmr',piece=collectionEnvelope||cmr?null:current().items[target.index];
+    const expected=collectionEnvelope?null:cmr?current().expectedCmrSeal:piece.expectedSeal;
+    title=collectionEnvelope?'Plomba koperty':cmr?'Plomba CMR':`Plomba · sztuka ${target.index+1}`;
+    const scanInstruction=collectionEnvelope?`Weź dowolną nieużytą plombę, naklej ją na zamknięcie koperty kierowcy ${esc(collectionSource(collectionGroup().sourceId).name)}, a następnie zeskanuj jej QR. Odczytany numer zostanie teraz przypisany do tej koperty.`:isLoad()?(cmr?'Zeskanuj kod QR z etykiety naklejonej na pustym tyle ostatniej strony CMR.':`Skieruj aparat na etykietę fizycznie przyklejoną do opakowania sztuki „${esc(piece.name)}”.`):(cmr?`Zeskanuj plombę znajdującą się na tyle dokumentu CMR. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`:`Zeskanuj istniejącą plombę sztuki „${esc(piece.name)}”. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`);
+    const placeholder=collectionEnvelope?'np. PL-ENV-000123':expected||(cmr?'DEMO-PL-CMR':`DEMO-PL-${String(target.index+1).padStart(2,'0')}`);
+    body=`<p>${scanInstruction}</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Podgląd skanera — odczyt symulowany</span></div><button class="primary-button" id="simulate-scan">${icon('qr')}Symuluj odczyt QR</button><label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(placeholder)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
   }
   if(type==='supplied'){
     const photo=optional().photos[target];
@@ -705,8 +1104,8 @@ function openModal(type,target){
   }
   if(type==='copy'){title='Numer referencyjny';body=`<input class="text-input" value="${esc(optional().ref)}" readonly aria-label="Numer referencyjny">`;}
   if(type==='cwp-contact'){
-    title='Zgłoś rozbieżność do CWP';
-    body=`<p>Towar lub jego liczba nie zgadza się ze zleceniem ${assignment.id}. Wybierz sposób kontaktu ze spedytorem.</p><div class="cwp-contact-options"><button id="cwp-chat">${icon('chat')}<span><strong>Napisz na czacie CWP</strong><small>Otwórz czat tego zlecenia</small></span>${icon('arrow')}</button><a href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}" aria-label="Zadzwoń do spedytora CWP">${icon('phone')}<span><strong>Zadzwoń do spedytora</strong><small>${esc(dispatcher.phone)}${dispatcher.demo?' · numer demonstracyjny':''}</small></span>${icon('arrow')}</a></div><p class="small-note">Prototyp: czat i numer telefonu są demonstracyjne.</p>`;
+    title='Zgłoś rozbieżność spedytorowi';
+    body=`<p>Towar lub jego liczba nie zgadza się ze zleceniem ${assignment.id}. Wybierz sposób kontaktu ze spedytorem.</p><div class="cwp-contact-options"><button id="cwp-chat">${icon('chat')}<span><strong>Napisz na czacie</strong><small>Otwórz czat tego zlecenia</small></span>${icon('arrow')}</button><a href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}" aria-label="Zadzwoń do spedytora testowego">${icon('phone')}<span><strong>Zadzwoń do spedytora</strong><small>${esc(dispatcher.phone)}${dispatcher.demo?' · numer demonstracyjny':''}</small></span>${icon('arrow')}</a></div><p class="small-note">Prototyp: czat i numer telefonu są demonstracyjne.</p>`;
   }
   if(type==='help'){
     title='Pomoc przy zleceniu';
@@ -715,12 +1114,21 @@ function openModal(type,target){
   if(type==='route-help'){
     const stop=stopDefinition();
     title=`Pomoc · ${stop.title}`;
-    body=`<p>${esc(stop.company)}<br>${esc(stop.address)}</p><div class="help-options"><button id="help-stop-chat">${icon('chat')}Otwórz czat ze spedytorem CWP</button><a class="help-contact-link" href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Zadzwoń do CWP · ${esc(dispatcher.phone)}</a></div><p class="small-note">Prototyp: kontakt i dane punktu są demonstracyjne.</p>`;
+    body=`<p>${esc(stop.company)}<br>${esc(stop.address)}</p><div class="help-options"><button id="help-stop-chat">${icon('chat')}Otwórz czat ze spedytorem</button><a class="help-contact-link" href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Zadzwoń do spedytora · ${esc(dispatcher.phone)}</a></div><p class="small-note">Prototyp: kontakt i dane punktu są demonstracyjne.</p>`;
+  }
+  if(type==='service-help'){
+    title='Pomoc · ankieta serwisowa';
+    body=`<p>Uzupełnij poziom oleju, poziom AdBlue, dystans do przeglądu oraz zdjęcie wskazania DPF. Każda z czterech pozycji wymaga zdjęcia.</p><div class="help-options"><button id="help-service-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Komunikaty serwisowe i zaznaczenie „Po przeglądzie” są opcjonalne.</p>`;
+  }
+  if(type==='daily-service'){
+    const evening=new Date().getHours()>=15;
+    title='Dzisiejsza ankieta serwisowa';
+    body=`<div class="service-reminder"><span class="service-reminder-icon">${icon('bell')}</span><strong>Jedna krótka kontrola pojazdu dziennie</strong><p>Zrób zdjęcia wskazań, wpisz poziom oleju, AdBlue i dystans do przeglądu. Możesz zrobić to rano przed trasą albo wieczorem po zakończeniu jazdy.</p><div class="service-reminder-time">${icon('clock')}<span><b>${evening?'Dobry moment: po trasie':'Dobry moment: przed trasą'}</b><small>Po zapisaniu przypomnienie zniknie do następnego dnia.</small></span></div><button class="primary-button service-reminder-primary" id="service-reminder-now">${icon('service')}Wypełnij teraz</button><button class="secondary-button service-reminder-secondary" id="service-reminder-later">${icon('clock')}${evening?'Przypomnij za godzinę':'Przypomnij wieczorem'}</button><button class="service-reminder-skip" id="service-reminder-close">Później — zostaw oznaczenie przy „Serwis”</button><p class="small-note">Wersja offline przypomina po otwarciu aplikacji. Powiadomienie systemowe wymaga integracji natywnej i API.</p></div>`;
   }
   if(type==='finish'){
     title=`Zakończyć ${isLoad()?'załadunek':'rozładunek'}?`;
     const photoTotal=count()*(isLoad()?2:1);
-    body=`<p>${isLoad()?'Każda sztuka ma plombę, QR i dwa zdjęcia. Plomba na pustym tyle ostatniej strony CMR oraz pełny skan dokumentu są gotowe.':'Każda sztuka ma zgodny skan plomby i zdjęcie po rozładunku. Plomba CMR oraz pełny skan dokumentu są gotowe.'}</p><div class="summary-line">${icon('check')}Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')}${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia po rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')}Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')}Pełny skan CMR <b>OK</b></div><button class="primary-button" id="confirm-finish">${icon('check')}Potwierdź zakończenie</button><p class="small-note">Demonstracja: nie zmieniamy statusu rzeczywistego zlecenia.</p>`;
+    body=`<p>${isLoad()?'Każda sztuka ma plombę, QR i dwa zdjęcia. Plomba na pustym tyle ostatniej strony CMR oraz pełny skan dokumentu są gotowe.':'Każda sztuka ma zgodny skan plomby i zdjęcie z rozładunku. Plomba CMR oraz pełny skan dokumentu są gotowe.'}</p><div class="summary-line">${icon('check')}Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')}${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')}Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')}Pełny skan CMR <b>OK</b></div><button class="primary-button" id="confirm-finish">${icon('check')}Potwierdź zakończenie</button><p class="small-note">Demonstracja: nie zmieniamy statusu rzeczywistego zlecenia.</p>`;
   }
   if(type==='reset'){title='Zresetować podgląd?';body='<p>Usuniesz postęp i wybrane pliki z tej demonstracji.</p><button class="primary-button" id="confirm-reset">Zresetuj podgląd</button>';}
 
@@ -739,6 +1147,16 @@ function openModal(type,target){
     input.click();
   };
   if($('#use-demo'))$('#use-demo').onclick=()=>{
+    if(target.service){
+      const previous=state.serviceSurvey.photos[target.key];
+      revoke(previous);
+      state.serviceSurvey.photos[target.key]={hash:`demo-service-${target.key}`,demo:true,kind:'service-photo',name:target.key==='message'?'Komunikat serwisowy':serviceTaskMeta[target.key].title,mime:'image/svg+xml',url:demoPhoto(target.key==='adBlue'||target.key==='dpf'?1:0),source:'service-survey'};
+      markServiceEdited();
+      closeModal(false);
+      render();
+      toast('Zdjęcie do ankiety serwisowej zostało dodane.');
+      return;
+    }
     if(target.routeStop==='fueling'){
       const previous=state.routeStops.fueling.photos[target.key];
       revoke(previous);
@@ -762,16 +1180,25 @@ function openModal(type,target){
     render();
     if(added)toast(target.kind==='cmr'?'CMR uzupełniony w dokumentacji i czacie.':'Zdjęcie sztuki uzupełnione w dokumentacji i czacie.');
   };
+  if($('#simulate-collection-document'))$('#simulate-collection-document').onclick=()=>saveQR(target,target.demoQrCode||'');
+  if($('#manual-collection-document'))$('#manual-collection-document').onclick=()=>saveQR(target,$('#collection-document-qr').value);
+  if($('#collection-document-qr'))$('#collection-document-qr').onkeydown=event=>{if(event.key==='Enter')saveQR(target,event.target.value);};
   if($('#simulate-scan'))$('#simulate-scan').onclick=()=>{
-    const fallback=target.kind==='cmr'?'SS-260814-CMR':`SS-260814-${String(target.index+1).padStart(2,'0')}`;
-    const expected=target.kind==='cmr'?current().expectedCmrSeal:current().items[target.index]?.expectedSeal;
-    saveQR(target,(!isLoad()&&expected)||fallback);
+    const collectionEnvelope=target.kind==='collection-envelope';
+    const sealSuffix=collectionGroup().sourceId.endsWith('-b')?'B':'A';
+    const fallback=collectionEnvelope?`DEMO-SEAL-${sealSuffix}-001`:target.kind==='cmr'?'DEMO-PL-CMR':`DEMO-PL-${String(target.index+1).padStart(2,'0')}`;
+    const expected=collectionEnvelope?null:target.kind==='cmr'?current().expectedCmrSeal:current().items[target.index]?.expectedSeal;
+    saveQR(target,(collectionEnvelope||!isLoad())&&expected||fallback);
   };
   if($('#manual-scan'))$('#manual-scan').onclick=()=>saveQR(target,$('#qr-code').value);
   if($('#qr-code'))$('#qr-code').onkeydown=event=>{if(event.key==='Enter')saveQR(target,event.target.value);};
   if($('#cwp-chat'))$('#cwp-chat').onclick=()=>go('chat');
   if($('#help-chat'))$('#help-chat').onclick=()=>go('chat');
   if($('#help-stop-chat'))$('#help-stop-chat').onclick=()=>goStop('chat');
+  if($('#help-service-chat'))$('#help-service-chat').onclick=()=>{closeModal(false);state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');};
+  if($('#service-reminder-now'))$('#service-reminder-now').onclick=()=>openService();
+  if($('#service-reminder-later'))$('#service-reminder-later').onclick=()=>{const when=postponeServiceReminder();closeModal(false);updateServiceNavIndicator();toast(`Przypomnimy ${when}.`);};
+  if($('#service-reminder-close'))$('#service-reminder-close').onclick=()=>{closeModal();updateServiceNavIndicator();};
   if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!allReady())return;current().finished=true;go('success');};
   if($('#confirm-reset'))$('#confirm-reset').onclick=()=>reset();
   $('.modal-sheet').focus();
@@ -817,6 +1244,34 @@ function addEvidence(operationNameValue,record){
 function saveQR(target,raw){
   const code=raw.trim().toUpperCase();
   if(!/^[A-Z0-9][A-Z0-9._/-]{3,63}$/.test(code)){$('#qr-error').textContent='Wpisz kod z etykiety: minimum 4 znaki, bez spacji.';return;}
+  if(target.kind==='collection-document'){
+    const group=collectionGroup();
+    const order=collectionOrders.find(item=>item.qrCode===code);
+    if(!order){$('#qr-error').textContent='Nie znaleziono dokumentu dla tego kodu QR. Sprawdź etykietę albo zgłoś brak spedytorowi.';return;}
+    if(collection().groups.some(item=>item.documents.some(record=>record.handoverId===order.id))){$('#qr-error').textContent='Ten QR został już odczytany i dokument ma przypisaną kopertę.';return;}
+    if(!group){$('#qr-error').textContent='Najpierw wróć do listy i wybierz kierowcę, od którego odbierasz dokumenty.';return;}
+    if(order.sourceId!==group.sourceId){$('#qr-error').textContent=`Ten dokument należy do innego kierowcy: ${collectionSource(order.sourceId).name}. Nie wkładaj go do tej koperty.`;return;}
+    group.documents.unshift({id:`collection-document-${Date.now()}`,hash:`tms-scan-${order.id}`,demo:true,kind:'collection-cmr-reference',mime:'image/svg+xml',name:`CMR-${order.orderId}`,handoverId:order.id,sourceId:order.sourceId,orderId:order.orderId,qrCode:order.qrCode,unloadedAt:order.unloadedAt,scannedAt:new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}),confirmed:false});
+    group.envelope.contentsConfirmed=false;
+    closeModal(false);
+    state.screen='photos';
+    collection().screen='photos';
+    render();
+    toast('CMR zeskanowany. Najnowszy dokument jest na górze listy.');
+    return;
+  }
+  if(target.kind==='collection-envelope'){
+    const group=collectionGroup();
+    if(!collectionDocumentsReady(group)||!group.envelope.contentsConfirmed)return;
+    const usedByAnother=collection().groups.some(item=>item.sourceId!==group.sourceId&&item.envelope.sealCode===code);
+    if(usedByAnother){$('#qr-error').textContent='Ten numer plomby zamyka już kopertę innego kierowcy.';return;}
+    group.envelope.sealCode=code;
+    group.envelope.sealedAt=new Date().toISOString();
+    closeModal(false);
+    render();
+    toast('Plomba została przypisana podczas skanowania. Koperta jest zamknięta.');
+    return;
+  }
   const used=[...current().items.map(item=>item.seal),current().cmrSeal];
   const ownIndex=target.kind==='cmr'?count():target.index;
   if(used.some((value,index)=>index!==ownIndex&&value===code)){$('#qr-error').textContent='Ten kod przypisano już do innej sztuki lub dokumentu. Każda plomba musi mieć unikalny QR.';return;}
@@ -834,14 +1289,21 @@ function reset(){
   cancelArrivalCountdown(false);
   Object.values(state.operations).forEach(operation=>{operation.items.forEach(revokePiece);operation.documents.forEach(revoke);});
   Object.values(state.routeStops).forEach(stop=>{if(stop.photos)Object.values(stop.photos).forEach(revoke);});
+  collection().groups.forEach(group=>group.documents.forEach(revoke));
+  Object.values(state.serviceSurvey.photos).forEach(revoke);
   state.operations={load:fresh('load'),unload:fresh('unload')};
-  state.routeStops={parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')};
+  state.routeStops={collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')};
+  state.serviceSurvey=freshServiceSurvey();
+  clearServiceDailyRecord();
+  state.serviceOpen=false;
   state.operation='load';
   state.routeStop=null;
   state.scenario='basic';
-  state.language='it';
+  state.language='pl';
   state.manualLanguage=false;
-  go('info');
+  nativeReset();
+  if(androidShell)state.operations.load.arrived=false;
+  go(androidShell?'travel':'info');
   toast('Podgląd został zresetowany.');
 }
 
@@ -853,6 +1315,24 @@ $('#file-input').onchange=async event=>{
   uploadBusy=true;
   const target={...uploadTarget};
   let added=0;
+  if(target.service){
+    try{
+      const file=files[0];
+      if(!file.type.startsWith('image/')){toast('Wybierz zdjęcie JPG, PNG lub WebP.');return;}
+      if(file.size>20*1024*1024){toast('Wybierz zdjęcie do 20 MB.');return;}
+      const url=URL.createObjectURL(file);
+      if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      const previous=state.serviceSurvey.photos[target.key];
+      revoke(previous);
+      state.serviceSurvey.photos[target.key]={hash:`service-${target.key}-${Date.now()}`,url,name:file.name,mime:file.type,demo:false,kind:'service-photo',source:'service-survey'};
+      markServiceEdited();
+      closeModal(false);
+      render();
+      toast('Zdjęcie do ankiety serwisowej zostało dodane.');
+    }catch(error){toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}
+    finally{uploadBusy=false;}
+    return;
+  }
   if(target.routeStop==='fueling'){
     try{
       const file=files[0];
@@ -891,11 +1371,18 @@ $('#file-input').onchange=async event=>{
 };
 
 $$('[data-operation]').forEach(button=>button.onclick=()=>switchOperation(button.dataset.operation));
-$$('[data-route-stop]').forEach(button=>button.onclick=()=>switchRouteStop(button.dataset.routeStop,'travel'));
+$$('[data-route-stop]').forEach(button=>button.onclick=()=>switchRouteStop(button.dataset.routeStop,button.dataset.routeStop==='collection'?'info':'travel'));
 $$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>state.routeStop?goStop(button.dataset.screen):go(button.dataset.screen));
 $('#scenario-select').onchange=event=>switchScenario(event.target.value);
 $('#mobile-scenario').onchange=event=>switchScenario(event.target.value);
 $$('[data-nav]').forEach(button=>button.onclick=()=>{
+  if(button.dataset.nav==='service'){openService();return;}
+  if(state.serviceOpen){
+    if(button.dataset.nav==='now')closeService();
+    if(button.dataset.nav==='chat'){state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');}
+    if(button.dataset.nav==='help')openModal('service-help',{});
+    return;
+  }
   if(state.routeStop){
     if(button.dataset.nav==='now')goStop(currentStop().finished?'review':currentStop().returnScreen==='chat'?'travel':currentStop().screen==='chat'?(currentStop().returnScreen||'travel'):currentStop().screen);
     if(button.dataset.nav==='chat')goStop('chat');
@@ -918,4 +1405,29 @@ document.addEventListener('keydown',event=>{
   }
 });
 
+if(previewMode){
+  const chip=$('.driver-chip');
+  if(chip){
+    chip.textContent='PREVIEW · OFFLINE';
+    chip.setAttribute('title','Wariant pokazowy bez połączenia z backendem');
+  }
+}
+
+if(androidShell){
+  document.addEventListener('click',event=>{
+    const link=event.target.closest('a[href]');
+    if(!link)return;
+    const url=link.href;
+    if(!/^(https?:|tel:|geo:|google\.navigation:)/i.test(url))return;
+    event.preventDefault();
+    nativeOpenExternal(url);
+  },true);
+}
+
 render();
+queueMicrotask(maybeShowDailyServiceReminder);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  updateServiceNavIndicator();
+  maybeShowDailyServiceReminder();
+});

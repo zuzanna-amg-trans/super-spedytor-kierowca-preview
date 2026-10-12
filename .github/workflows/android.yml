@@ -1,0 +1,72 @@
+name: Sprawdź aplikację Android
+
+on:
+  pull_request:
+    paths:
+      - "android-app/**"
+      - "dist/**"
+      - ".github/workflows/android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "android-app/**"
+      - "dist/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-spedytor-driver-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Testy, lint i debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Pobierz źródła
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Ustaw JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Ustaw Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Ustaw Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Zainstaluj Android 16 SDK
+        shell: bash
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Sprawdź JavaScript interfejsu
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check dist/demo-assets.js
+          node --check dist/flow.js
+
+      - name: Uruchom testy, lint i zbuduj debug APK
+        working-directory: android-app
+        shell: bash
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
+
+      - name: Potwierdź blokadę przypadkowego release
+        working-directory: android-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          output=$(./gradlew verifyReleaseReadiness --no-daemon 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -ne 0
+          printf '%s' "$output" | grep -q "MainActivity nadal uruchamia DemoDriverRepository"

@@ -1,0 +1,55 @@
+/* Native Android shell: the same interface, without the desktop presentation frame. */
+html.android-shell,
+html.android-shell body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+html.android-shell .studio-header,
+html.android-shell .studio-sidebar,
+html.android-shell .design-notes,
+html.android-shell .preview-topline,
+html.android-shell .preview-bottomline,
+html.android-shell .status-bar,
+html.android-shell .android-home {
+  display: none !important;
+}
+
+html.android-shell .studio-layout {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+html.android-shell .preview-area {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+html.android-shell .device {
+  /* The driver's first feedback round called for a small, uniform increase.
+     Inverse dimensions keep the zoomed shell exactly inside the viewport. */
+  width: 94.79%;
+  height: 94.79% !important;
+  min-height: 0;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: scale(1.055);
+  transform-origin: top left;
+}
+
+html.android-shell .app-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+html.android-shell .modal-overlay {
+  position: fixed;
+}

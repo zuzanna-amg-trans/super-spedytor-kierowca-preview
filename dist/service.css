@@ -1,0 +1,125 @@
+/* Service survey: a readable, photo-first daily vehicle check. */
+.bottom-nav{padding-left:8px;padding-right:8px}
+.bottom-nav button{position:relative;min-width:0}
+.bottom-nav button span{white-space:nowrap}
+.bottom-nav button.service-due::after{content:"";position:absolute;top:7px;left:calc(50% + 9px);width:9px;height:9px;border:2px solid #fff;border-radius:50%;background:var(--orange);box-shadow:0 1px 4px rgba(154,65,18,.3)}
+.service-screen{padding-bottom:34px}
+.service-page-header{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.service-page-header>button{width:48px;height:48px;display:grid;place-items:center;flex-shrink:0;border:1px solid #dce2d5;border-radius:14px;background:#fff;color:#748665}
+.service-page-header>button .icon{width:21px;height:21px}
+.service-page-header>div{min-width:0;flex:1}
+.service-page-header>div>span{display:block;font-size:9px;line-height:1.5;letter-spacing:.9px;color:#8d9785;font-weight:850}
+.service-page-header h2{margin:2px 0 0;font-size:26px;line-height:1.25;letter-spacing:-.65px}
+.service-state-badge{flex-shrink:0;max-width:88px;padding:7px 9px;border-radius:9px;background:#fff0e6;color:#9c4a20;font-size:9px;line-height:1.45;font-weight:850;text-align:center}
+.service-state-badge.ready{background:#eef5e9;color:#658151}
+.service-state-badge.saved{background:var(--green-soft);color:var(--green)}
+.service-intro{margin:0 0 14px;font-size:14px;line-height:1.7;color:#707a6a}
+.service-daily-status{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px;border:1px solid #ffd4bb;border-radius:15px;background:#fff7f1;color:#813b18}
+.service-daily-status>span{width:42px;height:42px;display:grid;place-items:center;flex-shrink:0;border-radius:12px;background:#ff6a1a;color:#fff}
+.service-daily-status>span .icon{width:23px;height:23px}
+.service-daily-status>div{min-width:0;flex:1}
+.service-daily-status strong{display:block;font-size:14px;line-height:1.45}
+.service-daily-status small{display:block;margin-top:3px;font-size:11px;line-height:1.55;color:#8a654f}
+.service-daily-status>b{align-self:flex-start;padding:5px 7px;border-radius:7px;background:#ffeadc;font-size:8px;line-height:1.3;white-space:nowrap}
+.service-daily-status.done{border-color:#cfe2c6;background:#f1f8ed;color:var(--green)}
+.service-daily-status.done>span{background:var(--green)}
+.service-daily-status.done small{color:#6d8062}
+.service-daily-status.done>b{background:#dfeeda}
+.service-saved-banner{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:14px 15px;border-radius:14px;background:var(--green-soft);color:var(--green)}
+.service-saved-banner>.icon{width:20px;height:20px;flex-shrink:0;margin-top:3px}
+.service-saved-banner p{margin:0;font-size:12px;line-height:1.65}
+.service-saved-banner strong{display:block;font-size:13px;margin-bottom:2px}
+.service-progress-card{margin-bottom:15px;padding:17px;border-radius:17px;background:linear-gradient(135deg,#2c302d,#464e43);color:#fff;box-shadow:0 10px 24px rgba(42,49,43,.12)}
+.service-progress-card>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.service-progress-card>div:first-child span{font-size:10px;letter-spacing:.9px;color:#d5ddd1;font-weight:850}
+.service-progress-card>div:first-child strong{font-size:19px;color:#fff}
+.service-progress-track{height:8px;margin:13px 0 10px;overflow:hidden;border-radius:8px;background:rgba(255,255,255,.14)}
+.service-progress-track span{display:block;height:100%;border-radius:inherit;background:var(--orange);transition:width .2s ease}
+.service-progress-card p{margin:0;font-size:11px;line-height:1.65;color:#d1d9ce}
+.service-message-card{padding:17px}
+.service-message-heading{display:flex;align-items:flex-start;gap:11px}
+.service-message-heading>span{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;border-radius:12px;background:#fff0e6;color:var(--orange-dark)}
+.service-message-heading>span .icon{width:24px;height:24px}
+.service-message-heading>div{min-width:0;flex:1}
+.service-message-heading h3{margin:0;font-size:17px;line-height:1.45}
+.service-message-heading p{margin:4px 0 0;font-size:11px;line-height:1.55;color:#818b7d}
+.service-message-heading>b{padding:6px 8px;border-radius:8px;background:#f2f4ef;color:#7d8778;font-size:9px}
+.service-message-card>label{display:block;margin-top:14px}
+.service-message-card>label>span{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#66715f}
+.service-message-card textarea{width:100%;min-height:112px;padding:14px;border:1px solid #d6ddd0;border-radius:13px;background:#fafbf8;color:#3f493b;font:inherit;font-size:15px;line-height:1.6;resize:vertical}
+.service-message-card textarea::placeholder{color:#919b8d}
+.service-photo-button{width:100%;min-height:106px;display:flex;align-items:center;gap:13px;padding:14px;border:2px dashed #c6d1bd;border-radius:15px;background:#fafbf8;text-align:left;color:#65735b;overflow:hidden}
+.service-photo-button.compact{min-height:90px;margin-top:15px}
+.service-photo-button img{width:92px;height:78px;object-fit:cover;flex-shrink:0;border-radius:11px}
+.service-photo-button.compact img{width:76px;height:62px}
+.service-photo-icon{width:58px;height:58px;display:grid;place-items:center;flex-shrink:0;border-radius:14px;background:#eaf0e5;color:#738367}
+.service-photo-icon .icon{width:30px;height:30px}
+.service-photo-copy{min-width:0;flex:1}
+.service-photo-copy strong{display:block;font-size:15px;line-height:1.45}
+.service-photo-copy small{display:block;margin-top:3px;font-size:11px;line-height:1.5;color:#858f80}
+.service-photo-button>.icon{width:22px;height:22px;color:var(--orange)}
+.service-photo-button.done{border-style:solid;border-color:#c9dfbf;background:#f5fbf1}
+.service-photo-button.done>.icon{color:var(--green)}
+.service-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:23px 2px 11px}
+.service-list-heading span{display:block;font-size:9px;letter-spacing:1px;color:#a04a1d;font-weight:900}
+.service-list-heading h3{margin:3px 0 0;font-size:20px;line-height:1.45}
+.service-list-heading>b{font-size:11px;line-height:1.5;color:#75816e}
+.service-task-card{padding:17px}
+.service-task-card.complete{border-color:#cde0c5;background:#fcfefa}
+.service-task-heading{display:flex;align-items:flex-start;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.service-task-number{width:34px;height:34px;display:grid;place-items:center;flex-shrink:0;border-radius:10px;background:#fff0e6;color:var(--orange-dark);font-size:13px;font-weight:900}
+.service-task-number .icon{width:18px;height:18px}
+.service-task-card.complete .service-task-number{background:var(--green-soft);color:var(--green)}
+.service-task-icon{width:34px;height:34px;display:grid;place-items:center;flex-shrink:0;color:#6f8362}
+.service-task-icon .icon{width:25px;height:25px}
+.service-task-heading>div{min-width:0;flex:1}
+.service-task-heading h3{margin:0;font-size:17px;line-height:1.45}
+.service-task-heading p{margin:4px 0 0;font-size:11px;line-height:1.55;color:#818b7d}
+.service-task-status{padding-top:7px;color:#945f40;font-size:9px;line-height:1.4}
+.service-task-card.complete .service-task-status{color:var(--green)}
+.service-task-body{display:grid;grid-template-columns:1fr;gap:14px;padding-top:15px}
+.service-value-field{display:flex;flex-direction:column;min-width:0}
+.service-value-field>span:first-child{display:block;margin-bottom:7px;font-size:12px;color:#65705e;font-weight:800}
+.service-value-control{display:flex;align-items:center;height:62px;overflow:hidden;border:1px solid #d5ddd0;border-radius:14px;background:#fafbf8}
+.service-value-control:focus-within{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,106,26,.12)}
+.service-value-control input{width:100%;min-width:0;height:100%;padding:0 15px;border:0;outline:0;background:transparent;color:#30382e;font:inherit;font-size:21px;font-weight:800}
+.service-value-control input::placeholder{color:#9ca59a;font-weight:500}
+.service-value-control b{padding-right:16px;color:#687163;font-size:14px}
+.service-value-field>small{display:block;margin-top:7px;font-size:10px;line-height:1.5;color:#858f81}
+.service-after-check{margin-top:18px;padding:17px;border-top:1px solid #e1e5dd}
+.service-after-check input{width:25px;height:25px;flex:0 0 25px}
+.service-after-check>span{min-width:0}
+.service-after-check strong{display:block;font-size:15px;line-height:1.5}
+.service-after-check small{display:block;margin-top:3px;font-size:11px;line-height:1.55;color:#818b7d}
+.service-offline-note{display:flex;align-items:flex-start;gap:8px;margin:15px 2px 0;font-size:10px;line-height:1.65;color:#838d80}
+.service-offline-note .icon{width:17px;height:17px;flex-shrink:0;margin-top:1px}
+.service-photo-modal-icon{color:var(--orange-dark)}
+#service-save,#service-close{min-height:62px;font-size:16px}
+.service-reminder{text-align:center}
+.service-reminder-icon{width:72px;height:72px;display:grid;place-items:center;margin:2px auto 14px;border-radius:21px;background:#fff0e6;color:var(--orange-dark)}
+.service-reminder-icon .icon{width:36px;height:36px}
+.service-reminder>strong{display:block;font-size:20px;line-height:1.35;color:#31372f}
+.service-reminder>p{margin:9px 0 15px;font-size:14px;line-height:1.65;color:#66705f}
+.service-reminder-time{display:flex;align-items:center;gap:11px;margin:0 0 16px;padding:13px 14px;border-radius:13px;background:#f1f5ed;text-align:left;color:#657b57}
+.service-reminder-time>.icon{width:24px;height:24px;flex-shrink:0}
+.service-reminder-time span{min-width:0}
+.service-reminder-time b{display:block;font-size:13px;line-height:1.4}
+.service-reminder-time small{display:block;margin-top:2px;font-size:10px;line-height:1.5;color:#798472}
+.service-reminder-primary,.service-reminder-secondary{min-height:58px;font-size:15px}
+.service-reminder-secondary{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.service-reminder-secondary .icon{width:20px;height:20px}
+.service-reminder-skip{width:100%;min-height:48px;margin-top:6px;padding:8px;border:0;background:transparent;color:#6e7868;font-size:11px;font-weight:750}
+.service-reminder .small-note{margin:6px 0 0;font-size:9px;line-height:1.55;color:#919a8d}
+@media(max-width:480px){
+  .bottom-nav button{font-size:9px}
+  .service-page-header{gap:9px}
+  .service-page-header h2{font-size:24px}
+  .service-state-badge{max-width:80px}
+  .service-task-card{padding:16px}
+}
+@media(max-width:360px){
+  .service-state-badge{display:none}
+  .service-daily-status>b{display:none}
+  .service-task-heading{gap:7px}
+  .service-task-status{display:none}
+}
