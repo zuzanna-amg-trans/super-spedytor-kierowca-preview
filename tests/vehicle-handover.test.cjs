@@ -27,8 +27,12 @@ test('zgodna pozycja nie wymaga zdjecia ani opisu',()=>{
   assert.equal(handover.itemReady('extinguisher',{statuses:{extinguisher:'matching'}}),true);
 });
 
-test('niezgodnosc wymaga jednoczesnie zdjecia i opisu',()=>{
-  const protocol={statuses:{straps:'missing'},notes:{straps:'Brakuje dwoch pasow'},photos:{}};
+test('brak jest kompletna ocena bez zdjecia i opisu',()=>{
+  assert.equal(handover.itemReady('straps',{statuses:{straps:'missing'}}),true);
+});
+
+test('uszkodzenie wymaga jednoczesnie zdjecia i opisu',()=>{
+  const protocol={statuses:{straps:'damaged'},notes:{straps:'Przetarcie'},photos:{}};
   assert.equal(handover.itemReady('straps',protocol),false);
   protocol.photos.straps={uploadId:'upload-1'};
   assert.equal(handover.itemReady('straps',protocol),true);
@@ -37,8 +41,7 @@ test('niezgodnosc wymaga jednoczesnie zdjecia i opisu',()=>{
 test('protokol wymaga odczytow, calej listy i potwierdzenia odbiorcy',()=>{
   const protocol={
     odometerKm:'123456',fuelLevel:'half',receiverConfirmed:true,
-    statuses:{extinguisher:'matching',straps:'missing'},
-    notes:{straps:'Brakuje dwoch pasow'},photos:{straps:{uploadId:'upload-1'}}
+    statuses:{extinguisher:'matching',straps:'missing'}
   };
   assert.equal(handover.ready(snapshot,protocol),true);
   protocol.receiverConfirmed=false;

@@ -30,8 +30,8 @@
 
   function itemReady(itemId,protocol={}){
     const status=protocol.statuses?.[itemId];
-    if(status==='matching')return true;
-    if(status!=='missing'&&status!=='damaged')return false;
+    if(status==='matching'||status==='missing')return true;
+    if(status!=='damaged')return false;
     return Boolean(protocol.photos?.[itemId]&&has(protocol.notes?.[itemId]));
   }
 
