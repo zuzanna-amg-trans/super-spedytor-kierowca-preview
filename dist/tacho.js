@@ -4,6 +4,14 @@
   const tq=(selector,root=document)=>root.querySelector(selector);
   const tqa=(selector,root=document)=>[...root.querySelectorAll(selector)];
   const tachoIcon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const tachoActivityIcon=(type,label)=>{
+    const shapes={
+      drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4"/><path d="M3.8 10h16.4M12 14.4v6M6.4 10c.8 3.4 2.6 5.4 5.6 6.2M17.6 10c-.8 3.4-2.6 5.4-5.6 6.2"/>',
+      work:'<path d="m5 4 15 15-3 3L2 7V4h3ZM19 3l2 2-6.5 6.5-2-2ZM8.5 15.5 3 21M16 4l4 4"/>',
+      rest:'<path d="M4 19V7M4 15h16v4M7 15v-5h4a4 4 0 0 1 4 4v1M20 19v-7"/><circle cx="7" cy="11" r="1.6"/>'
+    };
+    return `<span class="tacho-activity-icon ${type}" role="img" aria-label="${label}"><svg viewBox="0 0 24 24" aria-hidden="true">${shapes[type]}</svg></span>`;
+  };
   const breakTypes=[
     {id:'break-15',group:'Przerwy po jeździe',title:'Przerwa 15 min',hint:'Pierwsza część przerwy dzielonej',seconds:15*60,icon:'clock'},
     {id:'break-30',group:'Przerwy po jeździe',title:'Przerwa 30 min',hint:'Druga część po wcześniejszych 15 min',seconds:30*60,icon:'clock'},
@@ -112,11 +120,11 @@
       <section class="tacho-activity-card">
         <div class="tacho-activity-bar" aria-label="Kolejność dzisiejszych okresów"><span style="--part:4.4%;--activity-color:#859879"></span><span style="--part:36.7%;--activity-color:#ff7a31"></span><span style="--part:8.6%;--activity-color:#b7aecc"></span><span style="--part:15.9%;--activity-color:#859879"></span><span style="--part:34.4%;--activity-color:#ff7a31"></span></div>
         <div class="tacho-period-list" aria-label="Okresy dzisiejszej aktywności">
-          <div class="tacho-period" style="--activity-color:#859879"><time>06:42–07:05</time><span><strong>Inna praca</strong><small>23 min</small></span></div>
-          <div class="tacho-period" style="--activity-color:#ff7a31"><time>07:05–10:17</time><span><strong>Jazda</strong><small>3 godz. 12 min</small></span></div>
-          <div class="tacho-period" style="--activity-color:#b7aecc"><time>10:17–11:02</time><span><strong>Przerwa</strong><small>45 min</small></span></div>
-          <div class="tacho-period" style="--activity-color:#859879"><time>11:02–12:25</time><span><strong>Inna praca</strong><small>1 godz. 23 min</small></span></div>
-          <div class="tacho-period current" style="--activity-color:#ff7a31"><time>12:25–15:25</time><span><strong>Jazda</strong><small>3 godz. · bieżący okres</small></span></div>
+          <div class="tacho-period" style="--activity-color:#859879"><time>06:42–07:05</time>${tachoActivityIcon('work','Inna praca — symbol skrzyżowanych młotków')}<span><strong>Inna praca</strong><small>23 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#ff7a31"><time>07:05–10:17</time>${tachoActivityIcon('drive','Jazda — symbol kierownicy')}<span><strong>Jazda</strong><small>3 godz. 12 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#b7aecc"><time>10:17–11:02</time>${tachoActivityIcon('rest','Przerwa lub odpoczynek — symbol łóżka')}<span><strong>Przerwa</strong><small>45 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#859879"><time>11:02–12:25</time>${tachoActivityIcon('work','Inna praca — symbol skrzyżowanych młotków')}<span><strong>Inna praca</strong><small>1 godz. 23 min</small></span></div>
+          <div class="tacho-period current" style="--activity-color:#ff7a31"><time>12:25–15:25</time>${tachoActivityIcon('drive','Jazda — symbol kierownicy')}<span><strong>Jazda</strong><small>3 godz. · bieżący okres</small></span></div>
         </div>
       </section>
       <div class="tacho-section-heading"><h3>Odpoczynki</h3><span>Najważniejsze terminy</span></div>
