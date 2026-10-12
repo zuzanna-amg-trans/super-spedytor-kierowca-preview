@@ -6,6 +6,14 @@ Natywna aplikacja kierowcy nie może używać poświadczeń administracyjnych, t
 MCP ani bezpośrednio odpytywać wewnętrznych modeli panelu. Potrzebuje
 wersjonowanego Driver API ograniczonego do zalogowanego kierowcy i jego tras.
 
+## Stan przejściowy — odczyt istniejącego API
+
+Android korzysta obecnie wyłącznie z `POST /api/token/`, `GET /api/users/me/`,
+`GET /api/users/me/current-vehicle/` i `GET /api/routes/driver/status/`.
+Poświadczenia oraz tokeny pozostają w natywnej warstwie Androida i nie są
+udostępniane lokalnemu WebView. Ten adapter nie wysyła żadnych zmian do TMS i
+nie zastępuje poniższego kontraktu dla zdarzeń, dokumentów, czatu ani wydatków.
+
 ## Czego potrzebujemy od głównego deva teraz
 
 1. Wskazania repozytorium backendu i środowiska staging albo potwierdzenia, że
@@ -52,6 +60,7 @@ Docelowe zdarzenia operacji do potwierdzenia:
 - `loading_completed`,
 - `unloading_started`,
 - `unloading_completed`,
+- `operation_status_reported`,
 - `cargo_count_changed`,
 - `cargo_seal_scanned`,
 - `cmr_seal_scanned`,
@@ -94,6 +103,64 @@ Minimalna odpowiedź właścicielska:
 Aplikacja usuwa zdarzenie z kolejki offline dopiero po otrzymaniu takiego
 readbacku. Sam kod HTTP `200`, `201` lub `202` bez potwierdzonego stanu
 właścicielskiego nie może zmienić etykiety na „potwierdzone przez TMS”.
+
+### Plan następnych operacji i ETA
+
+`GET /driver/v1/assignments/active` powinien zwracać wszystkie nieukończone
+operacje kierowcy w kolejności wykonania, a nie tylko bieżący i następny punkt.
+Każda pozycja planu musi zawierać co najmniej:
+
+- `route_point_id`, `sequence`, `operation_type`, `owner_status` i
+  `owner_version`,
+- miejsce: nazwa firmy, pełny adres, kraj, współrzędne i dane wjazdu, jeśli są
+  faktycznie zapisane,
+- `schedule_kind`: `fixed_appointment`, `time_window` albo `rolling_eta`,
+- `appointment_at` lub kompletne `time_windows`,
+- `required_arrival_at` i zastosowaną politykę
+  `first_operation_lead_minutes`; dla pierwszej operacji dnia wartość wynosi
+  obecnie 15 minut,
+- `live_eta_at`, `eta_computed_at` i przyczynę ostatniej zmiany ETA dla każdej
+  kolejnej operacji,
+- przypisane zlecenie oraz dostarczone przez TMS dane ładunku: nazwa/towar,
+  liczba opakowań, jednostka, masa i wymiary. Brak pola nie może być zastępowany
+  tekstem „brak danych” ani wartością wymyśloną przez aplikację.
+
+ETA następnego punktu jest przeliczane po każdym potwierdzonym przyjeździe i
+zakończeniu operacji oraz po świeżej pozycji pojazdu. Klient wyświetla czas
+wyliczony przez backend razem z `eta_computed_at`; nie dodaje samodzielnie
+stałych minut do poprzedniej operacji.
+
+### Licznik 20 / 40 / 60 minut na miejscu
+
+Dla załadunku i rozładunku licznik zaczyna się od właścicielsko potwierdzonego
+`arrival_confirmed`, aby obejmował zarówno oczekiwanie na rampę, jak i właściwą
+obsługę. Readback punktu powinien zwracać:
+
+- `operation_timer.started_at`, `elapsed_seconds` i `state`,
+- `check_in_due_at` po 20 minutach,
+- `urgent_due_at` po 40 minutach,
+- `limit_due_at` po 60 minutach,
+- `active_escalation_id`, wymagany poziom odpowiedzi i ostatnią potwierdzoną
+  odpowiedź kierowcy,
+- `server_now`, aby klient nie opierał eskalacji wyłącznie na zegarze telefonu.
+
+Po 20 minutach backend tworzy pytanie o status. Kierowca odpowiada zdarzeniem
+`operation_status_reported` z jedną z zatwierdzonych wartości, np.
+`waiting_for_ramp`, `operation_in_progress`, `cargo_problem`, oraz opcjonalną
+notatką. Po 40 minutach odpowiedź jest obowiązkowa: aplikacja pokazuje alarm,
+uruchamia dedykowany dźwięk/wibrację i blokuje dalsze zakończenie operacji do
+czasu potwierdzonego readbacku odpowiedzi. Po 60 minutach backend utrwala
+naruszenie limitu i tworzy eskalację dla biura nawet wtedy, gdy kierowca
+odpowiedział wcześniej.
+
+Powiadomienie 40-minutowe wymaga push/systemowego kanału o wysokim priorytecie,
+ponieważ sam timer JavaScript nie działa niezawodnie przy wygaszonej aplikacji.
+Klient może odliczać czas lokalnie dla płynnego interfejsu, ale po wznowieniu
+zawsze koryguje go względem `server_now` i właścicielskiego stanu TMS.
+
+`loading_completed` albo `unloading_completed` zatrzymuje licznik dopiero po
+readbacku z `completed_at`, czasem całkowitym i zamkniętym stanem eskalacji.
+Samo naciśnięcie przycisku w telefonie nie może usuwać aktywnego alarmu.
 
 ## Stan po stronie aplikacji
 
@@ -167,6 +234,98 @@ wymaganych pól na podstawie samego tekstu etykiety. Ponowne otwarcie aplikacji
 nie może tworzyć drugiej ankiety dla tego samego pojazdu i dnia, a zmiana strefy
 czasowej musi mieć jawnie określone zachowanie.
 
+Po właścicielskim readbacku aplikacja może przechowywać kompletną ankietę wraz
+ze zdjęciami lokalnie wyłącznie do następnego dnia do `00:01` w strefie ankiety.
+Po tym terminie lokalna kopia ma zostać usunięta, a aplikacja pokazuje nowy
+obowiązek dzienny. Nie oznacza to usunięcia rekordu właścicielskiego z backendu;
+jego retencja pozostaje zgodna z polityką TMS. API powinno zwracać jednoznaczne
+`local_date`, `timezone` i `local_cache_valid_until`.
+
+### Protokół przekazania pojazdu i wyposażenia
+
+- `GET /driver/v1/vehicle-handovers/active`
+- `GET /driver/v1/vehicle-handovers/{handoverId}`
+- `POST /driver/v1/uploads` — zdjęcia rozbieżności przed potwierdzeniem,
+- `POST /driver/v1/vehicle-handovers/{handoverId}/transferor-confirmations`
+- `POST /driver/v1/vehicle-handovers/{handoverId}/receiver-confirmations`
+
+Protokół jest właścicielskim zadaniem TMS, a nie formularzem, w którym aplikacja
+samodzielnie dobiera samochód lub kierowców. Odczyt jednego zadania musi zwracać
+co najmniej:
+
+- `handover_id`, `owner_state`, `owner_version`, `created_at`, termin i miejsce,
+- pojazd: stabilne `vehicle_id`, rejestrację, nazwę/model i wersję przypisania,
+- przekazującego oraz przejmującego przez stabilne identyfikatory i kody
+  kierowców; dane muszą być ograniczone do uczestników tego przekazania,
+- osobne potwierdzenie przekazującego wraz z właścicielskim czasem przyjęcia,
+- zamrożony `equipment_snapshot` z `snapshot_id`, `snapshot_version` oraz
+  pozycjami zawierającymi `equipment_item_id`, nazwę, kategorię, wymaganą liczbę,
+  jednostkę i — jeśli istnieje — numer seryjny,
+- odwołanie do ostatniej właścicielskiej inwentaryzacji, z której powstał zrzut,
+  bez automatycznego uznawania jej za aktualny stan faktyczny,
+- dozwolone stany oraz decyzję, czy dany użytkownik ma teraz potwierdzać
+  przekazanie, odbiór czy tylko widzieć zakończony protokół.
+
+Lista wyposażenia nie może być hardkodowana w aplikacji produkcyjnej. Brak
+zadania, uczestnika, pojazdu, wersji albo kompletnej listy wyposażenia blokuje
+potwierdzenie. Klient pokazuje wtedy błąd danych właścicielskich i możliwość
+kontaktu ze spedytorem; nie zastępuje braku pustą listą, ostatnim lokalnym autem
+ani ręcznym wyborem.
+
+Potwierdzenie odbiorcy zawiera co najmniej:
+
+- `idempotency_key`, `occurred_at`, `device_id` i `expected_owner_version`,
+- identyfikatory zadania, pojazdu, przekazującego i przejmującego dokładnie ze
+  zrzutu API,
+- przebieg i poziom paliwa w chwili odbioru,
+- dla każdej pozycji wyposażenia: oczekiwaną liczbę oraz stan `matching`,
+  `missing` albo `damaged`,
+- opis i `upload_id` potwierdzonego zdjęcia dla każdej pozycji `missing` lub
+  `damaged`,
+- jawne potwierdzenie zalogowanego odbiorcy. Tożsamość wynika z sesji i nie może
+  być zastąpiona ręcznie wpisanym nazwiskiem ani odręcznym podpisem bez
+  powiązania z kontem.
+
+Stan docelowy ma przebieg:
+
+`awaiting_transferor` → `awaiting_receiver` → `completed` albo
+`completed_with_issues`.
+
+Jeżeli polityka TMS dopuszcza odbiór z zastrzeżeniami, jeden atomowy zapis musi
+jednocześnie: zachować niezmienny protokół, utworzyć powiązane zgłoszenia braków
+lub uszkodzeń, zamknąć poprzednie przypisanie i przypisać pojazd kierowcy
+przejmującemu. Częściowe powodzenie jest błędem serwera, a nie stanem, który
+klient próbuje sam naprawiać. Jeżeli firma wymaga zatwierdzenia floty przed
+zmianą przypisania, API musi zamiast tego zwrócić jednoznaczny stan
+`awaiting_fleet_review` i nie może deklarować zakończenia.
+
+Minimalny readback zakończenia:
+
+```json
+{
+  "handover_id": "tms-handover-id",
+  "owner_state": "completed_with_issues",
+  "owner_version": 8,
+  "confirmed_at": "2026-10-13T08:42:10Z",
+  "assignment": {
+    "vehicle_id": "vehicle-id",
+    "driver_id": "receiver-driver-id",
+    "assignment_version": 13
+  },
+  "equipment_snapshot": {
+    "snapshot_id": "equipment-snapshot-id",
+    "snapshot_version": 4
+  },
+  "issue_ids": ["vehicle-issue-id"]
+}
+```
+
+Aplikacja pokazuje „Przekazano” dopiero wtedy, gdy readback zawiera ten sam
+`handover_id` i `vehicle_id`, wyższą `owner_version` oraz nowe przypisanie do
+`receiver_driver_id`. Sam kod HTTP `200`, `201` lub `202`, lokalna kolejka
+`PENDING_SYNC`, potwierdzenie tylko jednej osoby albo ponowny odczyt starej trasy
+nie są dowodem zakończenia przekazania.
+
 ### Czas pracy i zgłoszenia przerw
 
 - `GET /driver/v1/work-time/current`
@@ -179,10 +338,43 @@ czas jazdy od pełnej przerwy, czas do następnej wymaganej przerwy, dzienny lim
 i wykorzystane wydłużenia, początek dnia, graniczny czas odpoczynku dobowego,
 wykorzystane odpoczynki 9-godzinne oraz bilans 56 h i 90 h.
 
+Dla sugestii przy tankowaniu odczyt musi udostępniać stabilne pola maszynowe:
+`driving_since_full_break_seconds`, `seconds_to_required_break`,
+`split_break_15_completed` oraz `active_report`. Pole
+`split_break_15_completed` pochodzi z potwierdzonego stanu właścicielskiego;
+sama deklaracja kierowcy w aplikacji nie może go ustawić. Brak pola, nieświeży
+snapshot albo konflikt źródeł blokuje komunikat „możesz jechać dalej” i daje
+wyłącznie polecenie sprawdzenia tachografu.
+
+Pilotażowy klient stosuje wersjonowany model `fuel-break-v1`: od 1:00 do
+dokładnie 2:00 jazdy sugeruje 15 min, po przekroczeniu 2:00 bez potwierdzonej
+piętnastki sugeruje 45 min, a po potwierdzonej piętnastce od 3:30 jazdy lub przy
+nie więcej niż 1:00 do wymaganej przerwy sugeruje 30 min. Backend docelowo może
+zwracać gotowe `break_recommendation` z `ruleset_version`, `reason_code`,
+`duration_seconds`, `computed_at` i `valid_until`; klient nie może prezentować
+rekomendacji po upływie `valid_until`.
+
+Po właścicielskim potwierdzeniu zdarzenia `arrival_confirmed` dla parkingu
+aplikacja powinna ponownie pobrać aktualny stan czasu pracy i od razu pokazać
+wybór faktycznie rozpoczynanej przerwy. Sugestia musi odróżniać niekwalifikowany
+krótki postój (np. 5 min), pierwszą część 15 min wymagającą następnie minimum
+30 min, zbliżenie do 4:30 jazdy oraz zbliżenie do granicy odpoczynku dobowego.
+Dla propozycji 9 h potrzebne jest jawne pole właścicielskie określające, czy
+skrócony odpoczynek jest jeszcze dostępny; brak tego pola pozwala sugerować
+regularne 11 h, ale nie 9 h. Druga przerwa 15 min po wcześniejszej 15 min ma
+wywołać ostrzeżenie, lecz klient nadal zapisuje deklarację kierowcy zgodnie z
+faktycznie wybranym rodzajem — nie zamienia jej automatycznie na 30 min.
+
 Zgłoszenie rozpoczęcia/zmiany/zakończenia przerwy jest informacją operacyjną dla
 spedytora. Nie może edytować, uzupełniać ani „zatwierdzać” prawnego zapisu
 tachografu. Odpowiedź powinna jawnie rozróżnić `reported_state` od
 `tachograph_state`.
+
+Tankowanie nigdy nie rozpoczyna zgłoszenia przerwy automatycznie. Po zakończeniu
+tankowania aplikacja ponownie ocenia najświeższy snapshot i wymaga jawnego wyboru
+kierowcy: rozpoczęcie sugerowanej przerwy albo dalsza jazda. Zapis rozpoczęcia
+przerwy wymaga `recommendation_id` lub lokalnego `ruleset_version` i
+`reason_code`, `idempotency_key` oraz właścicielskiego readbacku.
 
 ### Odbiór oryginałów CMR od innych kierowców
 
@@ -205,11 +397,16 @@ plomby.
 Odczyt QR z papierowego CMR-u tworzy `cmr_original_qr_scanned`. Backend rozwiązuje
 kod do konkretnego `document_id`, zlecenia, kierowcy oraz istniejącego
 `stored_scan_id` albo bezpiecznego adresu podglądu. Aplikacja pokazuje właśnie ten
-skan; nie tworzy nowego uploadu. Po porównaniu papierowego oryginału z podglądem
-klient zapisuje `cmr_original_verified`. Żądanie odczytu zawiera wcześniej
-wybrany `source_driver_id`; backend musi odrzucić QR przypisany do innej osoby.
-Klient utrzymuje tylko jedną aktywną kopertę, a w interfejsie sortuje potwierdzone
-odczyty malejąco po `scanned_at`, aby najnowszy CMR był zawsze na górze.
+skan; nie tworzy nowego uploadu. To zdarzenie nie oznacza jeszcze przyjęcia
+dokumentu i nie może dodać go do `matched_documents`. Klient blokuje następny
+odczyt QR do czasu rozstrzygnięcia bieżącego podglądu. Po porównaniu papierowego
+oryginału z podglądem i jawnej decyzji „przejmuję CMR” klient zapisuje
+`cmr_original_verified`; dopiero potwierdzony readback tego zdarzenia oznacza
+przejęcie dokumentu. Odrzucenie podglądu nie tworzy wpisu w kopercie. Żądanie
+odczytu zawiera wcześniej wybrany `source_driver_id`; backend musi odrzucić QR
+przypisany do innej osoby. Klient utrzymuje tylko jedną aktywną kopertę, a w
+interfejsie sortuje potwierdzone przejęcia malejąco po `verified_at`, aby
+najnowszy zaakceptowany CMR był zawsze na górze.
 
 Zamknięcie każdej koperty tworzy osobne zdarzenie
 `driver_document_envelope_sealed`. Odbierający przekazuje `source_driver_id`,

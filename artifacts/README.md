@@ -1,19 +1,29 @@
 # Super Spedytor Preview — artefakt pokazowy
 
-Plik: `Super-Spedytor-Preview-offline-v0.1.9.apk`
+Plik: `Super-Spedytor-Preview-offline-v0.1.11.apk`
 
 - pakiet: `eu.amgtrans.superspedytor.driver.preview`
 - nazwa: `Super Spedytor Preview`
-- wersja: `0.1.9-internal-preview` (`versionCode 10`)
-- SHA-256: `d222aae79c1b3202e92abd79104ca190c0daba3beeb9e8406b43036e54289e33`
+- wersja: `0.1.11-internal-preview` (`versionCode 12`)
+- SHA-256: `b48f55f329e239a76bc29160a25400c128f39cd710a3023920bb70f2f10eeddf`
 - minimalny Android: 9 (`minSdk 28`)
 - docelowy Android SDK: 36
 - podpis: lokalny Android Debug, tylko do instalacji pokazowej
 - sieć: brak uprawnienia `INTERNET`
 - dane: wyłącznie syntetyczne, bez odczytu z backendu Super Spedytora
 - interfejs: bazowy interfejs był wcześniej zweryfikowany na Samsungu SM-F966B;
-  w tej wersji dodatkowo powiększono elementy ankiety serwisowej, ale instalacja
-  wersji `0.1.9` na telefonie pozostaje do ponownej weryfikacji po podłączeniu ADB
+  panel operacji i licznik `0.1.11` sprawdzono w lokalnym widoku telefonu
+  390 × 844 px, ale instalacja tej wersji na urządzeniu pozostaje do ponownej
+  weryfikacji po podłączeniu ADB
+- plan operacji: pierwsza pozycja pokazuje obowiązkowy przyjazd 15 minut przed
+  godziną operacji, a następna ruchome ETA zależne od przebiegu trasy; każda
+  karta zawiera miejsce i dostarczone dane towaru
+- licznik operacji: po dotarciu odlicza czas załadunku lub rozładunku, pyta o
+  status po 20 minutach, po 40 minutach uruchamia alarm i blokuje dalszą akcję
+  do czasu reakcji kierowcy, a po 60 minutach pokazuje przekroczenie limitu
+- podgląd progów: przyciski `0 / 20 / 40 / 60 min` są dostępne tylko jako
+  demonstracja stanów; wybrana odpowiedź pozostaje lokalna i nie jest wysyłana
+  do Super Spedytora
 - zdjęcia: systemowy wybór `Aparat` lub `Pliki`; uruchomienie aparatu zweryfikowane
   na Samsungu SM-F966B bez wykonywania zdjęcia
 - rozładunek: numery plomb ładunku i CMR są widoczne już podczas dojazdu;
@@ -52,6 +62,12 @@ Plik: `Super-Spedytor-Preview-offline-v0.1.9.apk`
 - czytelność serwisu: przyciski zdjęć mają co najmniej 90–106 px wysokości,
   pola liczbowe 62 px, większe podpisy i pionowy układ zdjęcie–wartość; przycisk
   zapisu ma 62 px wysokości
+- zapis dzienny: wartości, notatka, znacznik `Po przeglądzie` oraz wszystkie
+  zdjęcia są utrwalane razem dopiero po ostatniej akcji `Zapisz ankietę`;
+  wcześniejsze zmiany pozostają robocze i nie zastępują ostatniego zapisu
+- ważność danych: lokalny zapis jest dostępny do następnego dnia do `00:01`;
+  po przekroczeniu tej granicy znika z interfejsu, a przy działającej lub ponownie
+  uruchomionej aplikacji usuwane są także lokalne metadane i zdjęcia
 - backend serwisu: zapis ankiety w tym APK pozostaje lokalny i demonstracyjny;
   przypomnienie działa po otwarciu lub wznowieniu aplikacji, a systemowe
   powiadomienia i wysyłka będą możliwe dopiero po dostarczeniu Driver API oraz

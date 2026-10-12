@@ -31,9 +31,17 @@ jobs:
           test -f dist/driver.css
           test -f dist/flow.css
           test -f dist/demo-assets.js
+          test -f dist/break-suggestion.js
+          test -f dist/operation-timing.js
+          test -f dist/vehicle-handover.js
           test -f dist/flow.js
           node --check dist/demo-assets.js
+          node --check dist/break-suggestion.js
+          node --check dist/operation-timing.js
+          node --check dist/vehicle-handover.js
           node --check dist/flow.js
+          node --check dist/tacho.js
+          node --test tests/*.test.cjs
 
       - name: Przygotuj paczkę GitHub Pages
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4

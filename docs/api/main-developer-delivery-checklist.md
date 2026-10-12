@@ -29,8 +29,14 @@ Nie wystarczy informacja „endpoint działa” ani dostęp do panelu administra
 
 - [ ] aktywny przydział zalogowanego kierowcy,
 - [ ] trasa, punkty, kolejność, okna czasowe i aktualna wersja właścicielska,
+- [ ] komplet nieukończonych operacji kierowcy, nie tylko bieżący i następny punkt,
+- [ ] `required_arrival_at` pierwszej operacji zgodny z regułą 15 minut,
+- [ ] serwerowe ETA kolejnych operacji przeliczane po faktycznym zakończeniu punktu,
 - [ ] dane miejsca: firma, pełny adres, kraj, współrzędne, kontakt, instrukcje,
 - [ ] zlecenia i sztuki ładunku z trwałymi identyfikatorami,
+- [ ] licznik czasu od potwierdzonego dotarcia i serwerowe progi 20/40/60 minut,
+- [ ] pytanie o status po 20 min, wymagana odpowiedź i alarm push po 40 min,
+- [ ] trwała eskalacja do biura po 60 min oraz readback odpowiedzi kierowcy,
 - [ ] jawna odpowiedź „brak aktywnego przydziału”,
 - [ ] idempotentne zdarzenia dojazdu, dotarcia, załadunku i rozładunku,
 - [ ] bezpieczny konflikt wersji i odebranie/zmiana trasy podczas pracy,
@@ -58,6 +64,16 @@ Nie wystarczy informacja „endpoint działa” ani dostęp do panelu administra
 - [ ] jeden właścicielski obowiązek ankiety na pojazd i lokalny dzień,
 - [ ] termin, strefa czasowa oraz sugerowane okna przypomnienia rano i wieczorem,
 - [ ] idempotentny zapis i readback potwierdzający datę oraz komplet odpowiedzi,
+- [ ] `local_cache_valid_until` ustawione na następny dzień `00:01` w jawnej strefie,
+- [ ] aktywne zadanie przekazania auta ograniczone do obu uczestników,
+- [ ] pojazd, przekazujący i przejmujący wynikają z zadania i nie są polami
+  wybieranymi ręcznie,
+- [ ] wersjonowany, zamrożony zrzut wyposażenia z trwałymi identyfikatorami,
+- [ ] osobne potwierdzenie przekazującego i przejmującego z tożsamością sesji,
+- [ ] zdjęcie i opis wymagane dla braku albo uszkodzenia wyposażenia,
+- [ ] atomowy zapis protokołu, rozbieżności i nowego przypisania pojazdu,
+- [ ] readback zawiera nowe przypisanie auta do kierowcy przejmującego oraz
+  wyższą wersję właścicielską,
 - [ ] odczyt czasu pracy z oznaczeniem źródła i świeżości,
 - [ ] operacyjne zgłoszenie przerwy bez zmiany danych tachografu.
 
@@ -73,6 +89,9 @@ Nie wystarczy informacja „endpoint działa” ani dostęp do panelu administra
 - [ ] dokument staje się widoczny w Super Spedytorze po readbacku,
 - [ ] unieważniony telefon nie może odświeżyć sesji,
 - [ ] dane jednego kierowcy nie są dostępne dla innego konta testowego,
+- [ ] odbiorca nie może potwierdzić przekazania innego auta ani zastąpić listy
+  wyposażenia własną listą lokalną,
+- [ ] potwierdzenie bez nowego przypisania w readbacku pozostaje `PENDING_SYNC`,
 - [ ] logi i błędy nie zawierają tokenów, PIN-u karty ani treści dokumentów.
 
 ## 5. Kryterium „API odebrane”

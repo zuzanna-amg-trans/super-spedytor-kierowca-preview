@@ -22,10 +22,12 @@ android {
         applicationId = "eu.amgtrans.superspedytor.driver"
         minSdk = 28
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.1.9-internal"
+        versionCode = 12
+        versionName = "0.1.11-internal"
 
-        buildConfigField("String", "APP_QUERY", "\"android=1&preview=1\"")
+        buildConfigField("String", "APP_QUERY", "\"android=1&backend=1\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"https://tms.amg.eco/api/\"")
+        buildConfigField("boolean", "DEMO_MODE", "false")
 
         testInstrumentationRunner = "android.test.InstrumentationTestRunner"
     }
@@ -53,6 +55,8 @@ android {
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("debug")
+            buildConfigField("String", "APP_QUERY", "\"android=1&preview=1\"")
+            buildConfigField("boolean", "DEMO_MODE", "true")
         }
         release {
             isMinifyEnabled = false
@@ -114,8 +118,9 @@ val verifyReleaseReadiness = tasks.register("verifyReleaseReadiness") {
         val mainActivity = file(
             "src/main/java/eu/amgtrans/superspedytor/driver/MainActivity.java"
         ).readText()
-        if (mainActivity.contains("new DemoDriverRepository")) {
-            blockers += "MainActivity nadal uruchamia DemoDriverRepository"
+        if (!mainActivity.contains("if (BuildConfig.DEMO_MODE)")
+            || !mainActivity.contains("new LiveDriverRepository")) {
+            blockers += "MainActivity nie rozdziela trybu Preview od LiveDriverRepository"
         }
 
         if (!completeUploadSigningEnvironment) {

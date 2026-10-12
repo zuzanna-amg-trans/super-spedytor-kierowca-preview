@@ -263,6 +263,26 @@ html.android-shell .backend-panel {
 .backend-point > p { margin: 13px 0 0; color: #687062; font-size: 12px; line-height: 1.55; }
 .backend-point-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
 .backend-point-meta span { padding: 6px 8px; border-radius: 8px; background: #f2f5ef; color: #65705f; font-size: 10px; font-weight: 750; }
+.backend-operations-heading { margin: 20px 3px 10px; }
+.backend-operations-heading small { display: block; color: #8a9385; font-size: 9px; font-weight: 900; letter-spacing: .7px; }
+.backend-operations-heading h3 { margin: 4px 0 0; font-size: 19px; }
+.backend-operation-time { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin-top: 14px; padding: 11px 12px; border-radius: 12px; background: #f3f6f0; }
+.backend-operation-time small { grid-column: 1; align-self: end; }
+.backend-operation-time strong { grid-column: 2; grid-row: 1 / 3; align-self: center; color: #526248; font-size: 22px; font-variant-numeric: tabular-nums; }
+.backend-operation-time span { grid-column: 1; color: #6f796a; font-size: 10px; line-height: 1.45; }
+.backend-operation-time.first { background: #fff0e7; }
+.backend-operation-time.first small,
+.backend-operation-time.first strong { color: #9b491f; }
+.backend-point-cargo { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px; border-radius: 11px; background: #f7f9f5; }
+.backend-point-cargo > .icon { width: 19px; height: 19px; margin-top: 1px; color: #728267; }
+.backend-point-cargo span { min-width: 0; }
+.backend-point-cargo small,
+.backend-point-cargo strong { display: block; }
+.backend-point-cargo small { color: #8a9385; font-size: 8px; font-weight: 900; letter-spacing: .55px; }
+.backend-point-cargo strong { margin-top: 4px; color: #515a4d; font-size: 12px; line-height: 1.5; }
+.backend-plan-limit { display: flex; align-items: flex-start; gap: 9px; margin: 3px 0 14px; padding: 12px; border: 1px dashed #d7ded2; border-radius: 12px; color: #707a6a; }
+.backend-plan-limit .icon { width: 18px; height: 18px; flex: 0 0 auto; }
+.backend-plan-limit p { margin: 0; font-size: 10px; line-height: 1.55; }
 .backend-navigate {
   display: flex;
   align-items: center;

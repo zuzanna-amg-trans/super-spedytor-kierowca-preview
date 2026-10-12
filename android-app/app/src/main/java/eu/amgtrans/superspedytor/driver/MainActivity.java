@@ -26,9 +26,13 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.util.Locale;
 
+import org.json.JSONObject;
+
+import eu.amgtrans.superspedytor.driver.backend.BackendSession;
 import eu.amgtrans.superspedytor.driver.camera.CameraFileProvider;
 import eu.amgtrans.superspedytor.driver.data.DemoDriverRepository;
 import eu.amgtrans.superspedytor.driver.data.DriverRepository;
+import eu.amgtrans.superspedytor.driver.data.LiveDriverRepository;
 import eu.amgtrans.superspedytor.driver.model.DriverAssignment;
 import eu.amgtrans.superspedytor.driver.model.RouteStop;
 import eu.amgtrans.superspedytor.driver.model.StopSyncState;
@@ -48,6 +52,7 @@ public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 2601;
 
     private DriverRepository repository;
+    private BackendSession backendSession;
     private WebView webView;
     private ValueCallback<Uri[]> pendingFileSelection;
     private Uri pendingCameraUri;
@@ -61,7 +66,19 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         setContentView(R.layout.activity_main);
 
-        repository = new DemoDriverRepository(this);
+        if (BuildConfig.DEMO_MODE) {
+            repository = new DemoDriverRepository(this);
+        } else {
+            LiveDriverRepository liveRepository = new LiveDriverRepository();
+            repository = liveRepository;
+            backendSession = new BackendSession(
+                    BuildConfig.BACKEND_BASE_URL,
+                    stateJson -> {
+                        liveRepository.updateFromBackendState(stateJson);
+                        publishBackendState(stateJson);
+                    }
+            );
+        }
         webView = findViewById(R.id.driverWebView);
         applySystemBarInsets();
         configureWebView();
@@ -112,6 +129,14 @@ public final class MainActivity extends Activity {
                     SafeBrowsingResponse callback
             ) {
                 callback.backToSafety(true);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (backendSession != null) {
+                    publishBackendState(backendSession.currentStateJson());
+                }
             }
 
             @Override
@@ -304,6 +329,19 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void publishBackendState(String stateJson) {
+        WebView currentWebView = webView;
+        if (currentWebView == null) return;
+        String quoted = JSONObject.quote(stateJson);
+        runOnUiThread(() -> {
+            if (webView == null) return;
+            webView.evaluateJavascript(
+                    "window.SuperSpedytorBackend?.receive(" + quoted + ")",
+                    null
+            );
+        });
+    }
+
     private RouteStop findStop(String stopId) {
         if (stopId == null) return null;
         DriverAssignment assignment = repository.activeAssignment();
@@ -348,6 +386,10 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         cancelPendingFileSelection();
+        if (backendSession != null) {
+            backendSession.close();
+            backendSession = null;
+        }
         if (webView != null) {
             webView.removeJavascriptInterface(BRIDGE_NAME);
             webView.stopLoading();
@@ -403,6 +445,33 @@ public final class MainActivity extends Activity {
         @JavascriptInterface
         public void resetDemo() {
             repository.resetDemo();
+        }
+
+        @JavascriptInterface
+        public boolean backendEnabled() {
+            return backendSession != null;
+        }
+
+        @JavascriptInterface
+        public String backendState() {
+            return backendSession == null
+                    ? "{\"status\":\"preview\",\"message\":\"Tryb demonstracyjny\"}"
+                    : backendSession.currentStateJson();
+        }
+
+        @JavascriptInterface
+        public void backendLogin(String username, String password) {
+            if (backendSession != null) backendSession.login(username, password);
+        }
+
+        @JavascriptInterface
+        public void backendRefresh() {
+            if (backendSession != null) backendSession.refresh();
+        }
+
+        @JavascriptInterface
+        public void backendLogout() {
+            if (backendSession != null) backendSession.logout();
         }
     }
 }

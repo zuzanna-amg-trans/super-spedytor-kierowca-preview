@@ -13,6 +13,7 @@
 .service-state-badge{flex-shrink:0;max-width:88px;padding:7px 9px;border-radius:9px;background:#fff0e6;color:#9c4a20;font-size:9px;line-height:1.45;font-weight:850;text-align:center}
 .service-state-badge.ready{background:#eef5e9;color:#658151}
 .service-state-badge.saved{background:var(--green-soft);color:var(--green)}
+.service-state-badge.pending{background:#fff7e5;color:#89651f}
 .service-intro{margin:0 0 14px;font-size:14px;line-height:1.7;color:#707a6a}
 .service-daily-status{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px;border:1px solid #ffd4bb;border-radius:15px;background:#fff7f1;color:#813b18}
 .service-daily-status>span{width:42px;height:42px;display:grid;place-items:center;flex-shrink:0;border-radius:12px;background:#ff6a1a;color:#fff}
@@ -119,7 +120,7 @@
 .service-reminder .small-note{margin:6px 0 0;font-size:9px;line-height:1.55;color:#919a8d}
 
 /* Vehicle inventory protocol: a second module inside the Service area. */
-.service-module-switch{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0 0 15px;padding:5px;border:1px solid #e0e4dc;border-radius:14px;background:#ecefea}
+.service-module-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0 0 15px;padding:5px;border:1px solid #e0e4dc;border-radius:14px;background:#ecefea}
 .service-module-switch button{min-width:0;min-height:58px;display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;color:#798274;text-align:left}
 .service-module-switch button>.icon{width:20px;height:20px;flex-shrink:0}
 .service-module-switch button>span{min-width:0}
@@ -209,14 +210,68 @@
 .inventory-confirm small{display:block;margin-top:3px;font-size:10px;line-height:1.55;color:#818b7d}
 .inventory-saved{margin-top:0}
 #inventory-save,#inventory-close{min-height:62px;font-size:16px}
+
+/* Vehicle handover: identities and equipment come from one owner-system task. */
+.handover-screen{padding-bottom:36px}
+.handover-state{max-width:88px}
+.handover-api-source{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:13px;border:1px solid #dbe3d5;border-radius:13px;background:#f2f6ee;color:#63745b}
+.handover-api-source>.icon{width:21px;height:21px;flex-shrink:0;margin-top:2px}
+.handover-api-source p{min-width:0;flex:1;margin:0;font-size:9px;line-height:1.65}
+.handover-api-source strong{display:block;margin-bottom:2px;font-size:10px;color:#53684a}
+.handover-api-source>b{flex-shrink:0;padding:5px 6px;border-radius:7px;background:#fff;color:#718269;font-size:7px;line-height:1.35;white-space:nowrap}
+.handover-vehicle-card{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:15px;border:1px solid #f0d6c5;border-radius:16px;background:linear-gradient(145deg,#fff7f1,#fff)}
+.handover-vehicle-mark{width:47px;height:47px;display:grid;place-items:center;flex-shrink:0;border-radius:13px;background:var(--orange);color:#fff;box-shadow:0 7px 16px rgba(236,96,22,.18)}
+.handover-vehicle-mark .icon{width:25px;height:25px}
+.handover-vehicle-card>div:nth-child(2){min-width:0;flex:1}
+.handover-vehicle-card small{display:block;font-size:8px;letter-spacing:.8px;color:#9b6b52;font-weight:850}
+.handover-vehicle-card h3{margin:3px 0 1px;font-size:19px;line-height:1.35}
+.handover-vehicle-card p{margin:0;font-size:9px;line-height:1.5;color:#91877f}
+.handover-vehicle-card>span{display:flex;align-items:center;gap:4px;max-width:72px;color:#9c684c;font-size:7px;line-height:1.4;font-weight:850;text-align:right}
+.handover-vehicle-card>span .icon{width:13px;height:13px}
+.handover-parties{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:6px;margin-bottom:14px;padding:13px}
+.handover-party{display:flex;align-items:center;gap:8px;min-width:0}
+.handover-party>span{width:34px;height:34px;display:grid;place-items:center;flex-shrink:0;border-radius:10px;background:#edf5e8;color:var(--green)}
+.handover-party.receiver>span{background:#fff0e6;color:var(--orange-dark)}
+.handover-party>span .icon{width:18px;height:18px}
+.handover-party>div{min-width:0}
+.handover-party small,.handover-party strong,.handover-party p{display:block}
+.handover-party small{font-size:6px;line-height:1.45;letter-spacing:.45px;color:#979f91;font-weight:850}
+.handover-party strong{margin-top:2px;font-size:9px;line-height:1.45}
+.handover-party p{margin:0;font-size:8px;line-height:1.4;color:#939b8d}
+.handover-party-arrow{display:grid;place-items:center;color:#a9b0a4}
+.handover-party-arrow .icon{width:15px;height:15px}
+.handover-pending-banner{display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;padding:13px;border-radius:12px;background:#fff7e5;color:#80651f}
+.handover-pending-banner>.icon{width:20px;height:20px;flex-shrink:0;margin-top:2px}
+.handover-pending-banner p{margin:0;font-size:9px;line-height:1.65}
+.handover-pending-banner strong{display:block;margin-bottom:2px;font-size:10px}
+.handover-readings{margin-bottom:14px;padding:16px}
+.handover-section-heading{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.handover-section-heading>span{width:36px;height:36px;display:grid;place-items:center;flex-shrink:0;border-radius:10px;background:#eff3eb;color:#718265}
+.handover-section-heading>span .icon{width:19px;height:19px}
+.handover-section-heading>div{min-width:0;flex:1}
+.handover-section-heading small{display:block;font-size:7px;letter-spacing:.65px;color:#979f91;font-weight:850}
+.handover-section-heading h3{margin:2px 0 0;font-size:14px;line-height:1.45}
+.handover-section-heading>b{font-size:8px;color:#86694e}
+.handover-reading-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.handover-reading-grid label>span:first-child{display:block;margin-bottom:6px;font-size:9px;color:#74665d;font-weight:850}
+.handover-reading-grid .service-value-control{min-height:44px}
+.handover-reading-grid .service-value-control input{min-width:0;width:100%}
+.handover-reading-grid select{width:100%;min-height:44px;padding:0 10px;border:1px solid #dcded8;border-radius:10px;background:#fff;color:#606b5b;font-size:10px}
+.handover-confirm{margin-top:20px}
+#handover-prepare,#handover-close{min-height:62px;font-size:15px}
+.flow-actions #handover-correct{min-height:62px;flex:0 0 43%;padding:8px;font-size:11px}
 @media(max-width:480px){
   .bottom-nav button{font-size:9px}
   .service-page-header{gap:9px}
   .service-page-header h2{font-size:24px}
   .service-state-badge{max-width:80px}
   .service-task-card{padding:16px}
-  .service-module-switch button{padding:8px}
+  .service-module-switch button{padding:7px 5px;gap:5px}
+  .service-module-switch button>.icon{width:17px;height:17px}
+  .service-module-switch strong{font-size:9px}
+  .service-module-switch small{font-size:7px}
   .inventory-item{padding:14px}
+  .handover-parties{grid-template-columns:1fr 18px 1fr;padding:11px 9px}
 }
 @media(max-width:360px){
   .service-state-badge{display:none}
@@ -227,4 +282,6 @@
   .inventory-vehicle{grid-template-columns:1fr}
   .inventory-vehicle>div+div{margin-top:10px;padding:10px 0 0;border-top:1px solid #ebddd4;border-left:0}
   .inventory-status-options button span{font-size:8px}
+  .handover-reading-grid{grid-template-columns:1fr}
+  .handover-vehicle-card>span{display:none}
 }

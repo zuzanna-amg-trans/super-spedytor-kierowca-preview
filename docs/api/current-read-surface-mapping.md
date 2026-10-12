@@ -1,6 +1,6 @@
 # Obecna powierzchnia odczytowa Super Spedytora — mapowanie dla aplikacji
 
-Data weryfikacji: 2026-10-11
+Data weryfikacji: 2026-10-13
 
 ## Zakres potwierdzenia
 
@@ -8,9 +8,31 @@ Połączenie MCP do Super Spedytora odpowiada i pozwala odczytać listę tras or
 szczegóły wybranej trasy. Weryfikacja była wyłącznie odczytowa; nie zmieniono
 żadnej trasy, zlecenia, punktu, dokumentu ani statusu.
 
-Ta powierzchnia jest przeznaczona dla uprawnionego operatora/asystenta i nie
-jest bezpośrednim API mobilnym. Nie wolno umieszczać tokenu MCP ani poświadczeń
-panelu w aplikacji kierowcy.
+13 października 2026 odczyt `list_vehicle_assignments` potwierdził dodatkowo, że
+powierzchnia operatorska potrafi powiązać każdy aktywny pojazd z aktywną trasą i
+kodem przypisanego kierowcy. To jest bieżąca mapa floty dla uprawnionego
+operatora, a nie wersjonowane zadanie przekazania dla telefonu. Odpowiedź nie
+zawiera wyposażenia pojazdu ani możliwości zmiany przypisania.
+
+Token MCP jest przeznaczony dla uprawnionego operatora/asystenta i nie jest API
+mobilnym. Nie wolno umieszczać tokenu MCP ani poświadczeń panelu w aplikacji
+kierowcy.
+
+Istniejący backend udostępnia równolegle wąski, driver-scoped odczyt JWT:
+
+- `POST /api/token/` — logowanie; access token w odpowiedzi, refresh cookie
+  `HttpOnly`,
+- `POST /api/token/refresh/` — odświeżenie access tokenu przez refresh cookie,
+- `POST /api/logout/` — zakończenie sesji cookie,
+- `GET /api/users/me/` — profil zalogowanego użytkownika,
+- `GET /api/users/me/current-vehicle/` — pojazd wynikający z aktywnej trasy,
+- `GET /api/routes/driver/status/` — tylko aktywne trasy przypisane do
+  `request.user.driver`, wraz z postępem, bieżącym i następnym punktem.
+
+`GET /api/health/` zwrócił 12 października 2026 HTTP 200 i
+`database_connection: true`. Te trzy chronione odczyty bez tokenu zwracają HTTP
+401, zgodnie z oczekiwaniem. Kod Androida obsługuje tę powierzchnię, ale pełne
+logowanie rzeczywistym kontem kierowcy na urządzeniu wymaga jeszcze odbioru.
 
 ## Pola dostępne na liście tras
 
@@ -71,21 +93,34 @@ przeładunki.
 | `updated_at` albo wersja API | `ownerVersion` | potrzebna jawna wersja do zapisów |
 | `cargo_on_board` | `CargoSummary` | odczyt, nie źródło dokumentacji sztuk |
 
-## Potwierdzone braki względem Driver API
+## Potwierdzone braki względem docelowego Driver API
 
-- brak driver-scoped logowania lub aktywacji urządzenia dla aplikacji,
-- brak udokumentowanego endpointu aktywnego zlecenia konkretnego kierowcy,
+- brak osobnej aktywacji i odwoływania sesji per urządzenie mobilne; obecny
+  klient korzysta z istniejącego logowania JWT,
+- obecny `/routes/driver/status/` zwraca tylko bieżący i następny punkt, nie
+  kompletny kontrakt aktywnego zadania mobilnego,
+- brak kompletnej listy kolejnych operacji z towarem, serwerowym
+  `required_arrival_at` dla reguły 15 minut oraz przeliczanym ETA każdego
+  następnego punktu,
+- brak właścicielskiego licznika czasu na miejscu, progów 20/40/60 minut,
+  odpowiedzi kierowcy, alarmu push i readbacku eskalacji dla biura,
 - brak idempotentnego zapisu zdarzeń punktu,
 - brak właścicielskiego readbacku po zapisie mobilnym,
 - brak bezpiecznego uploadu zdjęć i CMR,
 - brak kontraktu QR/plomb dla każdej sztuki,
 - brak kontraktu zapisu czatu i wydatków z aplikacji,
 - brak jawnej wersji rekordu wymaganej do ochrony przed konfliktem,
+- brak driver-scoped zadania przekazania pojazdu z osobnym przekazującym i
+  przejmującym, zamrożonym zrzutem wyposażenia oraz stanem obu potwierdzeń,
+- brak atomowego zapisu protokołu, rozbieżności wyposażenia i nowego przypisania
+  samochodu oraz readbacku potwierdzającego tę zmianę,
 - brak polityki błędów, limitów i retencji dla klienta mobilnego.
 
 ## Wniosek
 
-Możemy już implementować modele odczytowe i testowe adaptery na podstawie
-potwierdzonych nazw pól. Nie możemy bezpiecznie podłączyć telefonu bez osobnego
-Driver API i sposobu logowania. Dostęp MCP potwierdza, że dane istnieją po
-stronie TMS; nie jest zamiennikiem backendu mobilnego.
+Telefon można bezpiecznie podłączyć do ograniczonego odczytu istniejącym kontem
+kierowcy. Nie można jeszcze podłączyć zapisów operacyjnych. Dostęp MCP nadal
+służy wyłącznie do kontroli operatorskiej i nie jest zamiennikiem sesji mobilnej.
+Mapa pojazd → trasa → kierowca oraz `current-vehicle` są dowodem odczytu
+przypisania, ale nie wystarczają do sporządzenia ani zakończenia protokołu
+przekazania samochodu.

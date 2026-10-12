@@ -60,9 +60,15 @@ Potrzebujemy:
 16. Panelu czasu pracy: aktualnego, oznaczonego czasem i źródłem odczytu okresów
     jazdy/pracy/przerw oraz limitów. Osobne zgłoszenie przerwy do spedytora nie
     może zmieniać prawnego zapisu tachografu.
-17. Polityki retencji, usuwania i odbiorców danych dla zdjęć, CMR, czatu,
+17. Protokołu przekazania samochodu: jednego wersjonowanego zadania zawierającego
+    pojazd, kierowcę przekazującego, kierowcę przejmującego oraz zamrożony zrzut
+    przypisanego wyposażenia. Potrzebujemy osobnych, uwierzytelnionych
+    potwierdzeń obu osób, zdjęć i opisów rozbieżności oraz atomowego readbacku
+    nowego przypisania pojazdu. Aplikacja nie może ręcznie dobierać auta ani
+    uczestników.
+18. Polityki retencji, usuwania i odbiorców danych dla zdjęć, CMR, czatu,
     lokalizacji, wydatków, ankiet serwisowych, telemetrii i logów.
-18. Parametrów operacyjnych: timeoutów, limitów ruchu, zasad ponawiania,
+19. Parametrów operacyjnych: timeoutów, limitów ruchu, zasad ponawiania,
     tolerancji zegara, czasu ważności tokenów i adresów uploadu oraz wymaganych
     nagłówków korelacyjnych.
 

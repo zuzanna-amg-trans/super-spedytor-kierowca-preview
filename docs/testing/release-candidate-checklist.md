@@ -54,6 +54,21 @@
 - [ ] dokument jest widoczny w Super Spedytorze po readbacku,
 - [ ] brak materiałów nie pozwala zakończyć operacji.
 
+## Przekazanie auta i wyposażenia
+
+- [ ] brak aktywnego zadania przekazania nie pokazuje ostatniego auta lokalnego,
+- [ ] pojazdu, przekazującego i przejmującego nie da się zmienić ręcznie,
+- [ ] lista wyposażenia jest zgodna z wersjonowanym zrzutem Driver API,
+- [ ] brak albo uszkodzenie wymaga zdjęcia i opisu,
+- [ ] przebieg i poziom paliwa są wymagane,
+- [ ] tylko właściwy odbiorca może potwierdzić odbiór,
+- [ ] konflikt wersji po potwierdzeniu przekazującego wymaga świeżego odczytu,
+- [ ] ponowienie z tym samym `idempotency_key` nie tworzy drugiego protokołu,
+- [ ] odbiór z zastrzeżeniami tworzy powiązane sprawy dokładnie raz,
+- [ ] stan `Przekazano` pojawia się dopiero po readbacku nowego przypisania,
+- [ ] częściowy zapis nie pozostawia auta bez jednoznacznego odpowiedzialnego,
+- [ ] konto trzeciego kierowcy nie widzi protokołu ani wyposażenia.
+
 ## Telefony i dostępność
 
 - [ ] Android 9 — minimalna wersja,

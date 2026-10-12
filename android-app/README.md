@@ -3,12 +3,15 @@
 Natywna obudowa Androida dla interfejsu z `../dist/`. Warstwa wizualna ma jedno
 źródło: Gradle pakuje pliki `../dist/` do zasobów APK, a bezpieczny lokalny
 WebView uruchamia je bez ładowania z Internetu. Kod Androida odpowiada za paski
-systemowe, wybór zdjęć i dokumentów, uruchamianie Map oraz kolejkę offline.
+systemowe, wybór zdjęć i dokumentów, uruchamianie Map, kolejkę offline oraz
+oddzielone od WebView połączenie HTTPS z backendem.
 
 ## Pierwszy pionowy wycinek
 
 - ekran „W drodze” renderowany z tych samych plików co projekt „Koncepcja 07”,
-- jedna bieżąca operacja zamiast technicznego planu całej trasy,
+- czytelny panel bieżącej i następnej operacji z miejscem, czasem oraz towarem,
+- przyjazd 15 minut przed pierwszą operacją i ruchome ETA następnych punktów,
+- licznik czasu na miejscu z progami 20/40/60 minut i wymaganą reakcją po 40,
 - karta miejsca, schemat dojazdu i podsumowanie dwóch sztuk ładunku,
 - uruchomienie nawigacji przez schemat `google.navigation:`,
 - pięciosekundowe, odwracalne potwierdzenie „Dotarłem”,
@@ -19,6 +22,29 @@ systemowe, wybór zdjęć i dokumentów, uruchamianie Map oraz kolejkę offline.
 - osobne stany „wykonane lokalnie” i „potwierdzone przez TMS”,
 - granica synchronizacji, która usuwa zdarzenie dopiero po właścicielskim readbacku,
 - jasna informacja, że backend produkcyjny nie jest jeszcze zmieniany.
+- demonstracyjny panel protokołu przekazania auta, w którym pojazd, obie osoby i
+  wyposażenie są traktowane jako jeden zrzut API, a nie ręczne pola formularza.
+
+## Połączenie z Super Spedytorem
+
+Warianty `debug` i `release` otwierają natywny panel logowania do
+`https://tms.amg.eco/api/`. Po zalogowaniu kontem kierowcy klient pobiera:
+
+- `GET /users/me/` — profil i potwierdzenie roli kierowcy,
+- `GET /users/me/current-vehicle/` — pojazd z aktywnej trasy,
+- `GET /routes/driver/status/` — własne aktywne trasy, postęp oraz bieżący i
+  następny punkt.
+
+Panel jest tylko do odczytu. Nie korzysta z szerokiego szczegółu trasy i nie
+wysyła zdarzeń operacyjnych. Login, hasło, access token i refresh cookie nie są
+przekazywane do WebView. Tokeny są przechowywane wyłącznie w pamięci procesu;
+po restarcie aplikacja wymaga ponownego logowania.
+
+Istniejący `GET /users/me/current-vehicle/` nie wystarcza do protokołu
+przekazania: pojazd wynika tam z aktywnej trasy i odpowiedź nie obejmuje
+przekazującego, przejmującego, wersji przypisania ani wyposażenia. Produkcyjne
+przekazanie pozostaje zablokowane do czasu dostarczenia endpointów opisanych w
+`../docs/api/driver-api-contract.md` i zweryfikowania właścicielskiego readbacku.
 
 Po podłączeniu telefonu do Android Auto prowadzenie jest wyświetlane przez Google
 Maps. Własny ekran Super Spedytora na jednostce samochodu nie jest częścią tego
@@ -60,14 +86,17 @@ Pełna checklista pilota znajduje się w
 
 - `applicationId` jest tymczasowo ustawione na `eu.amgtrans.superspedytor.driver`.
   Należy zatwierdzić je przed pierwszą publikacją w Google Play.
-- Dane są demonstracyjne i pochodzą z `DemoDriverRepository`.
-- Interfejs `DriverRepository` stanowi granicę pod przyszłe Driver API.
+- Wariant `preview` korzysta z `DemoDriverRepository`; `debug`/`release` używa
+  `LiveDriverRepository` z wąskiego, driver-scoped odczytu backendu.
+- Interfejs `DriverRepository` nadal stanowi granicę pod docelowe Driver API.
 - `DriverApi` i `DriverEventSynchronizer` stanowią granicę zapisu do przyszłego
   Driver API.
 - Lokalny stan „Dotarłem” jest oznaczany jako `PENDING_SYNC` i nie może być
   interpretowany jako zapis w TMS.
 - Po `PENDING_SYNC` aplikacja pozostaje w tej samej operacji i pokazuje ekran
   załadunku; nie przechodzi przedwcześnie do kolejnego punktu trasy.
+- Funkcji zapisu demonstratora nie wolno uznawać za wysłane do TMS. Połączony
+  panel nie udostępnia ich do czasu zatwierdzenia osobnego kontraktu zapisu.
 
 ## Bezpieczny build release
 

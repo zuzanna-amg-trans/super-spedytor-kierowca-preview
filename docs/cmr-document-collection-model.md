@@ -64,20 +64,26 @@ Dla każdej spotkanej osoby odbierający wykonuje pełny, osobny przebieg:
    wybranym kierowcą.
 5. Aplikacja nie wykonuje nowego zdjęcia,
    lecz pobiera i pokazuje właściwy skan CMR zapisany wcześniej w systemie.
-6. Najnowszy zeskanowany CMR pojawia się na samej górze listy dokumentów.
-7. Odbierający porównuje papierowy oryginał z wyświetlonym skanem i potwierdza
-   zgodność.
-8. Zaakceptowany oryginał wkłada z powrotem do koperty tej samej osoby.
-9. Powtarza odczyt QR i porównanie dla wszystkich oczekiwanych dokumentów.
-10. Potwierdza fizyczną zawartość koperty.
-11. Bierze dowolną nieużytą plombę, nakleja ją na zamknięcie koperty i dopiero
+6. Odczyt QR tworzy wyłącznie oczekujący podgląd. Nie oznacza jeszcze odbioru,
+   nie podnosi licznika przejętych dokumentów i nie dodaje CMR-u do koperty.
+7. Odbierający porównuje papierowy oryginał z wyświetlonym skanem i wybiera
+   jednoznaczną decyzję: „Tak, to ten dokument — przejmuję CMR” albo „To nie
+   jest ten dokument”.
+8. Dopiero po potwierdzeniu dokument zostaje przejęty i pojawia się na samej
+   górze listy zaakceptowanych CMR-ów.
+9. Do czasu zatwierdzenia albo odrzucenia bieżącego podglądu aplikacja blokuje
+   skanowanie kolejnego dokumentu.
+10. Zaakceptowany oryginał wkłada z powrotem do koperty tej samej osoby i
+    powtarza odczyt QR oraz porównanie dla wszystkich oczekiwanych dokumentów.
+11. Potwierdza fizyczną zawartość koperty.
+12. Bierze dowolną nieużytą plombę, nakleja ją na zamknięcie koperty i dopiero
    wtedy skanuje jej QR.
-12. Pierwszy odczyt tej plomby przypisuje jej numer do koperty i blokuje listę
+13. Pierwszy odczyt tej plomby przypisuje jej numer do koperty i blokuje listę
    dokumentów. Wcześniej system nie oczekuje konkretnego numeru.
-13. Dopóki bieżąca koperta nie jest zaplombowana, aplikacja blokuje rozpoczęcie
-    dokumentów innego kierowcy.
-14. Po zamknięciu koperty odbierający wraca do listy i wybiera kolejnego
-    kierowcę.
+14. Dopóki bieżąca koperta nie jest zaplombowana, aplikacja blokuje rozpoczęcie
+   dokumentów innego kierowcy.
+15. Po zamknięciu koperty odbierający wraca do listy i wybiera kolejnego
+   kierowcę.
 
 ## Zabezpieczenia przed błędem użytkownika
 
@@ -86,7 +92,9 @@ Dla każdej spotkanej osoby odbierający wykonuje pełny, osobny przebieg:
 - po wyborze cały ekran pokazuje wyłącznie jedną aktywną osobę;
 - jednocześnie może istnieć tylko jedna otwarta koperta;
 - QR dokumentu innej osoby jest odrzucany względem wybranego kierowcy;
-- najnowszy zeskanowany dokument zawsze pojawia się na górze listy;
+- sam odczyt QR nie jest przyjęciem dokumentu i nie zmienia listy przejętych CMR;
+- podczas otwartego podglądu kolejny skan jest zablokowany;
+- najnowszy zatwierdzony dokument zawsze pojawia się na górze listy;
 - przejście do plomby jest zablokowane, dopóki nie sprawdzono wszystkich
   oczekiwanych CMR-ów;
 - następna koperta może rozpocząć się dopiero po zeskanowaniu plomby poprzedniej;
@@ -97,7 +105,8 @@ Dla każdej spotkanej osoby odbierający wykonuje pełny, osobny przebieg:
 ## Dwa różne rodzaje QR
 
 - **QR dokumentu CMR** — identyfikuje dokument i otwiera właściwy skan CMR z
-  systemu; nie przypisuje plomby i nie tworzy nowego zdjęcia.
+  systemu; nie przyjmuje jeszcze dokumentu, nie przypisuje plomby i nie tworzy
+  nowego zdjęcia.
 - **QR plomby koperty** — jest skanowany dopiero po naklejeniu plomby; pierwszy
   odczyt przypisuje nieużyty numer do zamykanej koperty.
 
@@ -106,6 +115,10 @@ Dla każdej spotkanej osoby odbierający wykonuje pełny, osobny przebieg:
 - `PREPARATION_PENDING` — przekazujący nie potwierdził przygotowania.
 - `PREPARED_OPEN` — dokumenty są w otwartej kopercie, bez plomby.
 - `DOCUMENT_QR_SCANNING` — odbierający odczytuje QR-y dokumentów.
+- `DOCUMENT_AWAITING_VERIFICATION` — właściwy skan jest wyświetlony, ale
+  dokument nie został jeszcze przejęty; następny skan jest zablokowany.
+- `DOCUMENT_ACCEPTED` — odbierający potwierdził zgodność i dokument trafił na
+  górę listy przejętych CMR-ów.
 - `DOCUMENTS_MATCHED` — wszystkie papierowe oryginały porównano ze skanami z
   systemu.
 - `CONTENTS_CONFIRMED` — fizyczna zawartość koperty została potwierdzona.
@@ -139,7 +152,9 @@ Dla każdej spotkanej osoby odbierający wykonuje pełny, osobny przebieg:
           "document_qr_code": "cmr-qr-value",
           "stored_scan_id": "tms-scan-id",
           "original_matches_scan": true,
-          "matched_at": "2026-10-12T12:03:00Z"
+          "qr_scanned_at": "2026-10-12T12:02:00Z",
+          "verified_at": "2026-10-12T12:03:00Z",
+          "accepted_at": "2026-10-12T12:03:00Z"
         }
       ],
       "envelope": {
