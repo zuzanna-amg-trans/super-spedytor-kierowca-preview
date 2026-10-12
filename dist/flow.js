@@ -1202,6 +1202,41 @@ const inventoryPresentCount=()=>inventoryItems.filter(item=>inventoryStatus(item
 const inventoryAllItemsReady=()=>inventoryCompletedCount()===inventoryItems.length;
 const inventoryReady=()=>inventoryAllItemsReady()&&state.inventoryProtocol.confirmed;
 
+function inventoryFirstProblem(){
+  for(const item of inventoryItems){
+    const status=inventoryStatus(item.id),photo=state.inventoryProtocol.photos[item.id],note=has(state.inventoryProtocol.notes[item.id]);
+    if(!status)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-status="${item.id}"]`,message:'Musisz wskazać stan tej pozycji.'};
+    if(status==='damaged'&&!photo&&!note)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia i dodać opis.'};
+    if(status==='damaged'&&!photo)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia.'};
+    if(status==='damaged'&&!note)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-note="${item.id}"]`,message:'Musisz dodać opis uszkodzenia.'};
+  }
+  if(!state.inventoryProtocol.confirmed)return {row:'.inventory-confirm',focus:'#inventory-confirm',message:'Musisz zaznaczyć potwierdzenie przed zakończeniem protokołu.'};
+  return null;
+}
+function clearProtocolProblem(){
+  $$('.protocol-validation-error').forEach(element=>element.remove());
+  $$('.protocol-validation-target').forEach(element=>element.classList.remove('protocol-validation-target'));
+}
+function showProtocolProblem(problem){
+  if(!problem)return false;
+  clearProtocolProblem();
+  const target=$(problem.row);
+  if(!target)return false;
+  target.classList.add('protocol-validation-target');
+  const message=document.createElement('p');
+  message.className='protocol-validation-error';
+  message.setAttribute('role','alert');
+  message.textContent=problem.message;
+  target.appendChild(message);
+  target.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>{
+    const focusTarget=$(problem.focus);
+    if(!focusTarget)return;
+    try{focusTarget.focus({preventScroll:true});}catch(error){focusTarget.focus();}
+  },450);
+  return true;
+}
+
 function inventoryPhotoButton(id){
   const record=state.inventoryProtocol.photos[id],item=inventoryItem(id);
   return `<button class="inventory-photo-button ${record?'done':''}" data-inventory-photo="${id}" aria-label="${record?'Zmień':'Dodaj'} zdjęcie uszkodzenia: ${esc(item.name)}">${record?`<img src="${record.url}" alt="Uszkodzenie: ${esc(item.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?'Zdjęcie dodane':'Dodaj zdjęcie'}</strong><small>${record?'Dotknij, aby zmienić':'Wymagane przy uszkodzeniu'}</small></span>${icon(record?'check':'plus')}</button>`;
@@ -1223,8 +1258,8 @@ function inventoryProtocolView(){
 function inventoryActionView(){
   const protocol=state.inventoryProtocol,done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
   if(protocol.submitted)return `<div class="flow-actions"><button class="primary-button" id="inventory-close">${icon('check')}Zamknij protokół</button></div><p class="action-caption">Wersja demonstracyjna: zapis istnieje tylko w tym podglądzie.</p>`;
-  const caption=inventoryAllItemsReady()?(protocol.confirmed?'Wszystkie pozycje i niezgodności są kompletne.':'Zaznacz potwierdzenie zgodności ze stanem faktycznym.'):`Oceniono ${answered}/${inventoryItems.length} · kompletne ${done}/${inventoryItems.length}.`;
-  return `<div class="flow-actions"><button class="primary-button" id="inventory-save" ${inventoryReady()?'':'disabled'}>${icon('check')}Zapisz protokół</button></div><p class="action-caption">${caption}</p>`;
+  const caption=inventoryAllItemsReady()?(protocol.confirmed?'Wszystkie pozycje i niezgodności są kompletne.':'Zaznacz potwierdzenie zgodności ze stanem faktycznym.'):`Oceniono ${answered}/${inventoryItems.length} · kompletne ${done}/${inventoryItems.length}. Naciśnij, aby przejść do pierwszego braku.`;
+  return `<div class="flow-actions"><button class="primary-button ${inventoryReady()?'':'validation-required'}" id="inventory-save">${icon('check')}Zapisz protokół</button></div><p class="action-caption">${caption}</p>`;
 }
 function inventoryDesignNotes(){
   const issues=inventoryIssueCount(),done=inventoryCompletedCount();
@@ -1236,6 +1271,7 @@ function markInventoryEdited(){
   if(protocol.submitted){protocol.submitted=false;protocol.submittedAt=null;protocol.confirmed=false;}
 }
 function refreshInventoryProgress(){
+  clearProtocolProblem();
   const done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
   if($('#inventory-progress-count'))$('#inventory-progress-count').textContent=`${done}/${inventoryItems.length}`;
   if($('#inventory-progress-bar'))$('#inventory-progress-bar').style.width=`${done/inventoryItems.length*100}%`;
@@ -1271,7 +1307,10 @@ function refreshInventoryProgress(){
 }
 function bindInventoryAction(){
   if($('#inventory-save'))$('#inventory-save').onclick=()=>{
-    if(!inventoryReady())return;
+    if(!inventoryReady()){
+      showProtocolProblem(inventoryFirstProblem());
+      return;
+    }
     state.inventoryProtocol.submitted=true;
     state.inventoryProtocol.submittedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     render();
@@ -1323,6 +1362,22 @@ const handoverProgress=()=>vehicleHandoverModel.progress(vehicleHandoverSnapshot
 const handoverReadingsReady=()=>vehicleHandoverModel.readingsReady(state.vehicleHandover);
 const handoverReady=()=>vehicleHandoverModel.ready(vehicleHandoverSnapshot,state.vehicleHandover);
 
+function handoverFirstProblem(){
+  const protocol=state.vehicleHandover;
+  if(!has(protocol.odometerKm))return {row:'.handover-readings',focus:'#handover-odometer',message:'Musisz podać przebieg pojazdu.'};
+  if(!Number.isFinite(Number(protocol.odometerKm))||Number(protocol.odometerKm)<0)return {row:'.handover-readings',focus:'#handover-odometer',message:'Musisz podać prawidłowy przebieg pojazdu.'};
+  if(!has(protocol.fuelLevel))return {row:'.handover-readings',focus:'#handover-fuel',message:'Musisz wskazać poziom paliwa.'};
+  for(const item of vehicleHandoverSnapshot.equipment){
+    const status=handoverStatus(item.id),photo=protocol.photos[item.id],note=has(protocol.notes[item.id]);
+    if(!status)return {row:`[data-handover-item="${item.id}"]`,focus:`[data-handover-status="${item.id}"]`,message:'Musisz wskazać stan tej pozycji.'};
+    if(status==='damaged'&&!photo&&!note)return {row:`[data-handover-item="${item.id}"]`,focus:`[data-handover-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia i dodać opis.'};
+    if(status==='damaged'&&!photo)return {row:`[data-handover-item="${item.id}"]`,focus:`[data-handover-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia.'};
+    if(status==='damaged'&&!note)return {row:`[data-handover-item="${item.id}"]`,focus:`[data-handover-note="${item.id}"]`,message:'Musisz dodać opis uszkodzenia.'};
+  }
+  if(!protocol.receiverConfirmed)return {row:'.handover-confirm',focus:'#handover-confirm',message:'Musisz potwierdzić przejęcie pojazdu przed zakończeniem protokołu.'};
+  return null;
+}
+
 function handoverPhotoButton(id){
   const record=state.vehicleHandover.photos[id],item=handoverEquipmentItem(id);
   return `<button class="inventory-photo-button ${record?'done':''}" data-handover-photo="${id}" aria-label="${record?'Zmień':'Dodaj'} zdjęcie uszkodzenia: ${esc(item.name)}">${record?`<img src="${record.url}" alt="Uszkodzenie: ${esc(item.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?'Zdjęcie dodane':'Dodaj zdjęcie'}</strong><small>${record?'Dotknij, aby zmienić':'Wymagane przy uszkodzeniu'}</small></span>${icon(record?'check':'plus')}</button>`;
@@ -1345,8 +1400,8 @@ function vehicleHandoverView(){
 function vehicleHandoverActionView(){
   const protocol=state.vehicleHandover,progress=handoverProgress();
   if(protocol.pendingSync)return `<div class="flow-actions"><button class="secondary-button" id="handover-correct">${icon('edit')}Popraw protokół</button><button class="primary-button" id="handover-close">${icon('check')}Zamknij podgląd</button></div><p class="action-caption">Nie wysłano do TMS · przypisanie pojazdu pozostało bez zmian.</p>`;
-  const caption=handoverReady()?'Komplet gotowy do idempotentnego zapisu i właścicielskiego readbacku.':`Wyposażenie ${progress.complete}/${progress.total} · uzupełnij odczyty i potwierdzenie odbiorcy.`;
-  return `<div class="flow-actions"><button class="primary-button" id="handover-prepare" ${handoverReady()?'':'disabled'}>${icon('check')}Przygotuj przekazanie</button></div><p class="action-caption">${caption}</p>`;
+  const caption=handoverReady()?'Komplet gotowy do idempotentnego zapisu i właścicielskiego readbacku.':`Wyposażenie ${progress.complete}/${progress.total} · naciśnij, aby przejść do pierwszego braku.`;
+  return `<div class="flow-actions"><button class="primary-button ${handoverReady()?'':'validation-required'}" id="handover-prepare">${icon('check')}Przygotuj przekazanie</button></div><p class="action-caption">${caption}</p>`;
 }
 function vehicleHandoverDesignNotes(){
   const progress=handoverProgress();
@@ -1358,6 +1413,7 @@ function markVehicleHandoverEdited(){
   if(protocol.pendingSync){protocol.pendingSync=false;protocol.preparedAt=null;protocol.receiverConfirmed=false;}
 }
 function refreshVehicleHandoverProgress(){
+  clearProtocolProblem();
   const progress=handoverProgress();
   if($('#handover-progress-count'))$('#handover-progress-count').textContent=`${progress.complete}/${progress.total}`;
   if($('#handover-progress-bar'))$('#handover-progress-bar').style.width=`${progress.total?progress.complete/progress.total*100:0}%`;
@@ -1379,7 +1435,10 @@ function refreshVehicleHandoverProgress(){
 }
 function bindVehicleHandoverAction(){
   if($('#handover-prepare'))$('#handover-prepare').onclick=()=>{
-    if(!handoverReady())return;
+    if(!handoverReady()){
+      showProtocolProblem(handoverFirstProblem());
+      return;
+    }
     state.vehicleHandover.pendingSync=true;
     state.vehicleHandover.preparedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     render();

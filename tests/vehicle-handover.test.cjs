@@ -31,6 +31,11 @@ test('brak jest kompletna ocena bez zdjecia i opisu',()=>{
   assert.equal(handover.itemReady('straps',{statuses:{straps:'missing'}}),true);
 });
 
+test('pusty przebieg nie jest poprawnym odczytem',()=>{
+  assert.equal(handover.readingsReady({odometerKm:'',fuelLevel:'half'}),false);
+  assert.equal(handover.readingsReady({odometerKm:'0',fuelLevel:'half'}),true);
+});
+
 test('uszkodzenie wymaga jednoczesnie zdjecia i opisu',()=>{
   const protocol={statuses:{straps:'damaged'},notes:{straps:'Przetarcie'},photos:{}};
   assert.equal(handover.itemReady('straps',protocol),false);

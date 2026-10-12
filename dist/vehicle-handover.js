@@ -45,7 +45,7 @@
 
   function readingsReady(protocol={}){
     const odometer=Number(protocol.odometerKm);
-    return Number.isFinite(odometer)&&odometer>=0&&has(protocol.fuelLevel);
+    return has(protocol.odometerKm)&&Number.isFinite(odometer)&&odometer>=0&&has(protocol.fuelLevel);
   }
 
   function ready(snapshot={},protocol={}){

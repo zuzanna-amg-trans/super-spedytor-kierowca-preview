@@ -166,6 +166,12 @@
 .inventory-item:first-child{border-top:0}
 .inventory-item.complete{background:#fcfefa}
 .inventory-item.issue-open{background:#fffcfa}
+.protocol-validation-target{scroll-margin:88px 0 118px;border-color:#c9412f!important;box-shadow:0 0 0 4px rgba(201,65,47,.13);animation:protocol-validation-attention .5s ease-in-out 2}
+.inventory-item.protocol-validation-target{position:relative;z-index:1;background:#fff8f6}
+.protocol-validation-error{display:flex;align-items:center;width:100%;margin:12px 0 0;padding:10px 11px;border:1px solid #e9a092;border-radius:10px;background:#fff0ed;color:#b52f21;font-size:11px;font-weight:850;line-height:1.55}
+.inventory-confirm.protocol-validation-target{flex-wrap:wrap;background:#fff8f6}
+.inventory-confirm .protocol-validation-error{width:calc(100% - 35px);margin:0 0 0 35px}
+@keyframes protocol-validation-attention{50%{transform:scale(.985)}}
 .inventory-item-heading{display:flex;align-items:center;gap:10px}
 .inventory-item-icon{width:37px;height:37px;display:grid;place-items:center;flex-shrink:0;border-radius:11px;background:#eff3eb;color:#718265}
 .inventory-item-icon .icon{width:21px;height:21px}
@@ -208,6 +214,7 @@
 .inventory-confirm input:disabled{opacity:.45}
 .inventory-confirm strong{display:block;font-size:14px;line-height:1.5}
 .inventory-confirm small{display:block;margin-top:3px;font-size:10px;line-height:1.55;color:#818b7d}
+.flow-actions .primary-button.validation-required{border:1px solid #ffd0b6;background:#fff0e8;color:#99431b}
 .inventory-saved{margin-top:0}
 #inventory-save,#inventory-close{min-height:62px;font-size:16px}
 
