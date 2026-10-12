@@ -21,7 +21,39 @@
     {id:'weekly-45',group:'Odpoczynek tygodniowy',title:'Tygodniowy regularny 45 h',hint:'Poza kabiną: hotel, baza lub dom',seconds:45*60*60,icon:'home',rest:true},
     {id:'weekly-24',group:'Odpoczynek tygodniowy',title:'Tygodniowy skrócony',hint:'Minimum 24 h; wymaga rozliczenia rekompensaty',seconds:24*60*60,icon:'home',rest:true}
   ];
-  const tachoState={active:null,lastClosed:null,splitStage:0};
+  const recommendationPresets={
+    'fuel-1h':{
+      label:'tankowanie po 1 h',shortLabel:'wczesna okazja',drivingSeconds:60*60,dayRemainingSeconds:7*60*60,
+      suggestedTypeId:'break-15',headline:'Przy tankowaniu zrób 15 min',
+      reason:'Od pełnej przerwy minęła godzina jazdy. Tankowanie może być dobrą okazją na pierwsze 15 min przerwy dzielonej.',
+      primaryTime:'3 godz. 30 min',primaryLabel:'do wymaganej przerwy',nextBreak:'15 min przy tankowaniu',progress:22.2
+    },
+    'drive-428':{
+      label:'4:28 jazdy',shortLabel:'2 min do limitu',drivingSeconds:4*60*60+28*60,dayRemainingSeconds:3*60*60,
+      suggestedTypeId:'break-45',headline:'Zrób teraz 45 min',
+      reason:'Masz 4 godz. 28 min jazdy bez pełnej przerwy. Do 4 godz. 30 min zostały 2 minuty.',
+      primaryTime:'2 min',primaryLabel:'do wymaganej przerwy',nextBreak:'45 min',progress:99.3
+    },
+    'after-15':{
+      label:'wcześniej 15 min',shortLabel:'druga część',drivingSeconds:4*60*60+5*60,dayRemainingSeconds:3*60*60,splitStage:1,
+      suggestedTypeId:'break-30',headline:'Teraz minimum 30 min',
+      reason:'Pierwsze 15 min jest już zaliczone. Kolejna część musi mieć co najmniej 30 min — druga „15” nie zamknie przerwy dzielonej.',
+      primaryTime:'30 min',primaryLabel:'wymagana druga część przerwy dzielonej',nextBreak:'30 min',progress:90.7
+    },
+    'short-5':{
+      label:'wcześniej 5 min',shortLabel:'krótki postój',drivingSeconds:3*60*60+50*60,dayRemainingSeconds:3*60*60,lastBreakSeconds:5*60,
+      suggestedTypeId:'break-45',headline:'Zaplanuj pełne 45 min',
+      reason:'Wcześniejszy postój trwał 5 min. Nie stanowi pierwszej części układu 15 + 30, dlatego licznik jazdy nadal wymaga pełnej przerwy.',
+      primaryTime:'40 min',primaryLabel:'do wymaganej przerwy',nextBreak:'45 min',progress:85.2
+    },
+    'day-end':{
+      label:'koniec dnia',shortLabel:'28 min do końca',drivingSeconds:3*60*60+12*60,dayRemainingSeconds:28*60,reducedDailyRestsUsed:2,
+      suggestedTypeId:'daily-11',alternateTypeId:'daily-9',headline:'Rozpocznij odpoczynek dobowy',
+      reason:'Zbliża się graniczna godzina zakończenia dnia. Preferowany jest regularny odpoczynek 11 h; 9 h pokażemy jako skróconą alternatywę tylko przy dostępnej możliwości.',
+      primaryTime:'28 min',primaryLabel:'do rozpoczęcia odpoczynku dobowego',nextBreak:'11 h lub 9 h',progress:96.4
+    }
+  };
+  const tachoState={active:null,lastClosed:null,splitStage:0,recommendationPreset:'drive-428',arrivedAtParking:false,history:[]};
   let tachoOpen=false;
   let timer=null;
 
@@ -47,6 +79,49 @@
   const startedAtLabel=timestamp=>new Date(timestamp).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
   const activeType=()=>breakTypes.find(item=>item.id===tachoState.active?.typeId);
   const activeElapsed=()=>tachoState.active?Math.max(0,(Date.now()-tachoState.active.startedAt)/1000):0;
+  const recommendationPreset=()=>recommendationPresets[tachoState.recommendationPreset]||recommendationPresets['drive-428'];
+  const currentRecommendation=()=>{
+    if(tachoState.splitStage===1&&tachoState.recommendationPreset!=='day-end')return {...recommendationPresets['after-15'],key:'after-15'};
+    return {...recommendationPreset(),key:tachoState.recommendationPreset};
+  };
+  const fuelBreakContext=()=>{
+    const recommendation=currentRecommendation();
+    const type=activeType();
+    const drivingSinceFullBreakMinutes=Math.floor(recommendation.drivingSeconds/60);
+    return {
+      source:'DEMO_TACHOGRAPH',
+      computedAt:new Date(Date.now()-3*60*1000).toISOString(),
+      fresh:true,
+      drivingSinceFullBreakMinutes,
+      minutesToRequiredBreak:Math.max(0,270-drivingSinceFullBreakMinutes),
+      splitBreak15Completed:Boolean(recommendation.splitStage===1||tachoState.splitStage===1),
+      activeReportedBreak:type?{
+        typeId:type.id,
+        title:type.title,
+        plannedMinutes:Math.round(type.seconds/60),
+        startedAt:tachoState.active.startedAt
+      }:null
+    };
+  };
+  const recommendationType=recommendation=>breakTypes.find(item=>item.id===recommendation.suggestedTypeId);
+  const choiceWarning=(typeId,recommendation=currentRecommendation())=>{
+    if(typeId==='break-15'&&recommendation.key==='after-15')return {
+      title:'Druga „15” nie domknie tej przerwy',
+      text:'Pierwsze 15 min jest już zapisane. Aby domknąć przerwę dzieloną, kolejna część powinna trwać co najmniej 30 min.',
+      suggestedTypeId:'break-30'
+    };
+    if(typeId==='break-15'&&['drive-428','short-5'].includes(recommendation.key))return {
+      title:'15 min to dopiero pierwsza część',
+      text:'Sama przerwa 15 min nie zamknie okresu jazdy. Po niej potrzebna będzie jeszcze przerwa co najmniej 30 min.',
+      suggestedTypeId:'break-45'
+    };
+    if(typeId==='break-30'&&recommendation.key!=='after-15')return {
+      title:'Brakuje wcześniejszych 15 min',
+      text:'Przerwa 30 min domyka układ tylko wtedy, gdy wcześniej była kwalifikowana przerwa co najmniej 15 min. W tym przykładzie bezpieczną sugestią jest pełne 45 min.',
+      suggestedTypeId:'break-45'
+    };
+    return null;
+  };
 
   function showTachoToast(message){
     const element=tq('#toast');
@@ -74,26 +149,28 @@
 
   function defaultDrivingCard(){
     const last=tachoState.lastClosed;
-    const splitStage=tachoState.splitStage;
-    const primaryTime=splitStage===2?'4 godz. 30 min':'1 godz. 18 min';
-    const primaryLabel=splitStage===1?'do drugiej części przerwy dzielonej':splitStage===2?'do kolejnej wymaganej przerwy':'do wymaganej przerwy';
-    const nextBreak=splitStage===1?'30 min':splitStage===2?'45 min lub 15 + 30':'45 min';
-    const drivingTime=splitStage===2?'0:00':'3:12';
-    const progress=splitStage===2?'0%':'71.1%';
+    const recommendation=currentRecommendation();
+    const splitStage=recommendation.splitStage||tachoState.splitStage;
+    const drivingMinutes=Math.floor(recommendation.drivingSeconds/60);
+    const drivingTime=`${Math.floor(drivingMinutes/60)}:${String(drivingMinutes%60).padStart(2,'0')}`;
     const splitSummary=splitStage===1
       ?`<div class="tacho-split-summary pending">${tachoIcon('clock')}<span><strong>15 min zaliczone</strong>Do pełnej przerwy dzielonej potrzebujesz jeszcze minimum 30 min.</span></div>`
       :splitStage===2
         ?`<div class="tacho-split-summary complete">${tachoIcon('check')}<span><strong>Przerwa dzielona zaliczona</strong>15 + 30 min ukończone. Nowy okres jazdy rozpoczęty od 0:00.</span></div>`
-        :'';
+        :recommendation.lastBreakSeconds
+          ?`<div class="tacho-split-summary pending">${tachoIcon('info')}<span><strong>Postój 5 min nie domknął przerwy</strong>Po ponownej jeździe nadal potrzebujesz przerwy 45 min albo prawidłowej sekwencji 15 + 30.</span></div>`
+          :'';
     return `<section class="tacho-now-card">
       <div class="tacho-now-top"><span class="tacho-status"><span class="tacho-status-dot"></span>Teraz · jazda</span><span class="tacho-status-time">odczyt demo · 3 min temu</span></div>
-      <strong class="tacho-primary-time">${primaryTime}</strong>
-      <span class="tacho-primary-label">${primaryLabel}</span>
-      <div class="tacho-next-break"><span>Najbliższa przerwa</span><strong>${nextBreak}</strong></div>
-      <div class="tacho-progress"><span style="--progress:${progress}"></span></div>
+      <strong class="tacho-primary-time">${recommendation.primaryTime}</strong>
+      <span class="tacho-primary-label">${recommendation.primaryLabel}</span>
+      <div class="tacho-next-break"><span>Sugerowany wybór</span><strong>${recommendation.nextBreak}</strong></div>
+      <div class="tacho-progress"><span style="--progress:${recommendation.progress}%"></span></div>
       <div class="tacho-progress-labels"><span>Jazda bez pełnej przerwy <b>${drivingTime}</b></span><span>limit <b>4:30</b></span></div>
       ${splitSummary}
-      <button class="tacho-report-button" id="tacho-report">${tachoIcon('clock')}Zgłoś przerwę lub odpoczynek</button>
+      <div class="tacho-recommendation-copy"><span>${tachoIcon('info')}SUGESTIA NA PODSTAWIE HISTORII</span><strong>${recommendation.headline}</strong><p>${recommendation.reason}</p></div>
+      <button class="tacho-report-button" id="tacho-report">${tachoIcon('clock')}Zobacz i zgłoś przerwę</button>
+      <div class="tacho-preset-picker" aria-label="Scenariusze demonstracyjne"><span>Sprawdź sugestię dla:</span><div>${Object.entries(recommendationPresets).map(([key,item])=>`<button data-tacho-preset="${key}" class="${recommendation.key===key?'active':''}">${item.label}</button>`).join('')}</div></div>
       <button class="tacho-split-button" id="tacho-split-sim">${tachoIcon('arrow')}${splitStage?'Kontynuuj symulację 15 + 30':'Symulacja przerwy dzielonej 15 + 30'}</button>
       ${last?`<div class="tacho-last-report">${tachoIcon('check')}<span><strong>Ostatnie zgłoszenie zakończone</strong>${last.title} · trwało ${shortDuration(last.elapsed)}</span></div>`:''}
     </section>`;
@@ -200,11 +277,64 @@
     tq('.modal-sheet').focus();
   }
 
-  function openBreakPicker(){
+  function openBreakPicker(options={}){
+    const recommendation=currentRecommendation();
+    const suggested=recommendationType(recommendation);
     const groups=[...new Set(breakTypes.map(item=>item.group))];
-    const choices=groups.map(group=>`<section class="tacho-choice-group"><h4>${group}</h4><div class="tacho-choice-list">${breakTypes.filter(item=>item.group===group).map(item=>`<button class="tacho-choice ${item.rest?'rest':''}" data-tacho-type="${item.id}"><span class="tacho-choice-icon">${tachoIcon(item.icon)}</span><span><strong>${item.title}</strong><small>${item.hint}</small></span>${tachoIcon('arrow')}</button>`).join('')}</div></section>`).join('');
-    modalShell('Jaką przerwę zgłaszasz?',`<p class="tacho-choice-intro">Wybierz rodzaj rozpoczętej przerwy lub odpoczynku. Czas zacznie się liczyć od chwili zatwierdzenia.</p>${choices}<p class="tacho-modal-note">${tachoIcon('info')}Zgłoszenie w aplikacji nie zastępuje prawidłowego ustawienia tachografu.</p>`);
-    tqa('[data-tacho-type]').forEach(button=>button.onclick=()=>startBreak(button.dataset.tachoType));
+    const choices=groups.map(group=>`<section class="tacho-choice-group"><h4>${group}</h4><div class="tacho-choice-list">${breakTypes.filter(item=>item.group===group).map(item=>{
+      const isSuggested=item.id===recommendation.suggestedTypeId;
+      const isAlternate=item.id===recommendation.alternateTypeId;
+      const warning=choiceWarning(item.id,recommendation);
+      const badge=isSuggested?'SUGEROWANE':isAlternate?'ALTERNATYWA':warning?'SPRAWDŹ WYBÓR':'';
+      return `<button class="tacho-choice ${item.rest?'rest':''} ${isSuggested?'suggested':''} ${warning?'has-warning':''}" data-tacho-type="${item.id}"><span class="tacho-choice-icon">${tachoIcon(item.icon)}</span><span><strong>${item.title}${badge?`<em>${badge}</em>`:''}</strong><small>${isSuggested?recommendation.reason:item.hint}</small></span>${tachoIcon('arrow')}</button>`;
+    }).join('')}</div></section>`).join('');
+    const contextPicker=`<div class="tacho-modal-context"><span>Historia demonstracyjna</span><div>${Object.entries(recommendationPresets).map(([key,item])=>`<button data-tacho-preset="${key}" class="${recommendation.key===key?'active':''}">${item.label}</button>`).join('')}</div></div>`;
+    const arrivalLead=options.arrival?`<div class="tacho-arrival-lead">${tachoIcon('parking')}<p><strong>Dotarłeś na parking</strong>Możesz od razu zgłosić planowaną przerwę. Na podstawie historii sugerujemy: ${suggested?.title||recommendation.headline}.</p></div>`:'';
+    modalShell(options.arrival?'Przerwa po dotarciu':'Jaką przerwę zgłaszasz?',`${arrivalLead}${contextPicker}<div class="tacho-suggestion-banner">${tachoIcon('clock')}<p><span>${recommendation.shortLabel}</span><strong>${recommendation.headline}</strong>${recommendation.reason}</p></div><p class="tacho-choice-intro">Wybierz to, co faktycznie rozpoczynasz. Sugestia pomaga podjąć decyzję, ale nie zmienia zapisu tachografu.</p>${choices}<p class="tacho-modal-note">${tachoIcon('info')}Tachograf jest źródłem nadrzędnym. Wersja demonstracyjna nie odczytuje karty i nie wysyła zgłoszenia do spedytora.</p>`);
+    tqa('[data-tacho-type]').forEach(button=>button.onclick=()=>startBreak(button.dataset.tachoType,false,{arrival:Boolean(options.arrival)}));
+  }
+
+  function openChoiceWarning(typeId,warning,options={}){
+    const selected=breakTypes.find(item=>item.id===typeId);
+    const suggested=breakTypes.find(item=>item.id===warning.suggestedTypeId);
+    if(!selected||!suggested)return;
+    modalShell(warning.title,`<div class="tacho-warning-card">${tachoIcon('info')}<p><strong>${selected.title}</strong>${warning.text}</p></div><button class="tacho-split-next" id="tacho-use-suggestion">Zgłoś: ${suggested.title}</button><button class="tacho-warning-actual" id="tacho-use-actual">Mimo to zgłoś faktyczne: ${selected.title}</button><p class="tacho-modal-note">${tachoIcon('info')}Aplikacja nie powinna zmieniać deklaracji kierowcy. Ostrzega, ale pozwala zgłosić faktycznie rozpoczęty postój.</p>`);
+    tq('#tacho-use-suggestion').onclick=()=>startBreak(suggested.id,true,options);
+    tq('#tacho-use-actual').onclick=()=>startBreak(selected.id,true,options);
+  }
+
+  function parkingSuggestionCard(){
+    if(tachoState.active){
+      const type=activeType();
+      return `<section class="panel parking-break-card active"><div class="parking-break-icon">${tachoIcon('clock')}</div><div class="parking-break-copy"><span>PRZERWA ZGŁOSZONA</span><h3>${type?.title||'Aktywna przerwa'}</h3><p>Licznik działa w panelu Tacho. Zgłoszenie demonstracyjne nie zmienia aktywności zapisanej w urządzeniu.</p></div><button data-tacho-show-active>${tachoIcon('arrow')}Otwórz licznik</button></section>`;
+    }
+    const recommendation=currentRecommendation();
+    const suggested=recommendationType(recommendation);
+    return `<section class="panel parking-break-card"><div class="parking-break-icon">${tachoIcon('clock')}</div><div class="parking-break-copy"><span>SUGESTIA PO DOTARCIU · ${recommendation.shortLabel}</span><h3>${recommendation.headline}</h3><p>${recommendation.reason}</p></div><button data-tacho-open-picker>${tachoIcon('clock')}Zgłoś: ${suggested?.title||'przerwę'}</button><small>${tachoIcon('info')} Wybierz to, co faktycznie rozpoczynasz. Tachograf pozostaje źródłem nadrzędnym.</small></section>`;
+  }
+
+  function offerParkingBreak(){
+    tachoState.arrivedAtParking=true;
+    if(tachoState.active){renderTacho();showTachoToast('Przerwa jest już zgłoszona — pokazuję aktywny licznik.');return;}
+    openBreakPicker({arrival:true});
+  }
+
+  function selectRecommendationPreset(key){
+    if(!recommendationPresets[key])return;
+    const title=tq('#tacho-modal-title')?.textContent||'';
+    const pickerOpen=Boolean(tq('[data-tacho-type]'));
+    tachoState.recommendationPreset=key;
+    tachoState.splitStage=key==='after-15'?1:0;
+    if(tachoOpen)renderTacho();
+    else{
+      const currentCard=tq('.parking-break-card');
+      if(currentCard){
+        const holder=document.createElement('div');
+        holder.innerHTML=parkingSuggestionCard();
+        currentCard.replaceWith(holder.firstElementChild);
+      }
+    }
+    if(pickerOpen)openBreakPicker({arrival:title==='Przerwa po dotarciu'});
   }
 
   function openSplitSimulation(){
@@ -236,19 +366,36 @@
     showTachoToast('Symulacja przerwy dzielonej została wyzerowana.');
   }
 
-  function startBreak(typeId){
+  function startBreak(typeId,confirmed=false,options={}){
     const type=breakTypes.find(item=>item.id===typeId);
     if(!type)return;
-    tachoState.active={typeId,startedAt:Date.now()};
+    const recommendation=currentRecommendation();
+    const warning=choiceWarning(typeId,recommendation);
+    if(warning&&!confirmed){openChoiceWarning(typeId,warning,options);return;}
+    tachoState.active={typeId,startedAt:Date.now(),recommendationKey:recommendation.key,reportedAtParking:Boolean(options.arrival||tachoState.arrivedAtParking)};
+    tachoState.history.push({typeId,startedAt:tachoState.active.startedAt,recommendationKey:recommendation.key,reportedAtParking:tachoState.active.reportedAtParking});
     closeTachoModal();
     renderTacho();
     showTachoToast(`${type.title} — zgłoszenie demonstracyjne rozpoczęte.`);
+  }
+
+  function startSuggestedBreak(minutes){
+    if(tachoState.active)return fuelBreakContext();
+    const type=breakTypes.find(item=>item.id===`break-${minutes}`);
+    if(!type)return null;
+    const recommendation=currentRecommendation();
+    tachoState.active={typeId:type.id,startedAt:Date.now(),source:'fuel-suggestion',recommendationKey:recommendation.key,reportedAtParking:false};
+    tachoState.history.push({typeId:type.id,startedAt:tachoState.active.startedAt,source:'fuel-suggestion',recommendationKey:recommendation.key,reportedAtParking:false});
+    syncTimer();
+    return fuelBreakContext();
   }
 
   function endBreak(){
     const type=activeType();
     if(!type)return;
     tachoState.lastClosed={title:type.title,elapsed:activeElapsed(),endedAt:Date.now()};
+    const historyItem=tachoState.history.at(-1);
+    if(historyItem&&historyItem.typeId===type.id&&!historyItem.endedAt){historyItem.endedAt=tachoState.lastClosed.endedAt;historyItem.elapsed=tachoState.lastClosed.elapsed;}
     tachoState.active=null;
     syncTimer();
     renderTacho();
@@ -258,6 +405,24 @@
   function openTachoHelp(){
     modalShell('Pomoc · panel tacho',`<p>Panel pokazuje bilans jazdy i odpoczynków oraz pozwala zgłosić spedytorowi rozpoczętą przerwę.</p><div class="tacho-source-note">${tachoIcon('info')}<p><strong>Najpierw sprawdź tachograf.</strong>Jeśli wartości w aplikacji i urządzeniu się różnią, obowiązuje zapis tachografu. Wersja demonstracyjna nie wysyła danych.</p></div>`);
   }
+
+  window.SuperSpedytorTacho={
+    getFuelBreakContext:fuelBreakContext,
+    startSuggestedBreak,
+    offerParkingBreak,
+    parkingSuggestionCard,
+    openBreakPicker:()=>openBreakPicker({arrival:tachoState.arrivedAtParking}),
+    hasActiveBreak:()=>Boolean(tachoState.active)
+  };
+
+  document.addEventListener('click',event=>{
+    const presetButton=event.target.closest('[data-tacho-preset]');
+    if(presetButton){event.preventDefault();selectRecommendationPreset(presetButton.dataset.tachoPreset);return;}
+    const pickerButton=event.target.closest('[data-tacho-open-picker]');
+    if(pickerButton){event.preventDefault();openBreakPicker({arrival:true});return;}
+    const activeButton=event.target.closest('[data-tacho-show-active]');
+    if(activeButton){event.preventDefault();closeTachoModal();renderTacho();}
+  });
 
   const nav=tq('.bottom-nav');
   nav?.addEventListener('click',event=>{

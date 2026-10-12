@@ -11,8 +11,12 @@ const mapTarget=place=>has(place.latitude)&&has(place.longitude)?`${place.latitu
 const locationUrl=place=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapTarget(place))}`;
 const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapTarget(place))}`;
 const androidShell=document.documentElement.classList.contains('android-shell');
-const previewMode=new URLSearchParams(window.location.search).get('preview')==='1';
-const collectionPreviewRole=new URLSearchParams(window.location.search).get('cmrView')==='handover'?'transferor':'receiver';
+const appQuery=new URLSearchParams(window.location.search);
+const previewMode=appQuery.get('preview')==='1';
+const nativeBackendAvailable=(()=>{try{return androidShell&&Boolean(window.SuperSpedytorNative?.backendEnabled());}catch{return false;}})();
+const backendMode=nativeBackendAvailable&&appQuery.get('backend')==='1';
+const collectionPreviewRole=appQuery.get('cmrView')==='handover'?'transferor':'receiver';
+document.documentElement.classList.toggle('backend-mode',backendMode);
 const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
 const nativeHasArrival=stopId=>{
   try{return androidShell&&Boolean(window.SuperSpedytorNative?.hasArrival(stopId));}catch{return false;}
@@ -114,10 +118,11 @@ const fresh=(mode='load',pieces=mode==='load'?defaultPieces():defaultUnloadPiece
 const freshRouteStop=type=>({
   type,screen:'travel',returnScreen:'travel',arrived:false,finished:false,messages:[],
   photos:type==='fueling'?{receipt:null,dispenser:null,nozzle:null}:null,
-  expense:type==='fueling'?{country:'DE',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null
+  expense:type==='fueling'?{country:'DE',liters:'',price:'',withAdBlue:false,adBlueLiters:'',adBluePrice:''}:null,
+  breakDecision:type==='fueling'?null:undefined
 });
 const freshHandoverGroup=source=>({
-  sourceId:source.id,prepared:false,preparedAt:null,documents:[],
+  sourceId:source.id,prepared:false,preparedAt:null,documents:[],pendingDocument:null,
   envelope:{contentsConfirmed:false,sealCode:null,sealedAt:null},syncState:'LOCAL_ONLY'
 });
 const freshDocumentCollection=()=>({
@@ -125,7 +130,19 @@ const freshDocumentCollection=()=>({
   screen:'info',returnScreen:'info',started:false,finished:false,messages:[],groups:collectionSources.map(freshHandoverGroup),syncState:'LOCAL_ONLY'
 });
 const serviceDailyStorageKey='super-spedytor-service-daily-v1';
-const serviceDateKey=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+const servicePhotoDatabaseName='super-spedytor-service-photos-v1';
+const servicePhotoStoreName='survey-photos';
+const serviceDateKey=(date=new Date())=>{
+  const effective=new Date(date);
+  if(effective.getHours()===0&&effective.getMinutes()<1)effective.setDate(effective.getDate()-1);
+  return `${effective.getFullYear()}-${String(effective.getMonth()+1).padStart(2,'0')}-${String(effective.getDate()).padStart(2,'0')}`;
+};
+const nextServiceExpiry=(date=new Date())=>{
+  const expiry=new Date(date);
+  expiry.setHours(0,1,0,0);
+  if(date>=expiry)expiry.setDate(expiry.getDate()+1);
+  return expiry;
+};
 const servicePromptSlot=(date=new Date())=>date.getHours()<15?'morning':'evening';
 function readServiceDailyRecord(){
   try{
@@ -144,13 +161,95 @@ function writeServiceDailyRecord(changes={}){
 }
 function clearServiceDailyRecord(){
   try{localStorage.removeItem(serviceDailyStorageKey);}catch{}
+  clearStoredServicePhotos().catch(()=>{});
+}
+function openServicePhotoDatabase(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){reject(new Error('Brak pamięci zdjęć na tym urządzeniu.'));return;}
+    const request=indexedDB.open(servicePhotoDatabaseName,1);
+    request.onupgradeneeded=()=>{
+      const database=request.result;
+      if(!database.objectStoreNames.contains(servicePhotoStoreName))database.createObjectStore(servicePhotoStoreName,{keyPath:'id'});
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error||new Error('Nie udało się otworzyć pamięci zdjęć.'));
+  });
+}
+const waitForTransaction=transaction=>new Promise((resolve,reject)=>{
+  transaction.oncomplete=()=>resolve();
+  transaction.onerror=()=>reject(transaction.error||new Error('Nie udało się zapisać zdjęć.'));
+  transaction.onabort=()=>reject(transaction.error||new Error('Zapis zdjęć został przerwany.'));
+});
+async function clearStoredServicePhotos(){
+  const database=await openServicePhotoDatabase();
+  try{
+    const transaction=database.transaction(servicePhotoStoreName,'readwrite');
+    transaction.objectStore(servicePhotoStoreName).clear();
+    await waitForTransaction(transaction);
+  }finally{database.close();}
+}
+async function persistServicePhotos(date,photos){
+  Object.entries(photos).forEach(([key,record])=>{
+    if(record&&!record.demo&&!record.blob)throw new Error(`Nie można utrwalić zdjęcia: ${key}.`);
+  });
+  const database=await openServicePhotoDatabase();
+  const snapshot={};
+  try{
+    const transaction=database.transaction(servicePhotoStoreName,'readwrite'),store=transaction.objectStore(servicePhotoStoreName);
+    store.clear();
+    Object.entries(photos).forEach(([key,record])=>{
+      if(!record)return;
+      if(record.demo){
+        snapshot[key]={demo:true,url:record.url,name:record.name,mime:record.mime,kind:record.kind,source:record.source};
+        return;
+      }
+      const id=`${date}:${key}`;
+      store.put({id,date,key,blob:record.blob,name:record.name,mime:record.mime,kind:record.kind,source:record.source});
+      snapshot[key]={storageId:id,name:record.name,mime:record.mime,kind:record.kind,source:record.source};
+    });
+    await waitForTransaction(transaction);
+    return snapshot;
+  }finally{database.close();}
+}
+async function restoreServicePhotos(metadata={}){
+  const restored={oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null};
+  const storedEntries=Object.entries(metadata).filter(([,record])=>record?.storageId);
+  Object.entries(metadata).filter(([,record])=>record?.demo).forEach(([key,record])=>{restored[key]={...record};});
+  if(!storedEntries.length)return restored;
+  const database=await openServicePhotoDatabase();
+  try{
+    const transaction=database.transaction(servicePhotoStoreName,'readonly'),store=transaction.objectStore(servicePhotoStoreName);
+    const results=await Promise.all(storedEntries.map(([key,record])=>new Promise((resolve,reject)=>{
+      const request=store.get(record.storageId);
+      request.onsuccess=()=>resolve([key,record,request.result]);
+      request.onerror=()=>reject(request.error||new Error('Nie udało się odczytać zdjęcia.'));
+    })));
+    results.forEach(([key,metadataRecord,stored])=>{
+      if(!stored?.blob)return;
+      restored[key]={...metadataRecord,blob:stored.blob,url:URL.createObjectURL(stored.blob),demo:false};
+    });
+    return restored;
+  }finally{database.close();}
 }
 function serviceCompletedToday(){
   const record=readServiceDailyRecord();
-  return Boolean(record?.date===serviceDateKey()&&record.status==='done');
+  return Boolean(record?.date===serviceDateKey()&&record.status==='done'&&record.survey);
 }
-function markServiceDailyDone(time){
-  writeServiceDailyRecord({status:'done',completedAt:new Date().toISOString(),submittedAt:time,snoozeUntil:null});
+async function markServiceDailyDone(time){
+  const date=serviceDateKey(),photoSnapshot=await persistServicePhotos(date,state.serviceSurvey.photos);
+  const record=writeServiceDailyRecord({
+    status:'done',completedAt:new Date().toISOString(),submittedAt:time,
+    expiresAt:nextServiceExpiry().toISOString(),snoozeUntil:null,
+    survey:{
+      oil:state.serviceSurvey.oil,
+      adBlue:state.serviceSurvey.adBlue,
+      serviceDistance:state.serviceSurvey.serviceDistance,
+      afterService:state.serviceSurvey.afterService,
+      note:state.serviceSurvey.note,
+      photos:photoSnapshot
+    }
+  });
+  if(!record)throw new Error('Nie udało się zapisać ankiety na urządzeniu.');
 }
 function markServiceDailyDue(){
   const record=readServiceDailyRecord();
@@ -158,7 +257,7 @@ function markServiceDailyDue(){
 }
 function serviceReminderDue(){
   const now=new Date(),record=readServiceDailyRecord();
-  if(record?.date===serviceDateKey(now)&&record.status==='done')return false;
+  if(record?.date===serviceDateKey(now)&&record.status==='done'&&record.survey)return false;
   if(record?.date!==serviceDateKey(now))return true;
   if(record.snoozeUntil&&Date.now()<new Date(record.snoozeUntil).getTime())return false;
   return !(record.promptSlots||[]).includes(servicePromptSlot(now));
@@ -191,7 +290,7 @@ const freshServiceSurvey=()=>({
   date:serviceDateKey(),
   oil:'',adBlue:'',serviceDistance:'',afterService:false,note:'',
   photos:{oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},
-  submitted:false,submittedAt:null,reopened:false
+  submitted:false,submittedAt:null,reopened:false,hydrated:false
 });
 const initialLoad=fresh('load');
 if(androidShell)initialLoad.arrived=nativeHasArrival(routePointIds.load);
@@ -200,6 +299,65 @@ function ensureServiceSurveyToday(){
   if(state.serviceSurvey.date===serviceDateKey())return;
   Object.values(state.serviceSurvey.photos).forEach(revoke);
   state.serviceSurvey=freshServiceSurvey();
+}
+async function restoreServiceSurveyForToday(){
+  const record=readServiceDailyRecord();
+  if(record?.date===serviceDateKey()&&record.status==='done'&&!record.survey){
+    writeServiceDailyRecord({status:'due',completedAt:null,submittedAt:null,promptSlots:[]});
+    return false;
+  }
+  if(state.serviceSurvey.hydrated||record?.date!==serviceDateKey()||!record.survey)return false;
+  const hasUnsavedInput=[state.serviceSurvey.oil,state.serviceSurvey.adBlue,state.serviceSurvey.serviceDistance,state.serviceSurvey.note].some(has)
+    ||Object.values(state.serviceSurvey.photos).some(Boolean);
+  if(hasUnsavedInput)return false;
+  let photos={oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},photosComplete=true;
+  try{
+    photos=await restoreServicePhotos(record.survey.photos);
+    photosComplete=Object.keys(record.survey.photos||{}).every(key=>Boolean(photos[key]));
+  }catch{photosComplete=false;}
+  Object.assign(state.serviceSurvey,{
+    oil:record.survey.oil||'',
+    adBlue:record.survey.adBlue||'',
+    serviceDistance:record.survey.serviceDistance||'',
+    afterService:Boolean(record.survey.afterService),
+    note:record.survey.note||'',
+    photos,
+    submitted:false,
+    submittedAt:null,
+    reopened:record.status!=='done'||!photosComplete,
+    hydrated:true
+  });
+  if(!photosComplete)markServiceDailyDue();
+  return true;
+}
+async function expireServiceSurveyDataIfNeeded(){
+  const today=serviceDateKey(),record=readServiceDailyRecord();
+  const expired=Boolean(record?.date&&record.date!==today)||state.serviceSurvey.date!==today;
+  if(!expired)return false;
+  Object.values(state.serviceSurvey.photos).forEach(revoke);
+  state.serviceSurvey=freshServiceSurvey();
+  try{localStorage.removeItem(serviceDailyStorageKey);}catch{}
+  try{await clearStoredServicePhotos();}catch{}
+  return true;
+}
+let serviceExpiryTimer=null;
+function scheduleServiceSurveyExpiry(){
+  clearTimeout(serviceExpiryTimer);
+  const delay=Math.max(1000,nextServiceExpiry().getTime()-Date.now());
+  serviceExpiryTimer=setTimeout(async()=>{
+    await expireServiceSurveyDataIfNeeded();
+    ensureServiceSurveyToday();
+    render();
+    scheduleServiceSurveyExpiry();
+  },Math.min(delay,2147483647));
+}
+async function initializeServiceSurveyStorage(){
+  await expireServiceSurveyDataIfNeeded();
+  await restoreServiceSurveyForToday();
+  ensureServiceSurveyToday();
+  render();
+  maybeShowDailyServiceReminder();
+  scheduleServiceSurveyExpiry();
 }
 const dictionary={pl:{pickup:'ZAŁADUNEK',delivery:'ROZŁADUNEK',flag:'🇵🇱'},en:{pickup:'PICKUP',delivery:'DELIVERY',flag:'🇬🇧'},de:{pickup:'BELADUNG',delivery:'ENTLADUNG',flag:'🇩🇪'},it:{pickup:'CARICO',delivery:'SCARICO',flag:'🇮🇹'}};
 
@@ -227,8 +385,8 @@ const collection=()=>state.routeStops.collection;
 const collectionSource=id=>collectionSources.find(source=>source.id===id)||collectionSources[0];
 const collectionGroup=(sourceId=collection().activeSourceId)=>sourceId?collection().groups.find(group=>group.sourceId===sourceId)||null:null;
 const collectionGroupOrders=(group=collectionGroup())=>group?collectionOrders.filter(order=>order.sourceId===group.sourceId):[];
-const availableCollectionOrders=(group=collectionGroup())=>group?collectionGroupOrders(group).filter(order=>!group.documents.some(record=>record.handoverId===order.id)):[];
-const collectionDocumentsReady=(group=collectionGroup())=>Boolean(group&&collectionGroupOrders(group).length>0&&group.documents.length===collectionGroupOrders(group).length&&group.documents.every(record=>record.confirmed));
+const availableCollectionOrders=(group=collectionGroup())=>group?collectionGroupOrders(group).filter(order=>!group.documents.some(record=>record.handoverId===order.id)&&group.pendingDocument?.handoverId!==order.id):[];
+const collectionDocumentsReady=(group=collectionGroup())=>Boolean(group&&!group.pendingDocument&&collectionGroupOrders(group).length>0&&group.documents.length===collectionGroupOrders(group).length&&group.documents.every(record=>record.confirmed));
 const collectionEnvelopeReady=(group=collectionGroup())=>Boolean(group&&collectionDocumentsReady(group)&&group.envelope.contentsConfirmed&&group.envelope.sealCode);
 const allCollectionGroupsReady=()=>collection().groups.every(group=>collectionEnvelopeReady(group));
 const nextPendingCollectionGroup=()=>collection().groups.find(group=>!collectionEnvelopeReady(group));
@@ -280,7 +438,11 @@ function startArrivalCountdown(){
       clearInterval(arrivalCountdown.timer);
       arrivalCountdown=null;
       nativeConfirmArrival(operation);
-      if(state.routeStop){currentStop().arrived=true;goStop('info');}
+      if(state.routeStop){
+        currentStop().arrived=true;
+        goStop('info');
+        if(operation==='parking')window.SuperSpedytorTacho?.offerParkingBreak?.();
+      }
       else{current().arrived=true;go(isLoad()?'info':'seals');}
       return;
     }
@@ -514,16 +676,17 @@ function stopMapCard(){
   return `<section class="travel-map-card route-stop-map" aria-label="Mapa dojazdu: ${esc(stop.title)}"><div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A7</span><span class="travel-map-road road-two">E50</span><span class="travel-map-pin">${icon(stop.icon)}</span><span class="travel-map-label">${esc(stop.title)}</span></div><div class="travel-destination"><span class="travel-destination-icon">${icon(stop.icon)}</span><div><small>${esc(stop.title.toUpperCase())} · ${esc(stop.country)}</small><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></div></div><a class="travel-navigate-button" href="${navigationUrl(stop)}" target="_blank" rel="noopener" aria-label="Nawiguj: ${esc(stop.company)}"><span class="travel-navigate-icon">${icon('nav')}</span><span><strong>Nawiguj</strong><small>Otwórz trasę w Google Maps</small></span>${icon('arrow')}</a><div class="route-stop-details">${stop.details.map(([label,value])=>`<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div></section>`;
 }
 function stopTravelView(){
-  const stop=stopDefinition(),hint=state.routeStop==='fueling'?'Po dotarciu zobaczysz kartę przypisaną do tankowania i demonstracyjny kod PIN.':'Po dotarciu zobaczysz numer miejsca oraz najważniejsze informacje o parkingu.';
+  const stop=stopDefinition(),hint=state.routeStop==='fueling'?'Po dotarciu zobaczysz kartę przypisaną do tankowania i demonstracyjny kod PIN.':'Po dotarciu zobaczysz numer miejsca, a aplikacja od razu zaproponuje przerwę na podstawie wcześniejszej jazdy i odpoczynków.';
   return `<div class="app-content travel-screen"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon(stop.icon)}</span><div><small>PUNKT NA TRASIE · ${esc(stop.country)}</small><h2>${esc(stop.title)}</h2></div><span class="badge orange">W drodze</span></div>${stopMapCard()}<div class="travel-next-hint">${icon('info')}<p><strong>Po potwierdzeniu dotarcia</strong>${hint}</p></div></div>`;
 }
 function parkingInfoView(){
   const stop=stopDefinition();
-  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('parking')}</span><div><small>DOTARŁEŚ NA PARKING</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel parking-arrival-card"><div class="parking-place-number">P-01</div><div><small>PRZYDZIELONE MIEJSCE</small><h3>Zaparkuj na miejscu P-01</h3><p>Rezerwacja demonstracyjna jest ważna do 18:00. Parking posiada ochronę 24/7.</p></div></section><section class="panel route-arrival-summary">${stop.details.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</section><p class="small-note">Prototyp: miejsce, rezerwacja i dane parkingu są demonstracyjne.</p></div>`;
+  const breakSuggestion=window.SuperSpedytorTacho?.parkingSuggestionCard?.()||'';
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('parking')}</span><div><small>DOTARŁEŚ NA PARKING</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel parking-arrival-card"><div class="parking-place-number">P-01</div><div><small>PRZYDZIELONE MIEJSCE</small><h3>Zaparkuj na miejscu P-01</h3><p>Rezerwacja demonstracyjna jest ważna do 18:00. Parking posiada ochronę 24/7.</p></div></section>${breakSuggestion}<section class="panel route-arrival-summary">${stop.details.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</section><p class="small-note">Prototyp: miejsce, rezerwacja, historia tachografu i sugestia przerwy są demonstracyjne.</p></div>`;
 }
 function fuelingInfoView(){
   const stop=stopDefinition(),card=stop.card;
-  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('fuel')}</span><div><small>DOTARŁEŚ NA TANKOWANIE</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel station-arrival-card"><div class="section-kicker">${icon('pin')} STACJA</div><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></section><section class="fuel-card" aria-label="Karta do tankowania i demonstracyjny PIN"><div class="fuel-card-top"><span>${icon('card')}</span><small>DANE DEMONSTRACYJNE</small></div><strong>${esc(card.name)}</strong><div class="fuel-card-number">${esc(card.number)}</div><div class="fuel-card-meta"><span><small>PIN</small><b>${esc(card.pin)}</b></span><span><small>Pojazd</small><b>${esc(card.vehicle)}</b></span></div></section><div class="fuel-before-note">${icon('info')}<p><strong>Przed tankowaniem</strong>Sprawdź stację, kartę i pojazd. W trakcie tankowania aplikacja poprosi o dwa zdjęcia.</p></div></div>`;
+  return `<div class="app-content"><div class="route-stop-heading"><span class="route-stop-heading-icon">${icon('fuel')}</span><div><small>DOTARŁEŚ NA TANKOWANIE</small><h2>${esc(stop.company)}</h2></div><span class="badge green">Na miejscu</span></div><section class="panel station-arrival-card"><div class="section-kicker">${icon('pin')} STACJA</div><h3>${esc(stop.company)}</h3><p>${esc(stop.address)}</p><div class="route-stop-demo">${esc(stop.note)}</div></section>${fuelBreakSuggestionView()}<section class="fuel-card" aria-label="Karta do tankowania i demonstracyjny PIN"><div class="fuel-card-top"><span>${icon('card')}</span><small>DANE DEMONSTRACYJNE</small></div><strong>${esc(card.name)}</strong><div class="fuel-card-number">${esc(card.number)}</div><div class="fuel-card-meta"><span><small>PIN</small><b>${esc(card.pin)}</b></span><span><small>Pojazd</small><b>${esc(card.vehicle)}</b></span></div></section><div class="fuel-before-note">${icon('info')}<p><strong>Przed tankowaniem</strong>Sprawdź stację, kartę i pojazd. Tankowanie samo nie rozpoczyna przerwy. W trakcie aplikacja poprosi o dwa zdjęcia.</p></div></div>`;
 }
 const fuelPhotoLabels={receipt:['receipt','Paragon','Cały paragon z widoczną kwotą i stacją'],dispenser:['fuel','Dystrybutor','Widoczne litry i kwota na dystrybutorze'],nozzle:['camera','Pistolet w pojeździe','Pistolet wsadzony do tankowanego pojazdu']};
 const fuelingPhotoKeys=['dispenser','nozzle'];
@@ -535,6 +698,28 @@ const fuelExpenseReady=()=>{
   return Boolean(expense.country&&positiveNumber(expense.liters)&&positiveNumber(expense.price)&&(!expense.withAdBlue||(positiveNumber(expense.adBlueLiters)&&positiveNumber(expense.adBluePrice))));
 };
 const fuelingReady=()=>receiptReady()&&fuelExpenseReady();
+const fuelWorkTimeContext=()=>{
+  try{return window.SuperSpedytorTacho?.getFuelBreakContext?.()||{fresh:false,drivingSinceFullBreakMinutes:null};}
+  catch{return {fresh:false,drivingSinceFullBreakMinutes:null};}
+};
+const fuelBreakRecommendation=()=>{
+  const engine=window.SuperSpedytorBreakSuggestion;
+  return engine?.recommendFuelBreak?engine.recommendFuelBreak(fuelWorkTimeContext()):{
+    action:'CHECK_TACHOGRAPH',durationMinutes:null,reasonCode:'MODEL_UNAVAILABLE',rulesetVersion:'unavailable',
+    title:'Najpierw sprawdź tachograf',description:'Model sugestii przerwy nie jest dostępny.'
+  };
+};
+const workTimeLabel=minutes=>{
+  if(!Number.isFinite(Number(minutes)))return 'brak odczytu';
+  const value=Math.max(0,Math.floor(Number(minutes)));
+  return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;
+};
+function fuelBreakSuggestionView(){
+  const context=fuelWorkTimeContext(),recommendation=fuelBreakRecommendation();
+  const tone=recommendation.action==='SUGGEST_BREAK'?'suggested':recommendation.action==='CHECK_TACHOGRAPH'?'check':recommendation.action==='KEEP_ACTIVE_REPORT'?'active':'continue';
+  const badge=recommendation.durationMinutes?`${recommendation.durationMinutes} MIN`:recommendation.action==='KEEP_ACTIVE_REPORT'?'JUŻ TRWA':recommendation.action==='CHECK_TACHOGRAPH'?'SPRAWDŹ':'BEZ DODATKOWEJ PRZERWY';
+  return `<section class="fuel-break-suggestion ${tone}" aria-live="polite"><div class="fuel-break-heading"><span>${icon('clock')}</span><div><small>SUGESTIA PRZY TANKOWANIU</small><h3>${esc(recommendation.title)}</h3></div><b>${esc(badge)}</b></div><p>${esc(recommendation.description)}</p><div class="fuel-break-metrics"><span><small>Jazda od pełnej przerwy</small><strong>${esc(workTimeLabel(context.drivingSinceFullBreakMinutes))}</strong></span><span><small>Do wymaganej przerwy</small><strong>${esc(workTimeLabel(context.minutesToRequiredBreak))}</strong></span></div><div class="fuel-break-source">${icon('info')} Odczyt demonstracyjny · tachograf pozostaje źródłem nadrzędnym</div></section>`;
+}
 const expenseCountries=[
   ['PL','Polska',true],['DE','Niemcy',true],['IT','Włochy',true],['FR','Francja',true],['LU','Luksemburg',true],
   ['AL','Albania'],['AD','Andora'],['AM','Armenia'],['AT','Austria'],['AZ','Azerbejdżan'],['BE','Belgia'],['BY','Białoruś'],['BA','Bośnia i Hercegowina'],['BG','Bułgaria'],['HR','Chorwacja'],['ME','Czarnogóra'],['CY','Cypr'],['CZ','Czechy'],['DK','Dania'],['EE','Estonia'],['FI','Finlandia'],['GE','Gruzja'],['GR','Grecja'],['ES','Hiszpania'],['NL','Holandia'],['IE','Irlandia'],['IS','Islandia'],['KZ','Kazachstan'],['XK','Kosowo'],['LI','Liechtenstein'],['LT','Litwa'],['LV','Łotwa'],['MK','Macedonia Północna'],['MT','Malta'],['MD','Mołdawia'],['MC','Monako'],['NO','Norwegia'],['PT','Portugalia'],['RU','Rosja'],['RO','Rumunia'],['SM','San Marino'],['RS','Serbia'],['SK','Słowacja'],['SI','Słowenia'],['CH','Szwajcaria'],['SE','Szwecja'],['TR','Turcja'],['UA','Ukraina'],['HU','Węgry'],['GB','Wielka Brytania'],['VA','Watykan']
@@ -554,13 +739,27 @@ function fuelingInProgressView(){
 }
 function fuelingExpenseView(){
   const expense=currentStop().expense,currency=expenseCurrency();
-  return `<div class="app-content"><div class="stage-header route-stage-header"><button data-stop-back="photos" aria-label="Wróć do tankowania">${icon('back')}</button><div><span>TANKOWANIE ZAKOŃCZONE</span><b>PARAGON I WYDATEK</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Dodaj paragon i wydatek</h2><p class="stage-description">Zdjęcia przy pojeździe są już zapisane. Teraz sfotografuj paragon i uzupełnij dane wydatku.</p><div class="fuel-section-heading"><h3>Paragon</h3><span>${receiptReady()?'1/1':'0/1'}</span></div><div class="fuel-photo-list">${fuelPhotoButton('receipt')}</div><div class="fuel-section-heading expense-heading"><h3>Wydatek za diesel</h3><span id="expense-status">${fuelExpenseReady()?'Gotowy':'Wymagane pola'}</span></div><section class="panel expense-form"><div class="diesel-fixed"><span>${icon('fuel')}</span><div><small>RODZAJ PALIWA</small><strong>Diesel</strong></div></div><label><span>Kraj wydatku *</span><select id="expense-country" class="text-input">${countryOptions(expense.country)}</select></label><div class="expense-two-columns"><label><span>Litry diesla *</span><input id="fuel-liters" class="text-input" inputmode="decimal" value="${esc(expense.liters)}" placeholder="np. 420,50"></label><label><span>Cena za litr (${currency}) *</span><input id="fuel-price" class="text-input" inputmode="decimal" value="${esc(expense.price)}" placeholder="np. 1,72"></label></div><label class="check-row adblue-toggle"><input id="with-adblue" type="checkbox" ${expense.withAdBlue?'checked':''}><span>Tankowałem również AdBlue</span></label>${expense.withAdBlue?`<div class="adblue-fields"><div class="adblue-title">${icon('drop')}<span><strong>AdBlue</strong><small>W systemie zapisze się jako osobny wydatek.</small></span></div><div class="expense-two-columns"><label><span>Litry AdBlue *</span><input id="adblue-liters" class="text-input" inputmode="decimal" value="${esc(expense.adBlueLiters)}" placeholder="np. 32,00"></label><label><span>Cena za litr (${currency}) *</span><input id="adblue-price" class="text-input" inputmode="decimal" value="${esc(expense.adBluePrice)}" placeholder="np. 0,79"></label></div></div>`:''}</section><div class="fuel-system-note">${icon('info')}<p>Kierowca uzupełnia diesel i AdBlue na jednym ekranie. SuperSpedytor zapisze je jako ${expense.withAdBlue?'dwa oddzielne wydatki':'jeden wydatek'}.</p></div></div>`;
+  return `<div class="app-content"><div class="stage-header route-stage-header"><button data-stop-back="photos" aria-label="Wróć do tankowania">${icon('back')}</button><div><span>TANKOWANIE ZAKOŃCZONE</span><b>PARAGON I WYDATEK</b></div><button class="stage-chat" data-stop-chat aria-label="Otwórz czat">${icon('chat')}</button></div><h2 class="stage-title">Dodaj paragon i wydatek</h2><p class="stage-description">Zdjęcia przy pojeździe są już zapisane. Teraz sfotografuj paragon i uzupełnij dane wydatku.</p><div class="fuel-section-heading"><h3>Paragon</h3><span>${receiptReady()?'1/1':'0/1'}</span></div><div class="fuel-photo-list">${fuelPhotoButton('receipt')}</div><div class="fuel-section-heading expense-heading"><h3>Wydatek za diesel</h3><span id="expense-status">${fuelExpenseReady()?'Gotowy':'Wymagane pola'}</span></div><section class="panel expense-form"><div class="diesel-fixed"><span>${icon('fuel')}</span><div><small>RODZAJ PALIWA</small><strong>Diesel</strong></div></div><label><span>Kraj wydatku *</span><select id="expense-country" class="text-input">${countryOptions(expense.country)}</select></label><div class="expense-two-columns"><label><span>Litry diesla *</span><input id="fuel-liters" class="text-input" inputmode="decimal" value="${esc(expense.liters)}" placeholder="np. 420,50"></label><label><span>Cena za litr (${currency}) *</span><input id="fuel-price" class="text-input" inputmode="decimal" value="${esc(expense.price)}" placeholder="np. 1,72"></label></div><label class="check-row adblue-toggle"><input id="with-adblue" type="checkbox" ${expense.withAdBlue?'checked':''}><span>Tankowałem również AdBlue</span></label>${expense.withAdBlue?`<div class="adblue-fields"><div class="adblue-title">${icon('drop')}<span><strong>AdBlue</strong><small>W systemie zapisze się jako osobny wydatek.</small></span></div><div class="expense-two-columns"><label><span>Litry AdBlue *</span><input id="adblue-liters" class="text-input" inputmode="decimal" value="${esc(expense.adBlueLiters)}" placeholder="np. 32,00"></label><label><span>Cena za litr (${currency}) *</span><input id="adblue-price" class="text-input" inputmode="decimal" value="${esc(expense.adBluePrice)}" placeholder="np. 0,79"></label></div></div>`:''}</section><div class="fuel-system-note">${icon('info')}<p>Po zapisaniu wydatku aplikacja ponownie sprawdzi czas jazdy. Jeśli sugestia nadal obowiązuje, zapyta, czy rozpocząć przerwę.</p></div></div>`;
 }
 function routeStopSuccessView(){
   const stop=stopDefinition();
   if(state.routeStop==='parking')return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('parking')}</span><h2>Postój rozpoczęty</h2><p>${esc(stop.company)}<br>Miejsce P-01 · dane demonstracyjne</p><div class="summary-line">${icon('check')} Potwierdzenie dotarcia <b>OK</b></div><div class="summary-line">${icon('check')} Miejsce parkingowe <b>P-01</b></div></section></div>`;
-  const expense=currentStop().expense;
-  return `<div class="app-content"><button class="subpage-back" id="fuel-expense-back">${icon('back')} Wróć do wydatku</button><section class="panel completion-panel"><span class="success-icon">${icon('fuel')}</span><h2>Wydatek zapisany</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia w trakcie tankowania <b>2/2</b></div><div class="summary-line">${icon('check')} Paragon <b>1/1</b></div><div class="summary-line">${icon('check')} Diesel <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section><p class="small-note">To demonstracja. Wydatek i zdjęcia nie zostały zapisane w rzeczywistym systemie.</p></div>`;
+  const record=currentStop(),expense=record.expense,breakDecision=record.breakDecision;
+  const started=breakDecision?.choice==='STARTED';
+  const skipped=breakDecision?.choice==='CONTINUE'&&breakDecision?.recommendation?.action==='SUGGEST_BREAK';
+  const active=breakDecision?.recommendation?.action==='KEEP_ACTIVE_REPORT';
+  const canContinue=breakDecision?.recommendation?.action==='CONTINUE_AFTER_FUELING';
+  const heading=started?`Przerwa ${breakDecision.recommendation.durationMinutes} min zgłoszona`:canContinue?'Po tankowaniu możesz jechać dalej':active?'Kontynuuj zgłoszoną przerwę':'Wydatek zapisany';
+  const breakOutcome=started
+    ?`<div class="fuel-break-outcome started">${icon('clock')}<p><strong>Licznik zgłoszenia rozpoczęty</strong>Plan: ${breakDecision.recommendation.durationMinutes} min. Ustaw właściwą aktywność na tachografie.</p></div>`
+    :skipped
+      ?`<div class="fuel-break-outcome skipped">${icon('info')}<p><strong>Sugestia nie została uruchomiona</strong>Wybrano dalszą jazdę mimo sugestii ${breakDecision.recommendation.durationMinutes} min. Sprawdź aktualny zapis tachografu.</p></div>`
+      :active
+        ?`<div class="fuel-break-outcome active">${icon('clock')}<p><strong>Nie utworzono drugiego zgłoszenia</strong>${esc(breakDecision.recommendation.description)}</p></div>`
+        :canContinue
+          ?`<div class="fuel-break-outcome continue">${icon('check')}<p><strong>Brak dodatkowej sugestii</strong>${esc(breakDecision.recommendation.description)}</p></div>`
+          :`<div class="fuel-break-outcome skipped">${icon('info')}<p><strong>Sprawdź tachograf</strong>Brak aktualnych danych nie pozwala ocenić, czy możesz kontynuować jazdę.</p></div>`;
+  return `<div class="app-content"><button class="subpage-back" id="fuel-expense-back">${icon('back')} Wróć do wydatku</button><section class="panel completion-panel"><span class="success-icon">${icon(started||active?'clock':'fuel')}</span><h2>${esc(heading)}</h2><p>${esc(stop.company)}<br>Dokumentacja demonstracyjna jest kompletna.</p><div class="summary-line">${icon('check')} Zdjęcia w trakcie tankowania <b>2/2</b></div><div class="summary-line">${icon('check')} Paragon <b>1/1</b></div><div class="summary-line">${icon('check')} Diesel <b>${esc(expense.liters)} l · ${esc(expense.price)} ${expenseCurrency()}/l</b></div>${expense.withAdBlue?`<div class="summary-line">${icon('check')} AdBlue <b>${esc(expense.adBlueLiters)} l · ${esc(expense.adBluePrice)} ${expenseCurrency()}/l</b></div>`:''}<div class="summary-line">${icon('check')} Wydatki w systemie <b>${expense.withAdBlue?'2':'1'}</b></div></section>${breakOutcome}<p class="small-note">To demonstracja. Wydatek, zdjęcia i zgłoszenie przerwy nie zostały zapisane w rzeczywistym systemie.</p></div>`;
 }
 function collectionHeader(screen,title,description){
   const steps=['info','photos','documents','review'],index=steps.indexOf(screen),record=collection();
@@ -580,13 +779,21 @@ function collectionInfoView(){
   return `<div class="app-content">${collection().role==='transferor'?transferorCollectionView():receiverCollectionInfoView()}</div>`;
 }
 function collectionDocumentPreview(record,index){
-  const source=collectionSource(record.sourceId),locked=Boolean(collectionGroup(record.sourceId).envelope.sealCode);
+  const source=collectionSource(record.sourceId);
   const preview=record.demo?demoDocument(1,'unload',record.orderId):record.mime==='application/pdf'?`<a href="${record.url}" target="_blank" rel="noopener" class="pdf-preview">${icon('doc')}<strong>${esc(record.name)}</strong><span>Otwórz skan CMR z systemu ${icon('arrow')}</span></a>`:`<img class="collection-document-image" src="${record.url}" alt="Skan CMR z systemu dla zlecenia ${esc(record.orderId)}">`;
-  return `<section class="panel collection-document-card ${record.confirmed?'confirmed':''}"><div class="collection-document-heading"><span class="number-circle">${index+1}</span><div>${index===0?'<span class="collection-newest-badge">NAJNOWSZY SKAN</span>':''}<small>${esc(source.name)} · ${esc(record.scannedAt||'przed chwilą')}</small><h3>${esc(record.orderId)}</h3></div>${locked?'':`<button data-remove-collection-document="${index}" aria-label="Usuń odczyt QR dokumentu ${index+1}">${icon('close')}</button>`}</div><div class="collection-match-status">${icon('check')} QR rozpoznany · wyświetlono właściwy skan CMR</div><div class="collection-preview">${preview}</div><label class="check-row collection-confirmation"><input type="checkbox" data-confirm-collection-document="${index}" ${record.confirmed?'checked':''} ${locked?'disabled':''}><span>Porównałem papierowy oryginał z wyświetlonym skanem CMR. Dokumenty są zgodne.</span></label></section>`;
+  return `<section class="panel collection-document-card confirmed"><div class="collection-document-heading"><span class="number-circle">${index+1}</span><div>${index===0?'<span class="collection-newest-badge">NAJNOWSZY PRZEJĘTY</span>':''}<small>${esc(source.name)} · przejęto ${esc(record.acceptedAt||record.scannedAt||'przed chwilą')}</small><h3>${esc(record.orderId)}</h3></div><span class="collection-accepted-icon" aria-label="Dokument przejęty">${icon('check')}</span></div><div class="collection-match-status">${icon('check')} DOKUMENT PRZEJĘTY · oryginał zgodny ze skanem CMR</div><div class="collection-preview">${preview}</div></section>`;
+}
+function collectionPendingDocumentView(record){
+  const source=collectionSource(record.sourceId);
+  const preview=record.demo?demoDocument(1,'unload',record.orderId):record.mime==='application/pdf'?`<a href="${record.url}" target="_blank" rel="noopener" class="pdf-preview">${icon('doc')}<strong>${esc(record.name)}</strong><span>Otwórz skan CMR z systemu ${icon('arrow')}</span></a>`:`<img class="collection-document-image" src="${record.url}" alt="Skan CMR z systemu dla zlecenia ${esc(record.orderId)}">`;
+  return `<section class="panel collection-pending-card"><div class="collection-pending-status">${icon('info')}<span><small>QR ROZPOZNANY · DOKUMENT JESZCZE NIEPRZEJĘTY</small><strong>Sprawdź, czy to ten CMR</strong></span></div><div class="collection-pending-order"><span>${icon('doc')}</span><div><small>KIEROWCA I ZLECENIE</small><strong>${esc(record.orderId)}</strong><p>${esc(source.name)} · ${esc(source.vehicle)}</p></div></div><div class="collection-preview collection-pending-preview">${preview}</div><div class="collection-verification-instruction">${icon('qr')}<p><strong>Porównaj papierowy oryginał z podglądem</strong>Sprawdź numer zlecenia, dane przewozu i dokument. Dopiero zatwierdzenie oznacza przejęcie CMR.</p></div><div class="collection-verification-actions"><button class="primary-button" id="collection-accept-document">${icon('check')}Tak, to ten dokument — przejmuję CMR</button><button class="secondary-button" id="collection-reject-document">${icon('close')}To nie jest ten dokument</button></div><p class="collection-verification-lock">Nie można zeskanować kolejnego CMR, dopóki nie zatwierdzisz albo nie odrzucisz tego dokumentu.</p></section>`;
 }
 function collectionScanView(){
-  const group=collectionGroup(),source=collectionSource(group.sourceId),orders=collectionGroupOrders(group),confirmed=group.documents.filter(document=>document.confirmed).length,pending=availableCollectionOrders(group);
-  return `<div class="app-content">${collectionHeader('photos',`Odbierasz dokumenty od: ${source.name}`,'Skup się teraz wyłącznie na tej osobie. Każdy nowo zeskanowany CMR pojawi się na samej górze listy.')}<div class="collection-driver-ribbon"><span>${icon('envelope')}</span><p><small>AKTYWNA KOPERTA</small><strong>${esc(source.name)}</strong>${esc(source.vehicle)}</p><b>${group.documents.length}/${orders.length}</b></div>${group.envelope.sealCode?'':pending.length?`<button class="collection-add-document collection-scan-primary" id="collection-add-document">${icon('qr')}<span><strong>${group.documents.length?'Skanuj następny CMR':'Skanuj pierwszy CMR'}</strong><small>Oczekiwane dokumenty: ${orders.length}. Po skanie dokument pojawi się poniżej.</small></span>${icon('arrow')}</button>`:''}<div class="collection-counter"><span>${icon('qr')}<strong>Zeskanowane: ${group.documents.length} z ${orders.length}</strong></span><b>Sprawdzone: ${confirmed}/${orders.length}</b></div>${group.documents.map(collectionDocumentPreview).join('')}${!pending.length&&!group.envelope.sealCode?`<div class="collection-prepared-state collection-large-instruction">${icon('check')}<p><strong>Wszystkie CMR-y są zeskanowane</strong>Sprawdź zgodność każdego dokumentu, a następnie przejdź do zamknięcia tej koperty.</p></div>`:''}<div class="collection-chain-note collection-large-instruction">${icon('info')}<p><strong>Aktualna koperta: ${esc(source.name)}</strong>Wkładaj tutaj tylko dokumenty tej osoby. CMR innego kierowcy nie zostanie dodany do tej koperty.</p></div></div>`;
+  const group=collectionGroup(),source=collectionSource(group.sourceId),orders=collectionGroupOrders(group),available=availableCollectionOrders(group),verifying=group.pendingDocument;
+  const headerTitle=verifying?'Sprawdź zeskanowany CMR':`Odbierasz dokumenty od: ${source.name}`;
+  const headerDescription=verifying?'QR został rozpoznany, ale dokument nie został jeszcze przejęty. Porównaj papierowy oryginał z podglądem i wybierz jedną decyzję.':'Skup się teraz wyłącznie na tej osobie. Po zatwierdzeniu każdy przejęty CMR trafi na samą górę listy.';
+  const acceptedList=group.documents.length?`<div class="collection-accepted-heading"><span>JUŻ PRZEJĘTE DOKUMENTY</span><b>${group.documents.length}/${orders.length}</b></div>${group.documents.map(collectionDocumentPreview).join('')}`:'';
+  return `<div class="app-content">${collectionHeader('photos',headerTitle,headerDescription)}<div class="collection-driver-ribbon"><span>${icon('envelope')}</span><p><small>AKTYWNA KOPERTA</small><strong>${esc(source.name)}</strong>${esc(source.vehicle)}</p><b>${group.documents.length}/${orders.length}</b></div>${verifying?collectionPendingDocumentView(verifying):group.envelope.sealCode?'':available.length?`<button class="collection-add-document collection-scan-primary" id="collection-add-document">${icon('qr')}<span><strong>${group.documents.length?'Skanuj następny CMR':'Skanuj pierwszy CMR'}</strong><small>Po odczycie zobaczysz właściwy skan. Dokument trafi do koperty dopiero po zatwierdzeniu.</small></span>${icon('arrow')}</button>`:''}<div class="collection-counter"><span>${icon('check')}<strong>Przejęte: ${group.documents.length} z ${orders.length}</strong></span><b>${verifying?'1 oczekuje na decyzję':'Brak dokumentu do decyzji'}</b></div>${acceptedList}${!available.length&&!verifying&&!group.envelope.sealCode?`<div class="collection-prepared-state collection-large-instruction">${icon('check')}<p><strong>Wszystkie CMR-y zostały przejęte</strong>Każdy oryginał zatwierdzono po porównaniu z podglądem. Możesz przejść do zamknięcia tej koperty.</p></div>`:''}<div class="collection-chain-note collection-large-instruction">${icon('info')}<p><strong>Aktualna koperta: ${esc(source.name)}</strong>Wkładaj tutaj tylko zatwierdzone dokumenty tej osoby. CMR innego kierowcy nie zostanie dodany do tej koperty.</p></div></div>`;
 }
 function collectionEnvelopeView(){
   const group=collectionGroup(),source=collectionSource(group.sourceId),sealed=Boolean(group.envelope.sealCode);
@@ -612,7 +819,7 @@ function stopActionView(){
       if(group&&collection().started&&!collectionEnvelopeReady(group)){text=`Kontynuuj kopertę · ${collectionSource(group.sourceId).name}`;action='collection-resume';caption='Nie rozpoczynaj dokumentów innej osoby, dopóki ta koperta nie zostanie zaplombowana.';}
       else return nextPendingCollectionGroup()?'<p class="action-caption collection-selection-caption">Wybierz powyżej przycisk „Odbieram dokumenty od tego kierowcy”.</p>':'<p class="action-caption collection-selection-caption">Wszystkie osobne koperty są już zamknięte.</p>';
     }
-    if(screen==='photos'){text='Dalej: zamknij tę kopertę';action='collection-envelope';disabled=!collectionDocumentsReady(group);caption=group.documents.length?collectionDocumentsReady(group)?'Wszystkie oryginały tego kierowcy porównano ze skanami CMR z systemu.':`Odczytane QR-y ${group.documents.length}/${orders.length} · porównaj każdy podgląd z oryginałem.`:`Zeskanuj QR na ${orders.length} ${orders.length===1?'dokumencie':'dokumentach'} tego kierowcy.`;}
+    if(screen==='photos'){text='Dalej: zamknij tę kopertę';action='collection-envelope';disabled=!collectionDocumentsReady(group);caption=group.pendingDocument?'Najpierw zatwierdź albo odrzuć wyświetlony dokument. Nie możesz teraz skanować kolejnego CMR.':group.documents.length?collectionDocumentsReady(group)?'Wszystkie oryginały tego kierowcy zostały przejęte po porównaniu ze skanami CMR z systemu.':`Przejęte CMR-y ${group.documents.length}/${orders.length} · zeskanuj i zatwierdź każdy pozostały dokument.`:`Zeskanuj QR na ${orders.length} ${orders.length===1?'dokumencie':'dokumentach'} tego kierowcy.`;}
     if(screen==='documents'){text='Dalej: sprawdź tę kopertę';action='collection-review';disabled=!collectionEnvelopeReady(group);caption=collectionEnvelopeReady(group)?'Koperta tego kierowcy jest zamknięta, a zeskanowana plomba została do niej przypisana.':'Potwierdź zawartość, naklej nieużytą plombę i zeskanuj jej QR.';}
     if(screen==='review'&&!allCollectionGroupsReady()){text='Wybierz następnego kierowcę';action='collection-next-driver';caption='Wrócisz do listy osób i rozpoczniesz dla wybranego kierowcy nową, oddzielną kopertę.';}
     if(screen==='review'&&allCollectionGroupsReady()){text=collection().finished?'Wróć do trasy':'Zakończ cały odbiór CMR';action=collection().finished?'collection-next':'collection-finish';disabled=!allCollectionGroupsReady();caption=collection().finished?'Zapis pozostaje lokalny do czasu potwierdzenia przez TMS.':`Gotowe ${collection().groups.length}/${collection().groups.length} osobne koperty.`;}
@@ -642,9 +849,9 @@ function stopDesignNotes(){
   }
   if(state.routeStop==='parking')return `<h2>Parking.<br>Bez zgadywania.</h2><p class="note-description">Kierowca widzi parking, dokładny adres, przydzielone miejsce i najważniejsze informacje przed dotarciem.</p><div class="design-progress"><div class="design-progress-title">PUNKT NA TRASIE<span>${currentStop().arrived?'2':'1'}/2</span></div><div class="design-step ${state.screen==='travel'?'current':'done'}"><span class="design-step-num">01</span><span>Mapa i nawigacja na parking</span></div><div class="design-step ${state.screen==='info'?'current':currentStop().finished?'done':''}"><span class="design-step-num">02</span><span>Miejsce parkingowe i potwierdzenie postoju</span></div></div>`;
   const activeScreen=state.screen==='chat'?(currentStop().returnScreen||'travel'):state.screen;
-  const steps=[['travel','Stacja i nawigacja'],['info','Karta i PIN'],['photos','Dwa zdjęcia w trakcie tankowania'],['documents','Paragon i wydatek']];
-  const activeIndex=activeScreen==='review'?steps.length:Math.max(0,steps.findIndex(([screen])=>screen===activeScreen));
-  return `<h2>Zdjęcia w trakcie.<br>Wydatek po zakończeniu.</h2><p class="note-description">Kierowca nie może zakończyć tankowania bez zdjęcia dystrybutora i pistoletu. Paragon oraz wydatek dodaje później.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex&&activeScreen!=='review'?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Diesel + opcjonalne AdBlue</strong><p>Rodzaj paliwa jest stały. Kierowca uzupełnia jeden ekran, a system rejestruje diesel i AdBlue jako osobne wydatki.</p></div>`;
+  const steps=[['travel','Stacja i nawigacja'],['info','Sugestia przerwy + karta i PIN'],['photos','Dwa zdjęcia w trakcie tankowania'],['documents','Paragon i wydatek'],['review','Decyzja: przerwa albo dalsza jazda']];
+  const activeIndex=Math.max(0,steps.findIndex(([screen])=>screen===activeScreen));
+  return `<h2>Tankowanie i przerwa.<br>Jedna świadoma decyzja.</h2><p class="note-description">Sugestia pojawia się po dotarciu, a po zapisaniu wydatku jest liczona ponownie. Przerwa zaczyna się dopiero po potwierdzeniu przez kierowcę.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Progi: 15 / 30 / 45 min</strong><p>1:00–2:00 jazdy sugeruje 15 min. Po 2:00 bez piętnastki — 45 min. Po potwierdzonej piętnastce, od 3:30 lub godzinę przed granicą — 30 min.</p></div>`;
 }
 function actionView(){
   const screen=state.screen;
@@ -713,13 +920,13 @@ function serviceSurveyView(){
   const status=dailyDone?'Wykonana dzisiaj':done===4?'Gotowa do zapisu':'Do uzupełnienia';
   const savedTime=survey.submittedAt||dailyRecord?.submittedAt||'';
   if(dailyDone&&!survey.submitted&&!survey.reopened){
-    return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge saved">${status}</b></div><section class="service-daily-status done"><span>${icon('check')}</span><div><strong>Dzisiejsza kontrola wykonana</strong><small>Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.</small></div><b>RAZ DZIENNIE</b></section><section class="panel service-completed-card"><span>${icon('check')}</span><h3>Na dzisiaj wszystko gotowe</h3><p>Kolejna ankieta pojawi się automatycznie jutro. Jeżeli trzeba poprawić dzisiejsze dane, otwórz korektę.</p><button class="secondary-button" id="service-correct">${icon('edit')}Wprowadź korektę</button></section><p class="service-offline-note">${icon('info')}Potwierdzenie pozostaje na tym urządzeniu. Wersja demonstracyjna nie wysyła danych do backendu Super Spedytora.</p></div>`;
+    return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge saved">${status}</b></div><section class="service-daily-status done"><span>${icon('check')}</span><div><strong>Dzisiejsza kontrola wykonana</strong><small>Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.</small></div><b>RAZ DZIENNIE</b></section><section class="panel service-completed-card"><span>${icon('check')}</span><h3>Na dzisiaj wszystko gotowe</h3><p>Cały zapis jest ważny do jutra do 00:01. Po tej godzinie wartości, notatka i zdjęcia zostaną usunięte, a pojawi się nowa ankieta.</p><button class="secondary-button" id="service-correct">${icon('edit')}Wprowadź korektę</button></section><p class="service-offline-note">${icon('info')}Potwierdzenie pozostaje na tym urządzeniu. Wersja demonstracyjna nie wysyła danych do backendu Super Spedytora.</p></div>`;
   }
-  return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge ${dailyDone?'saved':done===4?'ready':''}">${status}</b></div><p class="service-intro">Zrób zdjęcia komputera pokładowego i uzupełnij cztery pozycje. Dzięki temu serwis widzi stan pojazdu przed trasą.</p><section class="service-daily-status ${dailyDone?'done':''}"><span>${icon(dailyDone?'check':'bell')}</span><div><strong>${dailyDone?'Dzisiejsza kontrola wykonana':'Do wypełnienia dzisiaj'}</strong><small>${dailyDone?`Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.`:'Wypełnij rano przed trasą albo wieczorem po zakończeniu jazdy.'}</small></div><b>RAZ DZIENNIE</b></section>${survey.submitted?`<div class="service-saved-banner">${icon('check')}<p><strong>Ankieta jest kompletna</strong>Zapisano w tym podglądzie o ${esc(survey.submittedAt)}. Wersja offline nie wysyła danych do backendu.</p></div>`:''}<section class="service-progress-card"><div><span>POSTĘP ANKIETY</span><strong id="service-progress-count">${done}/4</strong></div><div class="service-progress-track"><span id="service-progress-bar" style="width:${done/4*100}%"></span></div><p>Każda pozycja wymaga zdjęcia. Olej, AdBlue i przegląd wymagają również wartości.</p></section><section class="panel service-message-card"><div class="service-message-heading"><span>${icon('camera')}</span><div><h3>Komunikaty serwisowe</h3><p>Kontrolki lub komunikaty z deski rozdzielczej · opcjonalne</p></div><b>Opcjonalne</b></div>${servicePhotoButton('message',true)}<label for="service-note"><span>Opis komunikatu</span><textarea id="service-note" maxlength="300" placeholder="Wpisz lub podyktuj, co pojawiło się na desce rozdzielczej">${esc(survey.note)}</textarea></label></section><div class="service-list-heading"><div><span>WYMAGANE</span><h3>Zdjęcia i wartości</h3></div><b>${done}/4 gotowe</b></div>${serviceTaskKeys.map(serviceTaskCard).join('')}<label class="panel check-row service-after-check"><input id="service-after" type="checkbox" ${survey.afterService?'checked':''}><span><strong>Po przeglądzie</strong><small>Zaznacz, jeśli pojazd właśnie wrócił z przeglądu.</small></span></label><p class="service-offline-note">${icon('info')}To ekran demonstracyjny. Dane pozostają na urządzeniu do czasu podłączenia API Super Spedytora.</p></div>`;
+  return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge ${dailyDone?'saved':done===4?'ready':''}">${status}</b></div><p class="service-intro">Zrób zdjęcia komputera pokładowego i uzupełnij cztery pozycje. Dzięki temu serwis widzi stan pojazdu przed trasą.</p><section class="service-daily-status ${dailyDone?'done':''}"><span>${icon(dailyDone?'check':'bell')}</span><div><strong>${dailyDone?'Dzisiejsza kontrola wykonana':'Do wypełnienia dzisiaj'}</strong><small>${dailyDone?`Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.`:'Wypełnij rano przed trasą albo wieczorem po zakończeniu jazdy.'}</small></div><b>RAZ DZIENNIE</b></section>${survey.submitted?`<div class="service-saved-banner">${icon('check')}<p><strong>Ankieta jest kompletna</strong>Zapisano cały formularz o ${esc(survey.submittedAt)}. Dane pozostaną ważne do jutra do 00:01.</p></div>`:''}<section class="service-progress-card"><div><span>POSTĘP ANKIETY</span><strong id="service-progress-count">${done}/4</strong></div><div class="service-progress-track"><span id="service-progress-bar" style="width:${done/4*100}%"></span></div><p>Każda pozycja wymaga zdjęcia. Olej, AdBlue i przegląd wymagają również wartości.</p></section><section class="panel service-message-card"><div class="service-message-heading"><span>${icon('camera')}</span><div><h3>Komunikaty serwisowe</h3><p>Kontrolki lub komunikaty z deski rozdzielczej · opcjonalne</p></div><b>Opcjonalne</b></div>${servicePhotoButton('message',true)}<label for="service-note"><span>Opis komunikatu</span><textarea id="service-note" maxlength="300" placeholder="Wpisz lub podyktuj, co pojawiło się na desce rozdzielczej">${esc(survey.note)}</textarea></label></section><div class="service-list-heading"><div><span>WYMAGANE</span><h3>Zdjęcia i wartości</h3></div><b>${done}/4 gotowe</b></div>${serviceTaskKeys.map(serviceTaskCard).join('')}<label class="panel check-row service-after-check"><input id="service-after" type="checkbox" ${survey.afterService?'checked':''}><span><strong>Po przeglądzie</strong><small>Zaznacz, jeśli pojazd właśnie wrócił z przeglądu.</small></span></label><p class="service-offline-note">${icon('info')}Wartości i zdjęcia zostaną utrwalone dopiero po ostatniej akcji „Zapisz ankietę”. Następnego dnia o 00:01 znikną z aplikacji.</p></div>`;
 }
 function serviceActionView(){
   const done=serviceCompletedCount(),submitted=state.serviceSurvey.submitted;
-  if(submitted||serviceCompletedToday()&&!state.serviceSurvey.reopened)return `<div class="flow-actions"><button class="primary-button" id="service-close">${icon('check')}Zamknij ankietę</button></div><p class="action-caption">Dzisiejsza ankieta jest oznaczona jako wykonana na tym urządzeniu.</p>`;
+  if(submitted||serviceCompletedToday()&&!state.serviceSurvey.reopened)return `<div class="flow-actions"><button class="primary-button" id="service-close">${icon('check')}Zamknij ankietę</button></div><p class="action-caption">Zapis pozostaje ważny do następnego dnia do 00:01.</p>`;
   return `<div class="flow-actions"><button class="primary-button" id="service-save" ${serviceReady()?'':'disabled'}>${icon('check')}Zapisz ankietę</button></div><p class="action-caption">${done===4?'Wszystkie wymagane pozycje są kompletne.':`Uzupełnione ${done}/4 · dodaj brakujące zdjęcia i wartości.`}</p>`;
 }
 function serviceDesignNotes(){
@@ -754,20 +961,30 @@ function markServiceEdited(){
   }
 }
 function bindServiceAction(){
-  if($('#service-save'))$('#service-save').onclick=()=>{
+  if($('#service-save'))$('#service-save').onclick=async event=>{
     if(!serviceReady())return;
-    state.serviceSurvey.submitted=true;
-    state.serviceSurvey.submittedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    markServiceDailyDone(state.serviceSurvey.submittedAt);
-    render();
-    toast('Ankieta serwisowa została zapisana lokalnie.');
+    const button=event.currentTarget,time=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    button.disabled=true;
+    button.innerHTML=`${icon('clock')}Zapisywanie ankiety…`;
+    try{
+      await markServiceDailyDone(time);
+      state.serviceSurvey.submitted=true;
+      state.serviceSurvey.submittedAt=time;
+      state.serviceSurvey.reopened=false;
+      state.serviceSurvey.hydrated=true;
+      render();
+      toast('Cała ankieta została zapisana na urządzeniu do jutra, do 00:01.');
+    }catch(error){
+      render();
+      toast('Nie udało się zapisać całej ankiety. Dane nie zostały oznaczone jako gotowe.');
+    }
   };
   if($('#service-close'))$('#service-close').onclick=()=>closeService();
 }
 function bindServiceView(){
   bindServiceAction();
   if($('#service-back'))$('#service-back').onclick=()=>closeService();
-  if($('#service-correct'))$('#service-correct').onclick=()=>{state.serviceSurvey.reopened=true;markServiceDailyDue();render();};
+  if($('#service-correct'))$('#service-correct').onclick=()=>{state.serviceSurvey.reopened=true;render();};
   $$('[data-service-photo]').forEach(button=>button.onclick=()=>openModal('service-photo',{key:button.dataset.servicePhoto,service:true,kind:'service-photo'}));
   $$('[data-service-value]').forEach(input=>input.oninput=event=>{markServiceEdited();state.serviceSurvey[event.target.dataset.serviceValue]=event.target.value;refreshServiceProgress();});
   if($('#service-note'))$('#service-note').oninput=event=>{markServiceEdited();state.serviceSurvey.note=event.target.value;refreshServiceProgress();};
@@ -777,7 +994,7 @@ function bindServiceView(){
 function updateScreenList(){
   if(state.routeStop){
     const transferor=state.routeStop==='collection'&&collection().role==='transferor';
-    const labels=transferor?{info:['01','Przygotuj swoje dokumenty']}:state.routeStop==='collection'?{info:['01','Wybierz kierowcę'],photos:['02','Skanuj i sprawdzaj CMR-y'],documents:['03','Naklej i przypisz plombę'],review:['04','Sprawdź tę kopertę']}:state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Karta i PIN'],photos:['02','Tankowanie i 2 zdjęcia'],documents:['03','Paragon i wydatek'],review:['04','Wydatek zapisany']};
+    const labels=transferor?{info:['01','Przygotuj swoje dokumenty']}:state.routeStop==='collection'?{info:['01','Wybierz kierowcę'],photos:['02','Skanuj i sprawdzaj CMR-y'],documents:['03','Naklej i przypisz plombę'],review:['04','Sprawdź tę kopertę']}:state.routeStop==='parking'?{travel:['↗','Dojazd na parking'],info:['01','Informacje po dotarciu'],review:['02','Postój rozpoczęty']}:{travel:['↗','Dojazd na tankowanie'],info:['01','Sugestia + karta i PIN'],photos:['02','Tankowanie i 2 zdjęcia'],documents:['03','Paragon i wydatek'],review:['04','Przerwa lub dalsza jazda']};
     const order=transferor?['info']:state.routeStop==='collection'?['info','photos','documents','review']:state.routeStop==='parking'?['travel','info','review']:['travel','info','photos','documents','review'];
     $$('.screen-list [data-screen]').forEach(button=>{button.hidden=!labels[button.dataset.screen];});
     order.forEach(screen=>{
@@ -879,6 +1096,38 @@ function bindChatComposer(record){
   if($('#chat-message'))$('#chat-message').onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage(record);}};
 }
 
+function finishFuelingWithBreakDecision(recommendation,choice){
+  const stop=currentStop();
+  let finalChoice=choice;
+  if(choice==='STARTED'){
+    const started=window.SuperSpedytorTacho?.startSuggestedBreak?.(recommendation.durationMinutes);
+    if(!started)finalChoice='CHECK_TACHOGRAPH';
+  }
+  stop.breakDecision={
+    recommendation,
+    choice:finalChoice,
+    decidedAt:new Date().toISOString()
+  };
+  stop.finished=true;
+  closeModal(false);
+  goStop('review');
+  if(finalChoice==='STARTED')toast(`Przerwa ${recommendation.durationMinutes} min została zgłoszona w demonstracji.`);
+  if(finalChoice==='CONTINUE')toast('Zapisano wybór dalszej jazdy. Sugestia przerwy nie została uruchomiona.');
+  if(finalChoice==='CHECK_TACHOGRAPH')toast('Nie uruchomiono przerwy. Najpierw sprawdź tachograf.');
+}
+
+function completeFuelingExpense(){
+  const recommendation=fuelBreakRecommendation();
+  if(recommendation.action==='SUGGEST_BREAK'||recommendation.action==='CHECK_TACHOGRAPH'){
+    openModal('fuel-break',{recommendation});
+    return;
+  }
+  finishFuelingWithBreakDecision(
+    recommendation,
+    recommendation.action==='KEEP_ACTIVE_REPORT'?'ALREADY_ACTIVE':'AUTO_CONTINUE'
+  );
+}
+
 function bindStopAction(){
   if(!$('#main-action'))return;
   $('#main-action').onclick=()=>{
@@ -888,7 +1137,7 @@ function bindStopAction(){
     if(action==='fuel-start')goStop('photos');
     if(action==='fuel-end'&&fuelingPhotosReady())goStop('documents');
     if(action==='stop-finish'){currentStop().finished=true;goStop('review');}
-    if(action==='fuel-finish'&&fuelingReady()){currentStop().finished=true;goStop('review');}
+    if(action==='fuel-finish'&&fuelingReady())completeFuelingExpense();
     if(action==='collection-prepare'){
       const group=collectionGroup(collection().transferorSourceId);
       group.prepared=true;
@@ -929,8 +1178,26 @@ function bindStopView(){
       toast(`Odbierasz dokumenty od: ${collectionSource(group.sourceId).name}.`);
     });
     if($('#collection-add-document'))$('#collection-add-document').onclick=()=>openModal('collection-scan');
-    $$('[data-confirm-collection-document]').forEach(input=>input.onchange=()=>{const group=collectionGroup();group.documents[Number(input.dataset.confirmCollectionDocument)].confirmed=input.checked;group.envelope.contentsConfirmed=false;render();});
-    $$('[data-remove-collection-document]').forEach(button=>button.onclick=()=>{const group=collectionGroup();if(group.envelope.sealCode)return;const record=group.documents.splice(Number(button.dataset.removeCollectionDocument),1)[0];revoke(record);group.envelope.contentsConfirmed=false;render();toast('Odczyt QR usunięto z tej koperty.');});
+    if($('#collection-accept-document'))$('#collection-accept-document').onclick=()=>{
+      const group=collectionGroup(),record=group?.pendingDocument;
+      if(!group||!record)return;
+      record.confirmed=true;
+      record.acceptedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+      group.documents.unshift(record);
+      group.pendingDocument=null;
+      group.envelope.contentsConfirmed=false;
+      render();
+      toast('Dokument przejęty i dodany na górę listy. Możesz skanować kolejny CMR.');
+    };
+    if($('#collection-reject-document'))$('#collection-reject-document').onclick=()=>{
+      const group=collectionGroup(),record=group?.pendingDocument;
+      if(!group||!record)return;
+      revoke(record);
+      group.pendingDocument=null;
+      group.envelope.contentsConfirmed=false;
+      render();
+      toast('Dokument nie został przejęty. Zeskanuj właściwy CMR.');
+    };
     if($('#collection-envelope-confirm'))$('#collection-envelope-confirm').onchange=event=>{collectionGroup().envelope.contentsConfirmed=event.target.checked;render();};
     if($('#scan-collection-envelope'))$('#scan-collection-envelope').onclick=()=>openModal('scan',{kind:'collection-envelope'});
   }
@@ -1091,7 +1358,7 @@ function openModal(type,target){
     target={kind:'collection-document',routeStop:'collection',sourceId:group?.sourceId||null,demoQrCode:first?.qrCode||null};
     state.modal.target=target;
     title=group?`${group.documents.length?'Kolejny':'Pierwszy'} CMR · ${source.name}`:'Najpierw wybierz kierowcę';
-    body=available.length?`<p>Odbierasz dokumenty od kierowcy <strong>${esc(source.name)}</strong>. Zeskanowany QR musi należeć do tej osoby.</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Skanuj CMR kierowcy ${esc(source.name)}</span></div><button class="primary-button" id="simulate-collection-document">${icon('qr')}Symuluj odczyt QR dokumentu</button><label for="collection-document-qr" class="field-label">Lub wpisz kod QR dokumentu</label><input id="collection-document-qr" class="text-input" autocomplete="off" maxlength="64" placeholder="np. ${esc(first.qrCode)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-collection-document">Pokaż właściwy skan CMR</button><p class="small-note">Po odczycie nowy dokument pojawi się na samej górze listy CMR-ów tej osoby.</p>`:`<p>Wszystkie oczekiwane dokumenty tego kierowcy zostały już zeskanowane.</p>`;
+    body=available.length?`<p>Odbierasz dokumenty od kierowcy <strong>${esc(source.name)}</strong>. Zeskanowany QR musi należeć do tej osoby.</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Skanuj CMR kierowcy ${esc(source.name)}</span></div><button class="primary-button" id="simulate-collection-document">${icon('qr')}Symuluj odczyt QR dokumentu</button><label for="collection-document-qr" class="field-label">Lub wpisz kod QR dokumentu</label><input id="collection-document-qr" class="text-input" autocomplete="off" maxlength="64" placeholder="np. ${esc(first.qrCode)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-collection-document">Pokaż właściwy skan CMR</button><p class="small-note">Odczyt QR tylko otworzy podgląd. Dokument zostanie przejęty i trafi na górę listy dopiero po Twoim zatwierdzeniu.</p>`:`<p>Wszystkie oczekiwane dokumenty tego kierowcy zostały już przejęte.</p>`;
   }
   if(type==='scan'){
     const collectionEnvelope=target.kind==='collection-envelope',cmr=target.kind==='cmr',piece=collectionEnvelope||cmr?null:current().items[target.index];
@@ -1134,11 +1401,24 @@ function openModal(type,target){
     const photoTotal=count()*(isLoad()?2:1);
     body=`<p>${isLoad()?'Każda sztuka ma plombę, QR i dwa zdjęcia. Plomba na pustym tyle ostatniej strony CMR oraz pełny skan dokumentu są gotowe.':'Każda sztuka ma zgodny skan plomby i zdjęcie z rozładunku. Plomba CMR oraz pełny skan dokumentu są gotowe.'}</p><div class="summary-line">${icon('check')}Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')}${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')}Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')}Pełny skan CMR <b>OK</b></div><button class="primary-button" id="confirm-finish">${icon('check')}Potwierdź zakończenie</button><p class="small-note">Demonstracja: nie zmieniamy statusu rzeczywistego zlecenia.</p>`;
   }
+  if(type==='fuel-break'){
+    const recommendation=target.recommendation;
+    if(recommendation.action==='SUGGEST_BREAK'){
+      title=`Zacząć przerwę ${recommendation.durationMinutes} min?`;
+      body=`<div class="fuel-break-modal-recommendation">${icon('clock')}<p><strong>${esc(recommendation.title)}</strong>${esc(recommendation.description)}</p></div><p>Tankowanie i wydatek są zakończone. Czy chcesz teraz rozpocząć zgłoszenie tej przerwy?</p><button class="primary-button" id="fuel-break-start">${icon('clock')}Zacznij przerwę ${recommendation.durationMinutes} min</button><button class="secondary-button" id="fuel-break-continue">Nie, jadę dalej</button><p class="small-note">Tankowanie samo nie jest przerwą. Zgłoszenie nie zastępuje właściwego ustawienia tachografu.</p>`;
+    }else{
+      title='Sprawdź tachograf';
+      body=`<div class="fuel-break-modal-recommendation check">${icon('info')}<p><strong>${esc(recommendation.title)}</strong>${esc(recommendation.description)}</p></div><p>Aplikacja nie potwierdzi, że możesz jechać dalej, dopóki nie ma świeżego odczytu.</p><button class="primary-button" id="fuel-break-check">Rozumiem · zakończ tankowanie</button>`;
+    }
+  }
   if(type==='reset'){title='Zresetować podgląd?';body='<p>Usuniesz postęp i wybrane pliki z tej demonstracji.</p><button class="primary-button" id="confirm-reset">Zresetuj podgląd</button>';}
 
   $('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="modal-title">${title}</h3><button class="icon-button" id="close-modal" aria-label="Zamknij">${icon('close')}</button></div>${body}</section></div>`;
   $('#close-modal').onclick=()=>closeModal();
   $('.modal-overlay').onclick=event=>{if(event.target.classList.contains('modal-overlay'))closeModal();};
+  if($('#fuel-break-start'))$('#fuel-break-start').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'STARTED');
+  if($('#fuel-break-continue'))$('#fuel-break-continue').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'CONTINUE');
+  if($('#fuel-break-check'))$('#fuel-break-check').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'CHECK_TACHOGRAPH');
   $$('[data-attachment-kind]').forEach(button=>button.onclick=()=>openModal('attachment',{kind:button.dataset.attachmentKind,pieceIndex:button.dataset.attachmentPiece!==undefined?Number(button.dataset.attachmentPiece):undefined,source:'chat'}));
   if($('#save-piece'))$('#save-piece').onclick=()=>savePiece(target.index);
   if($('#choose-file'))$('#choose-file').onclick=()=>{
@@ -1252,16 +1532,17 @@ function saveQR(target,raw){
     const group=collectionGroup();
     const order=collectionOrders.find(item=>item.qrCode===code);
     if(!order){$('#qr-error').textContent='Nie znaleziono dokumentu dla tego kodu QR. Sprawdź etykietę albo zgłoś brak spedytorowi.';return;}
-    if(collection().groups.some(item=>item.documents.some(record=>record.handoverId===order.id))){$('#qr-error').textContent='Ten QR został już odczytany i dokument ma przypisaną kopertę.';return;}
+    if(collection().groups.some(item=>item.documents.some(record=>record.handoverId===order.id)||item.pendingDocument?.handoverId===order.id)){$('#qr-error').textContent='Ten QR został już odczytany. Najpierw zakończ wyświetloną weryfikację dokumentu.';return;}
     if(!group){$('#qr-error').textContent='Najpierw wróć do listy i wybierz kierowcę, od którego odbierasz dokumenty.';return;}
+    if(group.pendingDocument){$('#qr-error').textContent='Najpierw zatwierdź albo odrzuć dokument, który jest już wyświetlony.';return;}
     if(order.sourceId!==group.sourceId){$('#qr-error').textContent=`Ten dokument należy do innego kierowcy: ${collectionSource(order.sourceId).name}. Nie wkładaj go do tej koperty.`;return;}
-    group.documents.unshift({id:`collection-document-${Date.now()}`,hash:`tms-scan-${order.id}`,demo:true,kind:'collection-cmr-reference',mime:'image/svg+xml',name:`CMR-${order.orderId}`,handoverId:order.id,sourceId:order.sourceId,orderId:order.orderId,qrCode:order.qrCode,unloadedAt:order.unloadedAt,scannedAt:new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}),confirmed:false});
+    group.pendingDocument={id:`collection-document-${Date.now()}`,hash:`tms-scan-${order.id}`,demo:true,kind:'collection-cmr-reference',mime:'image/svg+xml',name:`CMR-${order.orderId}`,handoverId:order.id,sourceId:order.sourceId,orderId:order.orderId,qrCode:order.qrCode,unloadedAt:order.unloadedAt,scannedAt:new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}),confirmed:false,acceptedAt:null};
     group.envelope.contentsConfirmed=false;
     closeModal(false);
     state.screen='photos';
     collection().screen='photos';
     render();
-    toast('CMR zeskanowany. Najnowszy dokument jest na górze listy.');
+    toast('QR odczytany. Sprawdź podgląd CMR i zatwierdź dokument.');
     return;
   }
   if(target.kind==='collection-envelope'){
@@ -1293,7 +1574,7 @@ function reset(){
   cancelArrivalCountdown(false);
   Object.values(state.operations).forEach(operation=>{operation.items.forEach(revokePiece);operation.documents.forEach(revoke);});
   Object.values(state.routeStops).forEach(stop=>{if(stop.photos)Object.values(stop.photos).forEach(revoke);});
-  collection().groups.forEach(group=>group.documents.forEach(revoke));
+  collection().groups.forEach(group=>{group.documents.forEach(revoke);revoke(group.pendingDocument);});
   Object.values(state.serviceSurvey.photos).forEach(revoke);
   state.operations={load:fresh('load'),unload:fresh('unload')};
   state.routeStops={collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')};
@@ -1328,7 +1609,7 @@ $('#file-input').onchange=async event=>{
       if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
       const previous=state.serviceSurvey.photos[target.key];
       revoke(previous);
-      state.serviceSurvey.photos[target.key]={hash:`service-${target.key}-${Date.now()}`,url,name:file.name,mime:file.type,demo:false,kind:'service-photo',source:'service-survey'};
+      state.serviceSurvey.photos[target.key]={hash:`service-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'service-photo',source:'service-survey'};
       markServiceEdited();
       closeModal(false);
       render();
@@ -1409,11 +1690,100 @@ document.addEventListener('keydown',event=>{
   }
 });
 
+let backendState={status:'disconnected',message:'Zaloguj się kontem kierowcy Super Spedytora'};
+const backendCountryName=code=>({PL:'Polska',DE:'Niemcy',FR:'Francja',NL:'Holandia',BE:'Belgia',IT:'Włochy',ES:'Hiszpania',CZ:'Czechy',SK:'Słowacja',AT:'Austria',DK:'Dania',SE:'Szwecja'}[String(code||'').toUpperCase()]||code||'');
+const backendPointPlace=point=>{
+  const location=point?.location_details||{};
+  return {
+    company:point?.location_name||location.label||point?.operation_type_display||'Punkt trasy',
+    address:point?.location_address||location.full_address||'',
+    country:location.country||'',
+    countryName:backendCountryName(location.country),
+    latitude:location.latitude,
+    longitude:location.longitude
+  };
+};
+const backendPointCard=(point,label)=>{
+  if(!point)return `<section class="backend-point backend-point-empty"><small>${esc(label)}</small><strong>Brak punktu w odpowiedzi backendu</strong></section>`;
+  const place=backendPointPlace(point);
+  const time=point.live_eta_datetime||point.eta_datetime||point.time_window_start||'';
+  const status=point.status_display||point.status||'';
+  const canNavigate=(has(place.latitude)&&has(place.longitude))||has(place.address);
+  return `<section class="backend-point"><div class="backend-point-heading"><span>${icon(label==='TERAZ'?'pin':'route')}</span><div><small>${esc(label)}${status?` · ${esc(status)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${time?`<span>${esc(time)}</span>`:''}</div>${canNavigate?`<a class="backend-navigate" href="${navigationUrl(place)}" target="_blank" rel="noopener">${icon('nav')} Nawiguj do punktu</a>`:''}</section>`;
+};
+function backendPanel(){
+  let panel=$('#backend-panel');
+  if(panel)return panel;
+  panel=document.createElement('section');
+  panel.id='backend-panel';
+  panel.className='backend-panel';
+  panel.setAttribute('aria-live','polite');
+  $('.device')?.insertBefore(panel,$('.app-scroll'));
+  return panel;
+}
+function renderBackendPanel(){
+  if(!backendMode)return;
+  const panel=backendPanel();
+  if(!panel)return;
+  const status=backendState?.status||'disconnected';
+  if(status==='connecting'){
+    panel.innerHTML=`<div class="backend-gate"><div class="backend-loader" aria-hidden="true"></div><h2>Łączenie z Super Spedytorem</h2><p>${esc(backendState.message||'Pobieranie danych kierowcy…')}</p></div>`;
+    return;
+  }
+  if(status==='connected'){
+    const profile=backendState.profile||{};
+    const vehicle=backendState.vehicle||profile.driver_profile?.current_vehicle||null;
+    const routeStatus=backendState.route_status||{};
+    const route=(routeStatus.active_routes||[])[0]||null;
+    const driverName=routeStatus.driver_name||`${profile.first_name||''} ${profile.last_name||''}`.trim()||profile.username||'Kierowca';
+    const progress=route?Number(route.progress_percentage||0):0;
+    panel.innerHTML=`<div class="backend-live"><div class="backend-live-top"><div><span class="backend-readonly">${icon('signal')} POŁĄCZONO · TYLKO ODCZYT</span><h2>${esc(driverName)}</h2><p>${vehicle?.registration_number?`Pojazd ${esc(vehicle.registration_number)}`:'Brak pojazdu przypisanego do aktywnej trasy'}</p></div><button id="backend-refresh" class="backend-icon-button" aria-label="Odśwież dane">↻</button></div>${route?`<section class="backend-route-summary"><div><small>AKTYWNA TRASA</small><strong>${esc(route.route_name||`Trasa ${route.route_id}`)}</strong><span>${Number(route.completed_points||0)} z ${Number(route.total_points||0)} punktów</span></div><b>${Math.round(progress)}%</b><div class="backend-progress"><span style="width:${Math.max(0,Math.min(100,progress))}%"></span></div></section>${backendPointCard(route.current_point,'TERAZ')}${backendPointCard(route.next_point,'NASTĘPNIE')}`:`<section class="backend-no-route">${icon('route')}<h3>Brak aktywnej trasy</h3><p>Backend potwierdził konto kierowcy, ale nie zwrócił obecnie aktywnej trasy.</p></section>`}<div class="backend-readonly-note">${icon('info')}<p><strong>Dane pochodzą z Super Spedytora.</strong>Ten etap integracji nie wysyła potwierdzeń przyjazdu, zdjęć ani CMR-ów.</p></div><button id="backend-logout" class="backend-logout">Wyloguj z aplikacji</button></div>`;
+    $('#backend-refresh',panel).onclick=()=>window.SuperSpedytorNative?.backendRefresh();
+    $('#backend-logout',panel).onclick=()=>window.SuperSpedytorNative?.backendLogout();
+    return;
+  }
+  const error=status==='error'?backendState.message:'';
+  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>SUPERSPEDYTOR · BACKEND</small><h2>Zaloguj kierowcę</h2><p>Połączenie pobierze profil, aktualny pojazd i własną aktywną trasę.</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required></label><button type="submit">${icon('signal')} Połącz z Super Spedytorem</button><div class="backend-security">${icon('check')} Aplikacja nie zapisuje loginu, hasła ani tokenów. Sesja kończy się przy restarcie.</div></form>`;
+  $('#backend-login',panel).onsubmit=event=>{
+    event.preventDefault();
+    const username=$('#backend-username',panel).value;
+    const password=$('#backend-password',panel).value;
+    $('#backend-password',panel).value='';
+    window.SuperSpedytorNative?.backendLogin(username,password);
+  };
+}
+window.SuperSpedytorBackend={
+  receive(raw){
+    try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
+    catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    renderBackendPanel();
+  }
+};
+function initializeBackendPanel(){
+  if(!backendMode)return;
+  try{
+    const initial=window.SuperSpedytorNative?.backendState();
+    if(initial)window.SuperSpedytorBackend.receive(initial);
+    else renderBackendPanel();
+  }catch{
+    backendState={status:'error',message:'Warstwa natywna aplikacji jest niedostępna'};
+    renderBackendPanel();
+  }
+}
+
 if(previewMode){
   const chip=$('.driver-chip');
   if(chip){
     chip.textContent='PREVIEW · OFFLINE';
     chip.setAttribute('title','Wariant pokazowy bez połączenia z backendem');
+  }
+}
+
+if(backendMode){
+  const chip=$('.driver-chip');
+  if(chip){
+    chip.textContent='BACKEND · ODCZYT';
+    chip.setAttribute('title','Dane kierowcy pobierane z Super Spedytora bez zapisu');
   }
 }
 
@@ -1429,9 +1799,20 @@ if(androidShell){
 }
 
 render();
-queueMicrotask(maybeShowDailyServiceReminder);
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)return;
-  updateServiceNavIndicator();
-  maybeShowDailyServiceReminder();
-});
+initializeBackendPanel();
+if(!backendMode){
+  initializeServiceSurveyStorage().catch(()=>{
+    maybeShowDailyServiceReminder();
+    scheduleServiceSurveyExpiry();
+  });
+  document.addEventListener('visibilitychange',async()=>{
+    if(document.hidden)return;
+    const expired=await expireServiceSurveyDataIfNeeded();
+    const restored=await restoreServiceSurveyForToday();
+    ensureServiceSurveyToday();
+    if(expired||restored)render();
+    updateServiceNavIndicator();
+    maybeShowDailyServiceReminder();
+    scheduleServiceSurveyExpiry();
+  });
+}
