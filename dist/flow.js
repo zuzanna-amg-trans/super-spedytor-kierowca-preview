@@ -292,9 +292,59 @@ const freshServiceSurvey=()=>({
   photos:{oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},
   submitted:false,submittedAt:null,reopened:false,hydrated:false
 });
+const inventoryGroups=[
+  {
+    id:'safety',
+    eyebrow:'BEZPIECZEŃSTWO',
+    title:'Kabina i wyposażenie awaryjne',
+    items:[
+      {id:'extinguisher',name:'Gaśnica',expected:'1 szt.',icon:'warning'},
+      {id:'triangle',name:'Trójkąt ostrzegawczy',expected:'1 szt.',icon:'warning'},
+      {id:'firstAid',name:'Apteczka',expected:'1 szt.',icon:'box'},
+      {id:'vests',name:'Kamizelki odblaskowe',expected:'2 szt.',icon:'box'}
+    ]
+  },
+  {
+    id:'cargo',
+    eyebrow:'ZABEZPIECZENIE ŁADUNKU',
+    title:'Wyposażenie przestrzeni ładunkowej',
+    items:[
+      {id:'straps',name:'Pasy transportowe',expected:'12 szt.',icon:'box'},
+      {id:'corners',name:'Narożniki ochronne',expected:'12 szt.',icon:'box'},
+      {id:'mats',name:'Maty antypoślizgowe',expected:'8 szt.',icon:'box'},
+      {id:'bars',name:'Belki rozporowe',expected:'2 szt.',icon:'box'}
+    ]
+  },
+  {
+    id:'additional',
+    eyebrow:'WYPOSAŻENIE DODATKOWE',
+    title:'Rzeczy przypisane do pojazdu',
+    items:[
+      {id:'chocks',name:'Kliny pod koła',expected:'2 szt.',icon:'box'},
+      {id:'flashlight',name:'Latarka',expected:'1 szt.',icon:'box'},
+      {id:'broom',name:'Miotła do przestrzeni ładunkowej',expected:'1 szt.',icon:'box'},
+      {id:'documentCase',name:'Dokumentownik CMR',expected:'1 szt.',icon:'doc'}
+    ]
+  }
+];
+const inventoryItems=inventoryGroups.flatMap(group=>group.items);
+const inventoryItem=id=>inventoryItems.find(item=>item.id===id);
+const freshInventoryProtocol=()=>({
+  id:'INV/DEMO/2026/001',
+  vehicle:'Pojazd demonstracyjny',
+  registration:'DEMO 01',
+  driver:'Kierowca demonstracyjny',
+  statuses:{},
+  notes:{},
+  photos:{},
+  confirmed:false,
+  submitted:false,
+  submittedAt:null
+});
 const initialLoad=fresh('load');
 if(androidShell)initialLoad.arrived=nativeHasArrival(routePointIds.load);
-const state={operation:'load',routeStop:null,screen:androidShell&&!initialLoad.arrived?'travel':'info',returnScreen:'info',scenario:'basic',language:'pl',manualLanguage:false,operations:{load:initialLoad,unload:fresh('unload')},routeStops:{collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},serviceOpen:false,serviceSurvey:freshServiceSurvey(),modal:null};
+const initialServicePanel=appQuery.get('service')==='inventory'?'inventory':'survey';
+const state={operation:'load',routeStop:null,screen:androidShell&&!initialLoad.arrived?'travel':'info',returnScreen:'info',scenario:'basic',language:'pl',manualLanguage:false,operations:{load:initialLoad,unload:fresh('unload')},routeStops:{collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')},serviceOpen:appQuery.has('service'),servicePanel:initialServicePanel,serviceSurvey:freshServiceSurvey(),inventoryProtocol:freshInventoryProtocol(),modal:null};
 function ensureServiceSurveyToday(){
   if(state.serviceSurvey.date===serviceDateKey())return;
   Object.values(state.serviceSurvey.photos).forEach(revoke);
@@ -402,9 +452,10 @@ function toast(message){
 function revoke(record){if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
 
-function openService(){
+function openService(panel=state.servicePanel||'survey'){
   cancelArrivalCountdown(false);
   closeModal(false);
+  state.servicePanel=panel;
   state.serviceOpen=true;
   render();
   $('#app-scroll').scrollTop=0;
@@ -915,6 +966,9 @@ function serviceTaskCard(key,index){
   const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>Wartość *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
   return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3>${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
 }
+function serviceModuleSwitch(active){
+  return `<div class="service-module-switch" role="tablist" aria-label="Moduły obsługi pojazdu"><button role="tab" data-service-panel="survey" aria-selected="${active==='survey'}" class="${active==='survey'?'active':''}">${icon('service')}<span><strong>Kontrola dzienna</strong><small>Ankieta serwisowa</small></span></button><button role="tab" data-service-panel="inventory" aria-selected="${active==='inventory'}" class="${active==='inventory'?'active':''}">${icon('clipboard')}<span><strong>Inwentaryzacja</strong><small>Protokół wyposażenia</small></span></button></div>`;
+}
 function serviceSurveyView(){
   const done=serviceCompletedCount(),survey=state.serviceSurvey,dailyDone=survey.submitted||serviceCompletedToday(),dailyRecord=readServiceDailyRecord();
   const status=dailyDone?'Wykonana dzisiaj':done===4?'Gotowa do zapisu':'Do uzupełnienia';
@@ -985,10 +1039,139 @@ function bindServiceView(){
   bindServiceAction();
   if($('#service-back'))$('#service-back').onclick=()=>closeService();
   if($('#service-correct'))$('#service-correct').onclick=()=>{state.serviceSurvey.reopened=true;render();};
+  $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
   $$('[data-service-photo]').forEach(button=>button.onclick=()=>openModal('service-photo',{key:button.dataset.servicePhoto,service:true,kind:'service-photo'}));
   $$('[data-service-value]').forEach(input=>input.oninput=event=>{markServiceEdited();state.serviceSurvey[event.target.dataset.serviceValue]=event.target.value;refreshServiceProgress();});
   if($('#service-note'))$('#service-note').oninput=event=>{markServiceEdited();state.serviceSurvey.note=event.target.value;refreshServiceProgress();};
   if($('#service-after'))$('#service-after').onchange=event=>{markServiceEdited();state.serviceSurvey.afterService=event.target.checked;refreshServiceProgress();};
+}
+
+const inventoryStatusMeta={
+  present:{label:'Jest',short:'Jest',icon:'check'},
+  missing:{label:'Brak',short:'Brak',icon:'close'},
+  damaged:{label:'Uszkodzone',short:'Uszk.',icon:'warning'}
+};
+const inventoryStatus=id=>state.inventoryProtocol.statuses[id]||null;
+const inventoryIssue=id=>['missing','damaged'].includes(inventoryStatus(id));
+const inventoryItemReady=id=>{
+  const status=inventoryStatus(id);
+  if(status==='present')return true;
+  if(!inventoryIssue(id))return false;
+  return Boolean(state.inventoryProtocol.photos[id]&&has(state.inventoryProtocol.notes[id]));
+};
+const inventoryCompletedCount=()=>inventoryItems.filter(item=>inventoryItemReady(item.id)).length;
+const inventoryAnsweredCount=()=>inventoryItems.filter(item=>inventoryStatus(item.id)).length;
+const inventoryIssueCount=()=>inventoryItems.filter(item=>inventoryIssue(item.id)).length;
+const inventoryPresentCount=()=>inventoryItems.filter(item=>inventoryStatus(item.id)==='present').length;
+const inventoryAllItemsReady=()=>inventoryCompletedCount()===inventoryItems.length;
+const inventoryReady=()=>inventoryAllItemsReady()&&state.inventoryProtocol.confirmed;
+
+function inventoryPhotoButton(id){
+  const record=state.inventoryProtocol.photos[id],item=inventoryItem(id);
+  return `<button class="inventory-photo-button ${record?'done':''}" data-inventory-photo="${id}" aria-label="${record?'Zmień':'Dodaj'} zdjęcie niezgodności: ${esc(item.name)}">${record?`<img src="${record.url}" alt="Niezgodność: ${esc(item.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?'Zdjęcie dodane':'Dodaj zdjęcie'}</strong><small>${record?'Dotknij, aby zmienić':'Wymagane przy niezgodności'}</small></span>${icon(record?'check':'plus')}</button>`;
+}
+function inventoryItemRow(item){
+  const status=inventoryStatus(item.id),ready=inventoryItemReady(item.id),issue=inventoryIssue(item.id),note=state.inventoryProtocol.notes[item.id]||'';
+  const stateClass=ready?'complete':issue?'issue-open':status?'incomplete':'';
+  return `<article class="inventory-item ${stateClass}" data-inventory-item="${item.id}"><div class="inventory-item-heading"><span class="inventory-item-icon">${icon(item.icon)}</span><div><strong>${esc(item.name)}</strong><small>Stan oczekiwany: ${esc(item.expected)}</small></div><b class="inventory-item-result">${ready?icon('check'):status?'Uzupełnij':'Oceń'}</b></div><div class="inventory-status-options" role="group" aria-label="Stan: ${esc(item.name)}">${Object.entries(inventoryStatusMeta).map(([value,meta])=>`<button data-inventory-status="${item.id}" data-status="${value}" aria-pressed="${status===value}" class="${status===value?`active ${value}`:''}">${icon(meta.icon)}<span>${meta.short}</span></button>`).join('')}</div>${issue?`<div class="inventory-issue-details"><div class="inventory-issue-title">${icon('warning')}<span><strong>${status==='missing'?'Udokumentuj brak':'Udokumentuj uszkodzenie'}</strong><small>Zdjęcie i opis są wymagane przed zapisem protokołu.</small></span></div>${inventoryPhotoButton(item.id)}<label for="inventory-note-${item.id}"><span>Opis niezgodności *</span><textarea id="inventory-note-${item.id}" data-inventory-note="${item.id}" maxlength="300" placeholder="${status==='missing'?'Napisz, czego brakuje i gdzie to sprawdzono.':'Opisz uszkodzenie i czy wyposażenia można bezpiecznie używać.'}">${esc(note)}</textarea></label></div>`:''}</article>`;
+}
+function inventoryGroupView(group){
+  const complete=group.items.filter(item=>inventoryItemReady(item.id)).length;
+  return `<section class="inventory-group"><div class="inventory-group-heading"><div><span>${esc(group.eyebrow)}</span><h3>${esc(group.title)}</h3></div><b data-inventory-group-count="${group.id}">${complete}/${group.items.length}</b></div><div class="panel inventory-group-card">${group.items.map(inventoryItemRow).join('')}</div></section>`;
+}
+function inventoryProtocolView(){
+  const protocol=state.inventoryProtocol,done=inventoryCompletedCount(),issues=inventoryIssueCount();
+  const badge=protocol.submitted?'Zatwierdzony':inventoryReady()?'Gotowy do zapisu':'Roboczy';
+  return `<div class="app-content service-screen inventory-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>WYPOSAŻENIE POJAZDU</span><h2>Protokół inwentaryzacji</h2></div><b class="service-state-badge inventory-state ${protocol.submitted?'saved':inventoryReady()?'ready':''}">${badge}</b></div>${serviceModuleSwitch('inventory')}<p class="service-intro">Sprawdź każdą pozycję przy pojeździe. Brak albo uszkodzenie wymaga zdjęcia i krótkiego opisu.</p><section class="inventory-identity-card"><div class="inventory-identity-top"><span>${icon('clipboard')}</span><div><small>PROTOKÓŁ DEMONSTRACYJNY</small><strong>${esc(protocol.id)}</strong></div><b>DANE DEMO</b></div><div class="inventory-vehicle"><div><span>Pojazd</span><strong>${esc(protocol.vehicle)}</strong><small>${esc(protocol.registration)}</small></div><div><span>Kierowca</span><strong>${esc(protocol.driver)}</strong><small>Podgląd bez danych produkcyjnych</small></div></div></section>${protocol.submitted?`<div class="service-saved-banner inventory-saved">${icon('check')}<p><strong>Protokół demonstracyjny jest kompletny</strong>Zapisano lokalnie o ${esc(protocol.submittedAt)}. Nie wysłano danych do Super Spedytora.</p></div>`:''}<section class="service-progress-card inventory-progress-card"><div><span>POSTĘP PROTOKOŁU</span><strong id="inventory-progress-count">${done}/${inventoryItems.length}</strong></div><div class="service-progress-track"><span id="inventory-progress-bar" style="width:${done/inventoryItems.length*100}%"></span></div><div class="inventory-progress-stats"><span><b id="inventory-present-count">${inventoryPresentCount()}</b> zgodne</span><span><b id="inventory-issue-count">${issues}</b> niezgodności</span><span><b id="inventory-open-count">${inventoryItems.length-inventoryAnsweredCount()}</b> bez oceny</span></div></section>${issues?`<div class="inventory-alert">${icon('warning')}<p><strong>${issues} ${issues===1?'niezgodność':'niezgodności'}</strong>Każdy brak lub uszkodzenie musi mieć zdjęcie i opis.</p></div>`:`<div class="inventory-guidance">${icon('info')}Wybierz stan każdej pozycji: „Jest”, „Brak” albo „Uszkodzone”.</div>`}${inventoryGroups.map(inventoryGroupView).join('')}<label class="panel check-row inventory-confirm"><input id="inventory-confirm" type="checkbox" ${protocol.confirmed?'checked':''} ${inventoryAllItemsReady()?'':'disabled'}><span><strong>Potwierdzam zgodność ze stanem faktycznym</strong><small>${inventoryAllItemsReady()?'Sprawdziłem wyposażenie przy pojeździe i opisane niezgodności są kompletne.':'Najpierw oceń wszystkie pozycje i udokumentuj niezgodności.'}</small></span></label><p class="service-offline-note">${icon('info')}To interaktywny projekt panelu. Lista wyposażenia, pojazd i numer protokołu są demonstracyjne; zapis nie trafia do produkcyjnego Super Spedytora.</p></div>`;
+}
+function inventoryActionView(){
+  const protocol=state.inventoryProtocol,done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
+  if(protocol.submitted)return `<div class="flow-actions"><button class="primary-button" id="inventory-close">${icon('check')}Zamknij protokół</button></div><p class="action-caption">Wersja demonstracyjna: zapis istnieje tylko w tym podglądzie.</p>`;
+  const caption=inventoryAllItemsReady()?(protocol.confirmed?'Wszystkie pozycje i niezgodności są kompletne.':'Zaznacz potwierdzenie zgodności ze stanem faktycznym.'):`Oceniono ${answered}/${inventoryItems.length} · kompletne ${done}/${inventoryItems.length}.`;
+  return `<div class="flow-actions"><button class="primary-button" id="inventory-save" ${inventoryReady()?'':'disabled'}>${icon('check')}Zapisz protokół</button></div><p class="action-caption">${caption}</p>`;
+}
+function inventoryDesignNotes(){
+  const issues=inventoryIssueCount(),done=inventoryCompletedCount();
+  const steps=[['01','Oceń każdą pozycję',inventoryAnsweredCount()===inventoryItems.length],['02','Udokumentuj niezgodności',inventoryItems.filter(item=>inventoryIssue(item.id)).every(item=>inventoryItemReady(item.id))],['03','Potwierdź i zapisz',state.inventoryProtocol.submitted]];
+  return `<h2>Jedna lista.<br>Zero domysłów.</h2><p class="note-description">Kierowca zaznacza faktyczny stan wyposażenia. Zdjęcie i opis pojawiają się tylko przy braku albo uszkodzeniu.</p><div class="design-progress"><div class="design-progress-title">PROTOKÓŁ INWENTARYZACJI<span>${done}/${inventoryItems.length}</span></div>${steps.map(([number,label,complete],index)=>`<div class="design-step ${complete?'done':index===0||steps[index-1][2]?'current':''}"><span class="design-step-num">${complete?icon('check'):number}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Niezgodności są widoczne od razu</strong><p>${issues?`W podglądzie oznaczono ${issues} ${issues===1?'niezgodność':'niezgodności'}.`:'Przy wyborze „Brak” lub „Uszkodzone” aplikacja pokaże wymagane zdjęcie i opis.'} Zapis odblokowuje się dopiero po komplecie.</p></div>`;
+}
+function markInventoryEdited(){
+  const protocol=state.inventoryProtocol;
+  if(protocol.submitted){protocol.submitted=false;protocol.submittedAt=null;protocol.confirmed=false;}
+}
+function refreshInventoryProgress(){
+  const done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
+  if($('#inventory-progress-count'))$('#inventory-progress-count').textContent=`${done}/${inventoryItems.length}`;
+  if($('#inventory-progress-bar'))$('#inventory-progress-bar').style.width=`${done/inventoryItems.length*100}%`;
+  if($('#inventory-present-count'))$('#inventory-present-count').textContent=inventoryPresentCount();
+  if($('#inventory-issue-count'))$('#inventory-issue-count').textContent=inventoryIssueCount();
+  if($('#inventory-open-count'))$('#inventory-open-count').textContent=inventoryItems.length-answered;
+  inventoryGroups.forEach(group=>{
+    const counter=$(`[data-inventory-group-count="${group.id}"]`);
+    if(counter)counter.textContent=`${group.items.filter(item=>inventoryItemReady(item.id)).length}/${group.items.length}`;
+  });
+  inventoryItems.forEach(item=>{
+    const row=$(`[data-inventory-item="${item.id}"]`),ready=inventoryItemReady(item.id);
+    if(!row)return;
+    row.classList.toggle('complete',ready);
+    const result=$('.inventory-item-result',row);
+    if(result)result.innerHTML=ready?icon('check'):inventoryStatus(item.id)?'Uzupełnij':'Oceń';
+  });
+  const confirm=$('#inventory-confirm');
+  if(confirm){
+    confirm.disabled=!inventoryAllItemsReady();
+    const help=$('.inventory-confirm small');
+    if(help)help.textContent=inventoryAllItemsReady()?'Sprawdziłem wyposażenie przy pojeździe i opisane niezgodności są kompletne.':'Najpierw oceń wszystkie pozycje i udokumentuj niezgodności.';
+  }
+  const badge=$('.inventory-state');
+  if(badge){
+    badge.textContent=inventoryReady()?'Gotowy do zapisu':'Roboczy';
+    badge.classList.toggle('ready',inventoryReady());
+    badge.classList.remove('saved');
+  }
+  if($('#design-context'))$('#design-context').innerHTML=inventoryDesignNotes();
+  $('#app-action').innerHTML=inventoryActionView();
+  bindInventoryAction();
+}
+function bindInventoryAction(){
+  if($('#inventory-save'))$('#inventory-save').onclick=()=>{
+    if(!inventoryReady())return;
+    state.inventoryProtocol.submitted=true;
+    state.inventoryProtocol.submittedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    render();
+    toast('Protokół demonstracyjny został zapisany lokalnie.');
+  };
+  if($('#inventory-close'))$('#inventory-close').onclick=()=>closeService();
+}
+function bindInventoryView(){
+  bindInventoryAction();
+  if($('#service-back'))$('#service-back').onclick=()=>closeService();
+  $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
+  $$('[data-inventory-status]').forEach(button=>button.onclick=()=>{
+    const id=button.dataset.inventoryStatus,status=button.dataset.status,protocol=state.inventoryProtocol;
+    if(protocol.statuses[id]===status)return;
+    markInventoryEdited();
+    protocol.confirmed=false;
+    protocol.statuses[id]=status;
+    if(status==='present'){
+      revoke(protocol.photos[id]);
+      delete protocol.photos[id];
+      delete protocol.notes[id];
+    }
+    render();
+  });
+  $$('[data-inventory-photo]').forEach(button=>button.onclick=()=>openModal('inventory-photo',{key:button.dataset.inventoryPhoto,inventory:true,kind:'inventory-photo'}));
+  $$('[data-inventory-note]').forEach(input=>input.oninput=event=>{
+    markInventoryEdited();
+    state.inventoryProtocol.confirmed=false;
+    state.inventoryProtocol.notes[event.target.dataset.inventoryNote]=event.target.value;
+    refreshInventoryProgress();
+  });
+  if($('#inventory-confirm'))$('#inventory-confirm').onchange=event=>{
+    markInventoryEdited();
+    state.inventoryProtocol.confirmed=event.target.checked;
+    refreshInventoryProgress();
+  };
 }
 
 function updateScreenList(){
@@ -1022,16 +1205,20 @@ function render(){
   ensureServiceSurveyToday();
   updateServiceNavIndicator();
   if(state.serviceOpen){
-    $('#app').innerHTML=serviceSurveyView();
-    $('#app-action').innerHTML=serviceActionView();
-    $('#design-context').innerHTML=serviceDesignNotes();
-    $('#preview-label').textContent='SERWIS / ANKIETA';
-    $$('[data-operation],[data-route-stop]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
+    const inventory=state.servicePanel==='inventory';
+    $('#app').innerHTML=inventory?inventoryProtocolView():serviceSurveyView();
+    if(!inventory)$('.service-page-header')?.insertAdjacentHTML('afterend',serviceModuleSwitch('survey'));
+    $('#app-action').innerHTML=inventory?inventoryActionView():serviceActionView();
+    $('#design-context').innerHTML=inventory?inventoryDesignNotes():serviceDesignNotes();
+    $('#preview-label').textContent=inventory?'SERWIS / INWENTARYZACJA':'SERWIS / ANKIETA';
+    $$('[data-operation],[data-route-stop],[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
+    const servicePreview=$(`[data-service-preview="${state.servicePanel}"]`);
+    if(servicePreview){servicePreview.classList.add('active');servicePreview.setAttribute('aria-pressed','true');}
     $$('.screen-list [data-screen]').forEach(button=>button.classList.remove('active'));
     $('#scenario-select').disabled=true;
     $('#mobile-scenario').disabled=true;
     $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='service'));
-    bindServiceView();
+    if(inventory)bindInventoryView();else bindServiceView();
     $('#app-scroll').scrollTop=scroll;
     return;
   }
@@ -1046,6 +1233,7 @@ function render(){
     $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${stopStage[state.screen]}`;
     $$('[data-operation]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
     $$('[data-route-stop]').forEach(button=>{const active=button.dataset.routeStop===state.routeStop;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+    $$('[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
     updateScreenList();
     $$('.screen-list [data-screen]').forEach(button=>button.classList.toggle('active',button.dataset.screen===state.screen));
     $('#scenario-select').disabled=true;
@@ -1062,6 +1250,7 @@ function render(){
   $('#preview-label').textContent=`${operationName().toUpperCase()} / ${{info:'INFORMACJE',travel:'W DRODZE',photos:'SZTUKI ŁADUNKU',seals:'PLOMBA CMR',documents:'SKAN CMR',review:'ZAKOŃCZENIE',chat:'CZAT',success:'GOTOWE'}[state.screen]}`;
   $$('[data-operation]').forEach(button=>{button.classList.toggle('active',button.dataset.operation===state.operation);button.setAttribute('aria-pressed',String(button.dataset.operation===state.operation));});
   $$('[data-route-stop]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
+  $$('[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
   $$('.screen-list [data-screen]').forEach(button=>button.classList.toggle('active',button.dataset.screen===state.screen));
   updateScreenList();
   $('#scenario-select').value=state.scenario;
@@ -1352,6 +1541,11 @@ function openModal(type,target){
     title=meta.title;
     body=`<p>${esc(meta.description)}</p><div class="fuel-photo-modal-icon service-photo-modal-icon">${icon(meta.icon)}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub galeria</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Wersja preview: zdjęcie pozostaje tylko na tym urządzeniu i nie jest wysyłane do backendu.</p>`;
   }
+  if(type==='inventory-photo'){
+    const item=inventoryItem(target.key),status=inventoryStatus(target.key);
+    title=status==='missing'?'Zdjęcie braku':'Zdjęcie uszkodzenia';
+    body=`<p>Zrób czytelne zdjęcie pozycji „${esc(item.name)}” albo miejsca, w którym powinna się znajdować.</p><div class="fuel-photo-modal-icon service-photo-modal-icon">${icon('camera')}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub galeria</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Wersja preview: zdjęcie pozostaje tylko w tym podglądzie i nie jest wysyłane do backendu.</p>`;
+  }
   if(type==='collection-scan'){
     const group=collectionGroup(),source=group?collectionSource(group.sourceId):null,available=group?availableCollectionOrders(group):[];
     const first=available[0];
@@ -1390,6 +1584,10 @@ function openModal(type,target){
   if(type==='service-help'){
     title='Pomoc · ankieta serwisowa';
     body=`<p>Uzupełnij poziom oleju, poziom AdBlue, dystans do przeglądu oraz zdjęcie wskazania DPF. Każda z czterech pozycji wymaga zdjęcia.</p><div class="help-options"><button id="help-service-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Komunikaty serwisowe i zaznaczenie „Po przeglądzie” są opcjonalne.</p>`;
+  }
+  if(type==='inventory-help'){
+    title='Pomoc · inwentaryzacja';
+    body=`<p>Sprawdź wyposażenie przy pojeździe i wybierz stan każdej pozycji. Przy braku lub uszkodzeniu dodaj zdjęcie i krótki opis.</p><div class="help-options"><button id="help-inventory-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Lista w podglądzie jest demonstracyjna. Produkcyjny protokół wymaga zatwierdzonej listy wyposażenia i endpointu zapisu.</p>`;
   }
   if(type==='daily-service'){
     const evening=new Date().getHours()>=15;
@@ -1431,6 +1629,17 @@ function openModal(type,target){
     input.click();
   };
   if($('#use-demo'))$('#use-demo').onclick=()=>{
+    if(target.inventory){
+      const previous=state.inventoryProtocol.photos[target.key],item=inventoryItem(target.key);
+      revoke(previous);
+      state.inventoryProtocol.photos[target.key]={hash:`demo-inventory-${target.key}`,demo:true,kind:'inventory-photo',name:`Niezgodność · ${item.name}`,mime:'image/svg+xml',url:demoPhoto(target.key==='extinguisher'||target.key==='triangle'?0:1),source:'inventory-protocol'};
+      markInventoryEdited();
+      state.inventoryProtocol.confirmed=false;
+      closeModal(false);
+      render();
+      toast('Zdjęcie niezgodności zostało dodane do protokołu.');
+      return;
+    }
     if(target.service){
       const previous=state.serviceSurvey.photos[target.key];
       revoke(previous);
@@ -1480,7 +1689,8 @@ function openModal(type,target){
   if($('#help-chat'))$('#help-chat').onclick=()=>go('chat');
   if($('#help-stop-chat'))$('#help-stop-chat').onclick=()=>goStop('chat');
   if($('#help-service-chat'))$('#help-service-chat').onclick=()=>{closeModal(false);state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');};
-  if($('#service-reminder-now'))$('#service-reminder-now').onclick=()=>openService();
+  if($('#help-inventory-chat'))$('#help-inventory-chat').onclick=()=>{closeModal(false);state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');};
+  if($('#service-reminder-now'))$('#service-reminder-now').onclick=()=>openService('survey');
   if($('#service-reminder-later'))$('#service-reminder-later').onclick=()=>{const when=postponeServiceReminder();closeModal(false);updateServiceNavIndicator();toast(`Przypomnimy ${when}.`);};
   if($('#service-reminder-close'))$('#service-reminder-close').onclick=()=>{closeModal();updateServiceNavIndicator();};
   if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!allReady())return;current().finished=true;go('success');};
@@ -1576,11 +1786,14 @@ function reset(){
   Object.values(state.routeStops).forEach(stop=>{if(stop.photos)Object.values(stop.photos).forEach(revoke);});
   collection().groups.forEach(group=>{group.documents.forEach(revoke);revoke(group.pendingDocument);});
   Object.values(state.serviceSurvey.photos).forEach(revoke);
+  Object.values(state.inventoryProtocol.photos).forEach(revoke);
   state.operations={load:fresh('load'),unload:fresh('unload')};
   state.routeStops={collection:freshDocumentCollection(),parking:freshRouteStop('parking'),fueling:freshRouteStop('fueling')};
   state.serviceSurvey=freshServiceSurvey();
+  state.inventoryProtocol=freshInventoryProtocol();
   clearServiceDailyRecord();
   state.serviceOpen=false;
+  state.servicePanel='survey';
   state.operation='load';
   state.routeStop=null;
   state.scenario='basic';
@@ -1600,6 +1813,25 @@ $('#file-input').onchange=async event=>{
   uploadBusy=true;
   const target={...uploadTarget};
   let added=0;
+  if(target.inventory){
+    try{
+      const file=files[0];
+      if(!file.type.startsWith('image/')){toast('Wybierz zdjęcie JPG, PNG lub WebP.');return;}
+      if(file.size>20*1024*1024){toast('Wybierz zdjęcie do 20 MB.');return;}
+      const url=URL.createObjectURL(file);
+      if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      const previous=state.inventoryProtocol.photos[target.key];
+      revoke(previous);
+      state.inventoryProtocol.photos[target.key]={hash:`inventory-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'inventory-photo',source:'inventory-protocol'};
+      markInventoryEdited();
+      state.inventoryProtocol.confirmed=false;
+      closeModal(false);
+      render();
+      toast('Zdjęcie niezgodności zostało dodane do protokołu.');
+    }catch(error){toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}
+    finally{uploadBusy=false;}
+    return;
+  }
   if(target.service){
     try{
       const file=files[0];
@@ -1657,6 +1889,7 @@ $('#file-input').onchange=async event=>{
 
 $$('[data-operation]').forEach(button=>button.onclick=()=>switchOperation(button.dataset.operation));
 $$('[data-route-stop]').forEach(button=>button.onclick=()=>switchRouteStop(button.dataset.routeStop,button.dataset.routeStop==='collection'?'info':'travel'));
+$$('[data-service-preview]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePreview));
 $$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>state.routeStop?goStop(button.dataset.screen):go(button.dataset.screen));
 $('#scenario-select').onchange=event=>switchScenario(event.target.value);
 $('#mobile-scenario').onchange=event=>switchScenario(event.target.value);
@@ -1665,7 +1898,7 @@ $$('[data-nav]').forEach(button=>button.onclick=()=>{
   if(state.serviceOpen){
     if(button.dataset.nav==='now')closeService();
     if(button.dataset.nav==='chat'){state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');}
-    if(button.dataset.nav==='help')openModal('service-help',{});
+    if(button.dataset.nav==='help')openModal(state.servicePanel==='inventory'?'inventory-help':'service-help',{});
     return;
   }
   if(state.routeStop){
