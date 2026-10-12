@@ -5,7 +5,7 @@ Plik: `Super-Spedytor-Preview-offline-v0.1.9.apk`
 - pakiet: `eu.amgtrans.superspedytor.driver.preview`
 - nazwa: `Super Spedytor Preview`
 - wersja: `0.1.9-internal-preview` (`versionCode 10`)
-- SHA-256: `9c1f8a171212381475f94e7a6efa32cf383bfce6621ebca628b229e46c4ff7c3`
+- SHA-256: `d222aae79c1b3202e92abd79104ca190c0daba3beeb9e8406b43036e54289e33`
 - minimalny Android: 9 (`minSdk 28`)
 - docelowy Android SDK: 36
 - podpis: lokalny Android Debug, tylko do instalacji pokazowej

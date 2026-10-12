@@ -29,6 +29,13 @@
 .service-saved-banner>.icon{width:20px;height:20px;flex-shrink:0;margin-top:3px}
 .service-saved-banner p{margin:0;font-size:12px;line-height:1.65}
 .service-saved-banner strong{display:block;font-size:13px;margin-bottom:2px}
+.service-completed-card{padding:24px 19px;text-align:center}
+.service-completed-card>span{width:66px;height:66px;display:grid;place-items:center;margin:0 auto 13px;border-radius:20px;background:var(--green-soft);color:var(--green)}
+.service-completed-card>span .icon{width:34px;height:34px}
+.service-completed-card h3{margin:0;font-size:21px;line-height:1.4}
+.service-completed-card p{margin:8px 0 17px;font-size:13px;line-height:1.65;color:#75806f}
+.service-completed-card .secondary-button{min-height:54px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px}
+.service-completed-card .secondary-button .icon{width:20px;height:20px}
 .service-progress-card{margin-bottom:15px;padding:17px;border-radius:17px;background:linear-gradient(135deg,#2c302d,#464e43);color:#fff;box-shadow:0 10px 24px rgba(42,49,43,.12)}
 .service-progress-card>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .service-progress-card>div:first-child span{font-size:10px;letter-spacing:.9px;color:#d5ddd1;font-weight:850}
