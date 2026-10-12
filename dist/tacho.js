@@ -1,0 +1,273 @@
+'use strict';
+
+(() => {
+  const tq=(selector,root=document)=>root.querySelector(selector);
+  const tqa=(selector,root=document)=>[...root.querySelectorAll(selector)];
+  const tachoIcon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const breakTypes=[
+    {id:'break-15',group:'Przerwy po jeździe',title:'Przerwa 15 min',hint:'Pierwsza część przerwy dzielonej',seconds:15*60,icon:'clock'},
+    {id:'break-30',group:'Przerwy po jeździe',title:'Przerwa 30 min',hint:'Druga część po wcześniejszych 15 min',seconds:30*60,icon:'clock'},
+    {id:'break-45',group:'Przerwy po jeździe',title:'Przerwa 45 min',hint:'Pełna, nieprzerwana przerwa',seconds:45*60,icon:'clock'},
+    {id:'daily-11',group:'Odpoczynek dobowy',title:'Odpoczynek dobowy 11 h',hint:'Regularny odpoczynek dobowy',seconds:11*60*60,icon:'parking',rest:true},
+    {id:'daily-9',group:'Odpoczynek dobowy',title:'Odpoczynek dobowy 9 h',hint:'Skrócony; maks. 3 razy między odpoczynkami tygodniowymi',seconds:9*60*60,icon:'parking',rest:true},
+    {id:'weekly-45',group:'Odpoczynek tygodniowy',title:'Tygodniowy regularny 45 h',hint:'Poza kabiną: hotel, baza lub dom',seconds:45*60*60,icon:'home',rest:true},
+    {id:'weekly-24',group:'Odpoczynek tygodniowy',title:'Tygodniowy skrócony',hint:'Minimum 24 h; wymaga rozliczenia rekompensaty',seconds:24*60*60,icon:'home',rest:true}
+  ];
+  const tachoState={active:null,lastClosed:null,splitStage:0};
+  let tachoOpen=false;
+  let timer=null;
+
+  const formatElapsed=seconds=>{
+    const safe=Math.max(0,Math.floor(seconds));
+    const hours=Math.floor(safe/3600);
+    const minutes=Math.floor((safe%3600)/60);
+    const rest=safe%60;
+    return hours>0
+      ?`${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(rest).padStart(2,'0')}`
+      :`${String(minutes).padStart(2,'0')}:${String(rest).padStart(2,'0')}`;
+  };
+  const shortDuration=seconds=>{
+    if(seconds<60)return 'mniej niż 1 min';
+    const minutes=Math.max(0,Math.floor(seconds/60));
+    const hours=Math.floor(minutes/60);
+    const rest=minutes%60;
+    if(hours&&rest)return `${hours} godz. ${rest} min`;
+    if(hours)return `${hours} godz.`;
+    return `${minutes} min`;
+  };
+  const remainingDuration=seconds=>shortDuration(Math.ceil(Math.max(0,seconds)/60)*60);
+  const startedAtLabel=timestamp=>new Date(timestamp).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  const activeType=()=>breakTypes.find(item=>item.id===tachoState.active?.typeId);
+  const activeElapsed=()=>tachoState.active?Math.max(0,(Date.now()-tachoState.active.startedAt)/1000):0;
+
+  function showTachoToast(message){
+    const element=tq('#toast');
+    if(!element)return;
+    element.textContent=message;
+    element.classList.add('visible');
+    window.setTimeout(()=>element.classList.remove('visible'),3800);
+  }
+
+  function activeBreakCard(){
+    const type=activeType();
+    if(!type)return '';
+    const elapsed=activeElapsed();
+    const progress=Math.min(100,(elapsed/type.seconds)*100);
+    return `<section class="tacho-active-card" aria-live="polite">
+      <span class="tacho-active-badge"><span></span>Aktywne zgłoszenie</span>
+      <h3>${type.title}</h3>
+      <p>Zgłoszona od ${startedAtLabel(tachoState.active.startedAt)} · plan ${shortDuration(type.seconds)}</p>
+      <strong class="tacho-elapsed" id="tacho-elapsed">${formatElapsed(elapsed)}</strong>
+      <div class="tacho-progress"><span id="tacho-active-progress" style="--progress:${progress}%"></span></div>
+      <div class="tacho-progress-labels"><span>Trwa</span><b id="tacho-active-remaining">${elapsed>=type.seconds?'Plan osiągnięty':`pozostało ${remainingDuration(type.seconds-elapsed)}`}</b></div>
+      <div class="tacho-active-actions"><button class="tacho-change-button" id="tacho-change">Zmień rodzaj</button><button class="tacho-end-button" id="tacho-end">Zakończ zgłoszenie</button></div>
+    </section>`;
+  }
+
+  function defaultDrivingCard(){
+    const last=tachoState.lastClosed;
+    const splitStage=tachoState.splitStage;
+    const primaryTime=splitStage===2?'4 godz. 30 min':'1 godz. 18 min';
+    const primaryLabel=splitStage===1?'do drugiej części przerwy dzielonej':splitStage===2?'do kolejnej wymaganej przerwy':'do wymaganej przerwy';
+    const nextBreak=splitStage===1?'30 min':splitStage===2?'45 min lub 15 + 30':'45 min';
+    const drivingTime=splitStage===2?'0:00':'3:12';
+    const progress=splitStage===2?'0%':'71.1%';
+    const splitSummary=splitStage===1
+      ?`<div class="tacho-split-summary pending">${tachoIcon('clock')}<span><strong>15 min zaliczone</strong>Do pełnej przerwy dzielonej potrzebujesz jeszcze minimum 30 min.</span></div>`
+      :splitStage===2
+        ?`<div class="tacho-split-summary complete">${tachoIcon('check')}<span><strong>Przerwa dzielona zaliczona</strong>15 + 30 min ukończone. Nowy okres jazdy rozpoczęty od 0:00.</span></div>`
+        :'';
+    return `<section class="tacho-now-card">
+      <div class="tacho-now-top"><span class="tacho-status"><span class="tacho-status-dot"></span>Teraz · jazda</span><span class="tacho-status-time">odczyt demo · 3 min temu</span></div>
+      <strong class="tacho-primary-time">${primaryTime}</strong>
+      <span class="tacho-primary-label">${primaryLabel}</span>
+      <div class="tacho-next-break"><span>Najbliższa przerwa</span><strong>${nextBreak}</strong></div>
+      <div class="tacho-progress"><span style="--progress:${progress}"></span></div>
+      <div class="tacho-progress-labels"><span>Jazda bez pełnej przerwy <b>${drivingTime}</b></span><span>limit <b>4:30</b></span></div>
+      ${splitSummary}
+      <button class="tacho-report-button" id="tacho-report">${tachoIcon('clock')}Zgłoś przerwę lub odpoczynek</button>
+      <button class="tacho-split-button" id="tacho-split-sim">${tachoIcon('arrow')}${splitStage?'Kontynuuj symulację 15 + 30':'Symulacja przerwy dzielonej 15 + 30'}</button>
+      ${last?`<div class="tacho-last-report">${tachoIcon('check')}<span><strong>Ostatnie zgłoszenie zakończone</strong>${last.title} · trwało ${shortDuration(last.elapsed)}</span></div>`:''}
+    </section>`;
+  }
+
+  function tachoView(){
+    return `<div class="app-content tacho-screen">
+      <header class="tacho-heading"><span class="tacho-kicker">${tachoIcon('clock')}Panel kierowcy · dane demonstracyjne</span><h2>Czas pod kontrolą</h2><p>Najpierw to, co ważne teraz. Niżej pełny bilans jazdy i odpoczynków.</p></header>
+      ${tachoState.active?activeBreakCard():defaultDrivingCard()}
+      <div class="tacho-section-heading"><h3>Ramy dnia</h3><span>Pełny odpoczynek<br>11 godzin</span></div>
+      <section class="tacho-day-window">
+        <div><small>Dzień rozpoczęty</small><strong>06:42</strong><span>po odpoczynku dobowym</span></div>
+        <span class="tacho-day-arrow">${tachoIcon('arrow')}</span>
+        <div class="deadline"><small>Zakończ najpóźniej</small><strong>19:42</strong><span>aby zrobić pełne 11 h</span></div>
+      </section>
+      <div class="tacho-section-heading"><h3>Jazda i „dziewiątki”</h3><span>Stan z tachografu<br>w wersji docelowej</span></div>
+      <div class="tacho-metrics">
+        <article class="tacho-metric"><small>Dzisiaj · limit 10 h</small><strong>6:12</strong><p>zostało 3:48 jazdy · wydłużenie 1 z 2</p><div class="tacho-mini-progress"><span style="--progress:62%"></span></div></article>
+        <article class="tacho-metric tacho-nine-metric"><small>Skrócone odpoczynki 9 h</small><strong>2 z 3</strong><p>została 1 do odpoczynku tygodniowego</p><div class="tacho-mini-progress"><span style="--progress:66.7%"></span></div></article>
+        <article class="tacho-metric"><small>Ten tydzień</small><strong>30:45</strong><p>z 56 godz. · zostało 25:15</p><div class="tacho-mini-progress"><span style="--progress:54.9%"></span></div></article>
+        <article class="tacho-metric"><small>Dwa kolejne tygodnie</small><strong>68:20</strong><p>z 90 godz. · zostało 21:40</p><div class="tacho-mini-progress"><span style="--progress:75.9%"></span></div></article>
+      </div>
+      <div class="tacho-section-heading"><h3>Dzisiejsza aktywność</h3><span>Łącznie od 06:42</span></div>
+      <section class="tacho-activity-card">
+        <div class="tacho-activity-bar" aria-label="Kolejność dzisiejszych okresów"><span style="--part:4.4%;--activity-color:#859879"></span><span style="--part:36.7%;--activity-color:#ff7a31"></span><span style="--part:8.6%;--activity-color:#b7aecc"></span><span style="--part:15.9%;--activity-color:#859879"></span><span style="--part:34.4%;--activity-color:#ff7a31"></span></div>
+        <div class="tacho-period-list" aria-label="Okresy dzisiejszej aktywności">
+          <div class="tacho-period" style="--activity-color:#859879"><time>06:42–07:05</time><span><strong>Inna praca</strong><small>23 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#ff7a31"><time>07:05–10:17</time><span><strong>Jazda</strong><small>3 godz. 12 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#b7aecc"><time>10:17–11:02</time><span><strong>Przerwa</strong><small>45 min</small></span></div>
+          <div class="tacho-period" style="--activity-color:#859879"><time>11:02–12:25</time><span><strong>Inna praca</strong><small>1 godz. 23 min</small></span></div>
+          <div class="tacho-period current" style="--activity-color:#ff7a31"><time>12:25–15:25</time><span><strong>Jazda</strong><small>3 godz. · bieżący okres</small></span></div>
+        </div>
+      </section>
+      <div class="tacho-section-heading"><h3>Odpoczynki</h3><span>Najważniejsze terminy</span></div>
+      <section class="tacho-rest-list">
+        <div class="tacho-rest-row"><span class="tacho-rest-icon">${tachoIcon('check')}</span><div><small>Ostatni odpoczynek dobowy</small><strong>11 godz. 18 min</strong></div><b>Zakończony<br>06:42</b></div>
+        <div class="tacho-rest-row"><span class="tacho-rest-icon">${tachoIcon('clock')}</span><div><small>Następny odpoczynek dobowy</small><strong>Planowany regularny 11 h</strong></div><b>Dzisiaj</b></div>
+      </section>
+      <div class="tacho-source-note">${tachoIcon('info')}<p><strong>Tachograf jest źródłem nadrzędnym.</strong>Ten prototyp nie odczytuje urządzenia i nie wysyła zgłoszeń. W wersji docelowej zgłoszenie poinformuje spedytora, ale nie zmieni aktywności zapisanej w tachografie.</p></div>
+    </div>`;
+  }
+
+  function tachoDesignNotes(){
+    return `<h2>Jedno spojrzenie.<br>Jedna decyzja.</h2><p class="note-description">Największy komunikat odpowiada na pytanie: „co i kiedy mam zrobić?”. Start i koniec dnia, limit 10 godzin oraz wykorzystane „dziewiątki” są widoczne przed podsumowaniami tygodniowymi.</p><div class="design-progress"><div class="design-progress-title">PANEL TACHO<span>4 priorytety</span></div><div class="design-step current"><span class="design-step-num">01</span><span>Najbliższa przerwa i czas do niej</span></div><div class="design-step"><span class="design-step-num">02</span><span>Start dnia i graniczna godzina zakończenia</span></div><div class="design-step"><span class="design-step-num">03</span><span>Jazda dzienna do limitu 10 godzin</span></div><div class="design-step"><span class="design-step-num">04</span><span>Wykorzystane i pozostałe odpoczynki 9 h</span></div></div><div class="design-shared"><strong>Zgłoszenie nie steruje tachografem</strong><p>Aplikacja przekazuje informację operacyjną do spedytora. Urządzenie i karta kierowcy pozostają źródłem prawdy.</p></div>`;
+  }
+
+  function updateActiveClock(){
+    if(!tachoState.active)return;
+    const type=activeType();
+    const elapsed=activeElapsed();
+    const elapsedNode=tq('#tacho-elapsed');
+    const progressNode=tq('#tacho-active-progress');
+    const remainingNode=tq('#tacho-active-remaining');
+    if(elapsedNode)elapsedNode.textContent=formatElapsed(elapsed);
+    if(progressNode)progressNode.style.setProperty('--progress',`${Math.min(100,(elapsed/type.seconds)*100)}%`);
+    if(remainingNode)remainingNode.textContent=elapsed>=type.seconds?'Plan osiągnięty':`pozostało ${remainingDuration(type.seconds-elapsed)}`;
+  }
+
+  function syncTimer(){
+    if(timer){window.clearInterval(timer);timer=null;}
+    if(tachoState.active)timer=window.setInterval(updateActiveClock,1000);
+  }
+
+  function bindTachoView(){
+    tq('#tacho-report')?.addEventListener('click',openBreakPicker);
+    tq('#tacho-split-sim')?.addEventListener('click',openSplitSimulation);
+    tq('#tacho-change')?.addEventListener('click',openBreakPicker);
+    tq('#tacho-end')?.addEventListener('click',endBreak);
+  }
+
+  function renderTacho(){
+    tachoOpen=true;
+    tq('.device')?.classList.add('tacho-mode');
+    tq('#app').innerHTML=tachoView();
+    tq('#app-action').innerHTML='';
+    tq('#design-context').innerHTML=tachoDesignNotes();
+    tq('#preview-label').textContent='PANEL TACHO / CZAS KIEROWCY';
+    tqa('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='tacho'));
+    tqa('.screen-list [data-screen]').forEach(button=>button.classList.remove('active'));
+    tq('#app-scroll').scrollTop=0;
+    bindTachoView();
+    syncTimer();
+  }
+
+  function leaveTacho(){
+    tachoOpen=false;
+    tq('.device')?.classList.remove('tacho-mode');
+  }
+
+  function closeTachoModal(){
+    const root=tq('#modal-root');
+    if(root)root.innerHTML='';
+  }
+
+  function modalShell(title,body){
+    tq('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="tacho-modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="tacho-modal-title">${title}</h3><button class="icon-button" id="tacho-modal-close" aria-label="Zamknij">${tachoIcon('close')}</button></div>${body}</section></div>`;
+    tq('#tacho-modal-close').onclick=closeTachoModal;
+    tq('.modal-overlay').onclick=event=>{if(event.target.classList.contains('modal-overlay'))closeTachoModal();};
+    tq('.modal-sheet').focus();
+  }
+
+  function openBreakPicker(){
+    const groups=[...new Set(breakTypes.map(item=>item.group))];
+    const choices=groups.map(group=>`<section class="tacho-choice-group"><h4>${group}</h4><div class="tacho-choice-list">${breakTypes.filter(item=>item.group===group).map(item=>`<button class="tacho-choice ${item.rest?'rest':''}" data-tacho-type="${item.id}"><span class="tacho-choice-icon">${tachoIcon(item.icon)}</span><span><strong>${item.title}</strong><small>${item.hint}</small></span>${tachoIcon('arrow')}</button>`).join('')}</div></section>`).join('');
+    modalShell('Jaką przerwę zgłaszasz?',`<p class="tacho-choice-intro">Wybierz rodzaj rozpoczętej przerwy lub odpoczynku. Czas zacznie się liczyć od chwili zatwierdzenia.</p>${choices}<p class="tacho-modal-note">${tachoIcon('info')}Zgłoszenie w aplikacji nie zastępuje prawidłowego ustawienia tachografu.</p>`);
+    tqa('[data-tacho-type]').forEach(button=>button.onclick=()=>startBreak(button.dataset.tachoType));
+  }
+
+  function openSplitSimulation(){
+    const stage=tachoState.splitStage;
+    const firstDone=stage>=1;
+    const secondDone=stage>=2;
+    const status=stage===0
+      ?'<strong>Przed pierwszą częścią</strong><span>Licznik jazdy wynosi 3:12. Rozpocznij od minimum 15 minut przerwy.</span>'
+      :stage===1
+        ?'<strong>15 minut zaliczone</strong><span>Licznik 4:30 nie jest jeszcze wyzerowany. Druga część musi mieć minimum 30 minut.</span>'
+        :'<strong>Pełna przerwa zaliczona</strong><span>15 + 30 minut ukończone w prawidłowej kolejności. Nowy okres jazdy zaczyna się od 0:00.</span>';
+    const action=stage===0?'Symuluj pierwsze 15 min':stage===1?'Symuluj kolejne 30 min':'Uruchom symulację od początku';
+    modalShell('Symulacja przerwy 15 + 30',`<div class="tacho-split-rule">${tachoIcon('info')}<p><strong>Prawidłowa kolejność: najpierw 15, potem 30 minut.</strong>Przerwa 30 + 15 minut nie zeruje okresu jazdy jako prawidłowo podzielona przerwa.</p></div><div class="tacho-split-steps"><div class="tacho-split-step ${firstDone?'done':stage===0?'current':''}"><span>${firstDone?tachoIcon('check'):'1'}</span><div><strong>Minimum 15 min</strong><small>Pierwsza część przerwy dzielonej</small></div></div><div class="tacho-split-step ${secondDone?'done':stage===1?'current':'locked'}"><span>${secondDone?tachoIcon('check'):'2'}</span><div><strong>Minimum 30 min</strong><small>Druga część, po wcześniejszych 15 min</small></div></div></div><div class="tacho-split-result ${secondDone?'complete':''}">${status}</div><button class="tacho-split-next" id="tacho-split-next">${action}</button>${stage===1?'<button class="tacho-split-reset" id="tacho-split-reset">Przerwij i wyzeruj symulację</button>':''}<p class="tacho-modal-note">${tachoIcon('info')}To demonstracja. W rzeczywistej pracy o zaliczeniu przerwy decyduje zapis tachografu.</p>`);
+    tq('#tacho-split-next').onclick=advanceSplitSimulation;
+    tq('#tacho-split-reset')?.addEventListener('click',resetSplitSimulation);
+  }
+
+  function advanceSplitSimulation(){
+    tachoState.splitStage=tachoState.splitStage===2?0:tachoState.splitStage+1;
+    closeTachoModal();
+    renderTacho();
+    openSplitSimulation();
+  }
+
+  function resetSplitSimulation(){
+    tachoState.splitStage=0;
+    closeTachoModal();
+    renderTacho();
+    showTachoToast('Symulacja przerwy dzielonej została wyzerowana.');
+  }
+
+  function startBreak(typeId){
+    const type=breakTypes.find(item=>item.id===typeId);
+    if(!type)return;
+    tachoState.active={typeId,startedAt:Date.now()};
+    closeTachoModal();
+    renderTacho();
+    showTachoToast(`${type.title} — zgłoszenie demonstracyjne rozpoczęte.`);
+  }
+
+  function endBreak(){
+    const type=activeType();
+    if(!type)return;
+    tachoState.lastClosed={title:type.title,elapsed:activeElapsed(),endedAt:Date.now()};
+    tachoState.active=null;
+    syncTimer();
+    renderTacho();
+    showTachoToast('Zgłoszenie demonstracyjne zostało zakończone.');
+  }
+
+  function openTachoHelp(){
+    modalShell('Pomoc · panel tacho',`<p>Panel pokazuje bilans jazdy i odpoczynków oraz pozwala zgłosić spedytorowi rozpoczętą przerwę.</p><div class="tacho-source-note">${tachoIcon('info')}<p><strong>Najpierw sprawdź tachograf.</strong>Jeśli wartości w aplikacji i urządzeniu się różnią, obowiązuje zapis tachografu. Wersja demonstracyjna nie wysyła danych.</p></div>`);
+  }
+
+  const nav=tq('.bottom-nav');
+  nav?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-nav]');
+    if(!button)return;
+    if(button.dataset.nav==='tacho'){
+      event.preventDefault();
+      event.stopPropagation();
+      closeTachoModal();
+      renderTacho();
+      return;
+    }
+    if(tachoOpen&&button.dataset.nav==='help'){
+      event.preventDefault();
+      event.stopPropagation();
+      openTachoHelp();
+      return;
+    }
+    if(tachoOpen)leaveTacho();
+  },true);
+
+  tqa('[data-operation],[data-route-stop],.screen-list [data-screen],#reset').forEach(control=>control.addEventListener('click',leaveTacho));
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&tq('#tacho-modal-title'))closeTachoModal();
+  });
+})();

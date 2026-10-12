@@ -9,6 +9,7 @@
   <title>Super Spedytor — tryb kierowcy</title>
   <link rel="stylesheet" href="driver.css">
   <link rel="stylesheet" href="flow.css">
+  <link rel="stylesheet" href="tacho.css">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -76,7 +77,7 @@
         <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
         <div class="app-scroll" id="app-scroll"><div id="app"></div></div>
         <div id="app-action" class="app-action"></div>
-        <nav class="bottom-nav" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
+        <nav class="bottom-nav five-items" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="tacho"><svg class="icon"><use href="#i-clock"/></svg><span>Tacho</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
         <div class="android-home"><span></span></div>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <div id="modal-root"></div>
@@ -92,5 +93,6 @@
   <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
   <script src="demo-assets.js"></script>
   <script src="flow.js"></script>
+  <script src="tacho.js"></script>
 </body>
 </html>
