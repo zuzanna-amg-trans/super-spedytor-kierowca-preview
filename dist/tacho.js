@@ -111,10 +111,15 @@
       </section>
       <div class="tacho-section-heading"><h3>Jazda i „dziewiątki”</h3><span>Stan z tachografu<br>w wersji docelowej</span></div>
       <div class="tacho-metrics">
-        <article class="tacho-metric"><small>Dzisiaj · limit 10 h</small><strong>6:12</strong><p>zostało 3:48 jazdy · wydłużenie 1 z 2</p><div class="tacho-mini-progress"><span style="--progress:62%"></span></div></article>
+        <article class="tacho-metric tacho-drive-metric"><small>Dzisiaj · limit 10 h</small><strong>6:12</strong><p>zostało 3:48 jazdy</p><div class="tacho-mini-progress"><span style="--progress:62%"></span></div></article>
         <article class="tacho-metric tacho-nine-metric"><small>Skrócone odpoczynki 9 h</small><strong>2 z 3</strong><p>została 1 do odpoczynku tygodniowego</p><div class="tacho-mini-progress"><span style="--progress:66.7%"></span></div></article>
-        <article class="tacho-metric"><small>Ten tydzień</small><strong>30:45</strong><p>z 56 godz. · zostało 25:15</p><div class="tacho-mini-progress"><span style="--progress:54.9%"></span></div></article>
-        <article class="tacho-metric"><small>Dwa kolejne tygodnie</small><strong>68:20</strong><p>z 90 godz. · zostało 21:40</p><div class="tacho-mini-progress"><span style="--progress:75.9%"></span></div></article>
+        <article class="tacho-extension-card" aria-label="Przedłużenia jazdy do 10 godzin: wykorzystane 1 z 2, zostało 1">
+          <span class="tacho-extension-mark" aria-hidden="true">10 h</span>
+          <span class="tacho-extension-copy"><small>Przedłużenia jazdy do 10 h</small><strong>1 z 2 wykorzystane</strong><span class="tacho-extension-slots" aria-hidden="true"><i class="used"></i><i></i></span></span>
+          <b>Zostało 1</b>
+        </article>
+        <article class="tacho-metric tacho-week-metric"><small>Ten tydzień</small><strong>30:45</strong><p>z 56 godz. · zostało 25:15</p><div class="tacho-mini-progress"><span style="--progress:54.9%"></span></div></article>
+        <article class="tacho-metric tacho-fortnight-metric"><small>Dwa kolejne tygodnie</small><strong>68:20</strong><p>z 90 godz. · zostało 21:40</p><div class="tacho-mini-progress"><span style="--progress:75.9%"></span></div></article>
       </div>
       <div class="tacho-section-heading"><h3>Dzisiejsza aktywność</h3><span>Łącznie od 06:42</span></div>
       <section class="tacho-activity-card">
