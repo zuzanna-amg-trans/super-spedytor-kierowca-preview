@@ -1,0 +1,121 @@
+name: Zbuduj AAB do Google Play Internal Testing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-spedytor-driver-internal-testing
+  cancel-in-progress: false
+
+jobs:
+  build-internal-aab:
+    name: Podpisany AAB tylko do testów wewnętrznych
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SS_UPLOAD_KEYSTORE_PATH: ${{ runner.temp }}/super-spedytor-upload.jks
+      SS_UPLOAD_STORE_PASSWORD: ${{ secrets.SS_UPLOAD_STORE_PASSWORD }}
+      SS_UPLOAD_KEY_ALIAS: ${{ secrets.SS_UPLOAD_KEY_ALIAS }}
+      SS_UPLOAD_KEY_PASSWORD: ${{ secrets.SS_UPLOAD_KEY_PASSWORD }}
+      PRIVACY_POLICY_URL: https://amg.eco/polityka-prywatnosci
+    steps:
+      - name: Pobierz źródła
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Ustaw JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Ustaw Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Ustaw Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Zainstaluj Android 16 SDK
+        shell: bash
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Odtwórz klucz uploadowy z sekretu GitHub
+        shell: bash
+        env:
+          SS_UPLOAD_KEYSTORE_BASE64: ${{ secrets.SS_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$SS_UPLOAD_KEYSTORE_BASE64"
+          printf '%s' "$SS_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$SS_UPLOAD_KEYSTORE_PATH"
+          chmod 600 "$SS_UPLOAD_KEYSTORE_PATH"
+          keytool -list \
+            -keystore "$SS_UPLOAD_KEYSTORE_PATH" \
+            -storepass "$SS_UPLOAD_STORE_PASSWORD" \
+            -alias "$SS_UPLOAD_KEY_ALIAS" > /dev/null
+
+      - name: Sprawdź JavaScript interfejsu
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check dist/demo-assets.js
+          node --check dist/flow.js
+
+      - name: Testy, lint i podpisany AAB Internal Testing
+        working-directory: android-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew \
+            testDebugUnitTest \
+            lintInternal \
+            bundleInternal \
+            --no-daemon \
+            -Pss.packageApproved=true \
+            -Pss.internalReadOnlyAcknowledged=true \
+            -Pss.privacyPolicyUrl="$PRIVACY_POLICY_URL"
+
+      - name: Zwaliduj AAB oficjalnym bundletool
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundletool="$RUNNER_TEMP/bundletool-all-1.18.3.jar"
+          curl --fail --location --silent --show-error \
+            https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar \
+            --output "$bundletool"
+          printf '%s  %s\n' \
+            'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29' \
+            "$bundletool" | sha256sum --check
+          java -jar "$bundletool" validate \
+            --bundle=android-app/app/build/outputs/bundle/internal/app-internal.aab
+
+      - name: Zapisz metadane i SHA-256 paczki
+        shell: bash
+        run: |
+          set -euo pipefail
+          aab="android-app/app/build/outputs/bundle/internal/app-internal.aab"
+          test -f "$aab"
+          {
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'commit=%s\n' "$GITHUB_SHA"
+            printf 'application_id=eu.amgtrans.superspedytor.driver\n'
+            printf 'version_code=12\n'
+            printf 'version_name=0.1.11-internal\n'
+            printf 'privacy_policy=%s\n' "$PRIVACY_POLICY_URL"
+            printf 'track=intended-internal-testing\n'
+            printf 'mode=live-read-only\n'
+            sha256sum "$aab"
+          } > android-app/app/build/outputs/bundle/internal/release-metadata.txt
+
+      - name: Zachowaj podpisany AAB i metadane
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: super-spedytor-driver-internal-${{ github.sha }}
+          path: |
+            android-app/app/build/outputs/bundle/internal/app-internal.aab
+            android-app/app/build/outputs/bundle/internal/release-metadata.txt
+            android-app/app/build/reports/lint-results-internal.html
+            android-app/app/build/reports/lint-results-internal.sarif
+          if-no-files-found: error
+          retention-days: 30

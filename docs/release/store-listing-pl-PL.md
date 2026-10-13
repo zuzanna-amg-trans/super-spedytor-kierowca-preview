@@ -63,7 +63,7 @@ jest samodzielnym dostawcą nawigacji.
 
 - e-mail pomocy: `[DO UZUPEŁNIENIA]`,
 - strona pomocy: `[PUBLICZNY HTTPS — DO UZUPEŁNIENIA]`,
-- polityka prywatności: `[PUBLICZNY HTTPS — DO UZUPEŁNIENIA]`.
+- polityka prywatności: `https://amg.eco/polityka-prywatnosci`.
 
 ## Wymagane materiały graficzne
 

@@ -1,5 +1,17 @@
 # Notatki wydania — Internal Testing
 
+## `0.1.11-internal` — pierwszy kandydat Google Play Internal Testing
+
+- finalny pakiet `eu.amgtrans.superspedytor.driver`,
+- natywne logowanie i odczyt profilu, aktualnego pojazdu oraz bieżącej trasy,
+- wariant testowy jest jawnie tylko do odczytu i nie zapisuje przyjazdów,
+  zdjęć, dokumentów CMR ani zmian zlecenia do Super Spedytora,
+- polityka prywatności: `https://amg.eco/polityka-prywatnosci`,
+- podpisany AAB powstaje wyłącznie w ręcznie uruchamianym workflow GitHub po
+  skonfigurowaniu sekretów klucza uploadowego,
+- wydanie służy do instalacji przez ograniczoną grupę testerów i nie jest
+  kandydatem na produkcję.
+
 ## Projekt następnej wersji — przekazanie auta i wyposażenia
 
 - trzeci panel w obszarze `Serwis`, obok kontroli dziennej i inwentaryzacji,

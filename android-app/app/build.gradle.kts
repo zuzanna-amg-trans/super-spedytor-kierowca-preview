@@ -18,7 +18,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // Provisional until the Play Console package name is approved.
+        // Registered in Google Play Console on 2026-10-13 (Play app ID 4973607422769920448).
         applicationId = "eu.amgtrans.superspedytor.driver"
         minSdk = 28
         targetSdk = 36
@@ -57,6 +57,12 @@ android {
             matchingFallbacks += listOf("debug")
             buildConfigField("String", "APP_QUERY", "\"android=1&preview=1\"")
             buildConfigField("boolean", "DEMO_MODE", "true")
+        }
+        create("internal") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = signingConfigs.findByName("release")
+            matchingFallbacks += listOf("release")
         }
         release {
             isMinifyEnabled = false
@@ -137,6 +143,48 @@ val verifyReleaseReadiness = tasks.register("verifyReleaseReadiness") {
     }
 }
 
+val verifyInternalTestingReadiness = tasks.register("verifyInternalTestingReadiness") {
+    group = "verification"
+    description = "Weryfikuje podpisany, tylko-odczytowy AAB do Google Play Internal Testing."
+
+    doLast {
+        val blockers = mutableListOf<String>()
+        val packageApproved = providers.gradleProperty("ss.packageApproved").orNull
+        val readOnlyAcknowledged = providers.gradleProperty(
+            "ss.internalReadOnlyAcknowledged"
+        ).orNull
+        val privacyPolicyUrl = providers.gradleProperty("ss.privacyPolicyUrl").orNull
+
+        if (packageApproved != "true") {
+            blockers += "brak -Pss.packageApproved=true dla pakietu z Play Console"
+        }
+        if (readOnlyAcknowledged != "true") {
+            blockers += "brak -Pss.internalReadOnlyAcknowledged=true dla testowej wersji tylko do odczytu"
+        }
+        if (privacyPolicyUrl.isNullOrBlank() || !privacyPolicyUrl.startsWith("https://")) {
+            blockers += "brak publicznego adresu HTTPS w -Pss.privacyPolicyUrl"
+        }
+        if (!android.defaultConfig.versionName.orEmpty().contains("internal")) {
+            blockers += "versionName wariantu Internal Testing nie zawiera oznaczenia internal"
+        }
+        if (!completeUploadSigningEnvironment) {
+            blockers += "niepełne zmienne SS_UPLOAD_KEYSTORE_PATH/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD"
+        } else if (!file(uploadKeystorePath!!).isFile) {
+            blockers += "SS_UPLOAD_KEYSTORE_PATH nie wskazuje istniejącego pliku"
+        }
+
+        if (blockers.isNotEmpty()) {
+            throw GradleException(
+                "Internal Testing zablokowany:\n- " + blockers.joinToString("\n- ")
+            )
+        }
+    }
+}
+
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
     dependsOn(verifyReleaseReadiness)
+}
+
+tasks.matching { it.name == "bundleInternal" }.configureEach {
+    dependsOn(verifyInternalTestingReadiness)
 }
