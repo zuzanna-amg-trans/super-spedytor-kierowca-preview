@@ -3,7 +3,7 @@
   "sourceCommit": "4db891c0706244542434743c4e5fafd1bbffd9ab",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.25-internal",
-  "builtAt": "2026-10-15T22:01:27.735Z",
+  "builtAt": "2026-10-15T22:04:09.345Z",
   "assetManifestSha256": "1d4296f59570ac32c373265d9052e1221a4fdfe670d522d3072adce738443532",
   "mode": "live-driver-session",
   "androidRuntimeVersion": "0.1.25-internal-test",
@@ -20,7 +20,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "36bd77c18f68ec607cfcee5e5a16a882ee193e66"
+        "sha": "4db891c0706244542434743c4e5fafd1bbffd9ab"
       },
       {
         "name": "codex/advanced-document-scanner",
