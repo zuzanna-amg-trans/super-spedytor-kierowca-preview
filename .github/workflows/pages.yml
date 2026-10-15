@@ -3,7 +3,7 @@ name: Opublikuj wspólną wersję WWW i Androida
 on:
   push:
     branches: [main]
-    paths: ["dist/**"]
+    paths: ["dist/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -21,23 +21,27 @@ jobs:
     steps:
       - name: Pobierz źródła
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Odrzuć starszy samodzielny podgląd jednej gałęzi
+      - name: Sprawdź źródło, tryb i integralność wspólnych plików
         run: |
           node <<'JS'
           const fs=require('node:fs'),crypto=require('node:crypto');
           const info=JSON.parse(fs.readFileSync('dist/build-info.json','utf8'));
           const manifest=JSON.parse(fs.readFileSync('dist/asset-manifest.json','utf8'));
-          if(info.protocol!==2||info.sourceBranch!=='codex/preview-integration'||info.mode!=='live-driver-session')throw Error('Required: tested shared Android/web integration');
+          const live=info.sourceBranch==='codex/preview-integration'&&info.mode==='live-driver-session';
+          const demo=info.sourceBranch==='codex/play-internal-testing'&&info.mode==='demo';
+          if(info.protocol!==2||(!live&&!demo))throw Error('Required: reviewed shared source and an explicitly supported preview mode');
           if(!/^[a-f0-9]{40}$/.test(info.sourceCommit)||manifest.sourceCommit!==info.sourceCommit)throw Error('Source identity mismatch');
           const hash=crypto.createHash('sha256').update(JSON.stringify(manifest.files)+'\n').digest('hex');
           if(hash!==info.assetManifestSha256||hash!==manifest.assetManifestSha256)throw Error('Visual assets manifest mismatch');
           for(const file of manifest.files){
+            if(typeof file.path!=='string'||file.path.startsWith('/')||file.path.split('/').some(part=>part==='..'||part===''))throw Error('Invalid asset path');
             const name=file.path==='index.html'?'source-index.html':file.path;
             const bytes=fs.readFileSync('dist/'+name);
             if(bytes.length!==file.size||crypto.createHash('sha256').update(bytes).digest('hex')!==file.sha256)throw Error('Changed shared asset '+file.path);
           }
-          if(!fs.existsSync('dist/app.html')||!fs.existsSync('dist/web-backend.js'))throw Error('Missing shared app');
-          console.log('Verified shared source '+info.sourceCommit);
+          if(live&&(!fs.existsSync('dist/app.html')||!fs.existsSync('dist/web-backend.js')))throw Error('Missing shared app');
+          if(demo&&!fs.readFileSync('dist/index.html','utf8').includes('name="preview-source-commit" content="'+info.sourceCommit+'"'))throw Error('Demo index source mismatch');
+          console.log('Verified '+info.mode+' shared source '+info.sourceCommit);
           JS
       - name: Przygotuj paczkę GitHub Pages
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
