@@ -307,6 +307,9 @@
 .handover-vehicle-card>span{display:flex;align-items:center;gap:4px;max-width:72px;color:#9c684c;font-size:7px;line-height:1.4;font-weight:850;text-align:right}
 .handover-vehicle-card>span .icon{width:13px;height:13px}
 .handover-parties{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:6px;margin-bottom:14px;padding:13px}
+.handover-parties.inventory-author{grid-template-columns:1fr}
+.inventory-author .handover-party small{font-size:9px}
+.inventory-author .handover-party strong{font-size:14px}
 .handover-party{display:flex;align-items:center;gap:8px;min-width:0}
 .handover-party>span{width:34px;height:34px;display:grid;place-items:center;flex-shrink:0;border-radius:10px;background:#edf5e8;color:var(--green)}
 .handover-party.receiver>span{background:#fff0e6;color:var(--orange-dark)}

@@ -9,14 +9,11 @@
 
   const has=value=>value!==null&&value!==undefined&&String(value).trim()!=='';
 
-  function validateSnapshot(snapshot={}){
+  function validateInspection(snapshot={}){
     const errors=[];
-    if(!has(snapshot.handoverId))errors.push('handover_id');
     if(!has(snapshot.ownerVersion))errors.push('owner_version');
     if(!has(snapshot.vehicle?.id))errors.push('vehicle.id');
     if(!has(snapshot.vehicle?.registration))errors.push('vehicle.registration');
-    if(!has(snapshot.transferor?.id))errors.push('transferor.id');
-    if(!has(snapshot.receiver?.id))errors.push('receiver.id');
     if(!Array.isArray(snapshot.equipment)||snapshot.equipment.length===0)errors.push('equipment');
     else snapshot.equipment.forEach((item,index)=>{
       if(!has(item?.id))errors.push(`equipment[${index}].id`);
@@ -30,6 +27,21 @@
       if(!has(item?.id))errors.push(`photo_requirements[${index}].id`);
       if(!has(item?.name))errors.push(`photo_requirements[${index}].name`);
     });
+    return {valid:errors.length===0,errors};
+  }
+
+  function validateSnapshot(snapshot={}){
+    const {errors}=validateInspection(snapshot);
+    if(!has(snapshot.handoverId))errors.push('handover_id');
+    if(!has(snapshot.transferor?.id))errors.push('transferor.id');
+    if(!has(snapshot.receiver?.id))errors.push('receiver.id');
+    return {valid:errors.length===0,errors};
+  }
+
+  function validateInventorySnapshot(snapshot={}){
+    const {errors}=validateInspection(snapshot);
+    if(!has(snapshot.inventoryId))errors.push('inventory_id');
+    if(!has(snapshot.author?.id))errors.push('author.id');
     return {valid:errors.length===0,errors};
   }
 
@@ -60,17 +72,22 @@
     return has(protocol.odometerKm)&&Number.isFinite(odometer)&&odometer>=0&&has(protocol.fuelLevel);
   }
 
-  function ready(snapshot={},protocol={}){
-    const validation=validateSnapshot(snapshot);
+  function inspectionComplete(snapshot={},protocol={}){
     const counts=progress(snapshot,protocol);
     const photos=photoProgress(snapshot,protocol);
-    return validation.valid
-      && counts.total>0
+    return counts.total>0
       && counts.complete===counts.total
       && photos.total>0
       && photos.complete===photos.total
-      && readingsReady(protocol)
-      && protocol.receiverConfirmed===true;
+      && readingsReady(protocol);
+  }
+
+  function ready(snapshot={},protocol={}){
+    return validateSnapshot(snapshot).valid&&inspectionComplete(snapshot,protocol)&&protocol.receiverConfirmed===true;
+  }
+
+  function inventoryReady(snapshot={},protocol={}){
+    return validateInventorySnapshot(snapshot).valid&&inspectionComplete(snapshot,protocol)&&protocol.authorConfirmed===true;
   }
 
   function buildSubmission(snapshot={},protocol={},meta={}){
@@ -114,11 +131,13 @@
 
   return Object.freeze({
     validateSnapshot,
+    validateInventorySnapshot,
     itemReady,
     progress,
     photoProgress,
     readingsReady,
     ready,
+    inventoryReady,
     buildSubmission,
     confirmsOwnerReadback
   });

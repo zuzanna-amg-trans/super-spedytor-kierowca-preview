@@ -473,24 +473,14 @@ const inventoryGroups=[
     ]
   }
 ];
-const inventoryItems=inventoryGroups.flatMap(group=>group.items);
-const inventoryItem=id=>inventoryItems.find(item=>item.id===id);
-const freshInventoryProtocol=()=>({
-  id:'INV/DEMO/2026/001',
-  vehicle:'Pojazd demonstracyjny',
-  registration:'DEMO 01',
-  driver:'Kierowca demonstracyjny',
-  statuses:{},
-  notes:{},
-  photos:{},
-  confirmed:false,
-  submitted:false,
-  submittedAt:null
+const freshVehicleInspectionProtocol=()=>({
+  odometerKm:'',fuelLevel:'',statuses:{},notes:{},vehiclePhotos:{},issuePhotos:{},pendingSync:false,preparedAt:null
 });
+const freshInventoryProtocol=()=>({...freshVehicleInspectionProtocol(),authorConfirmed:false});
 const handoverSourceGroups=[
   {
     id:'custody',
-    eyebrow:'DANE PRZEKAZANIA',
+    eyebrow:'KLUCZE, DOKUMENTY I KARTY',
     title:'Klucze, dokumenty i karty',
     items:[
       {id:'mainKey',name:'Kluczyk główny',expected:'1 szt.',icon:'lock'},
@@ -575,6 +565,16 @@ const vehicleHandoverSnapshot={
     icon:item.icon
   })))
 };
+const vehicleInventorySnapshot={
+  source:vehicleHandoverSnapshot.source,
+  inventoryId:'INV/DEMO/2026/001',
+  ownerVersion:vehicleHandoverSnapshot.ownerVersion,
+  vehicle:vehicleHandoverSnapshot.vehicle,
+  author:vehicleHandoverSnapshot.receiver,
+  inspectionPlace:vehicleHandoverSnapshot.handoverPlace,
+  photoRequirements:vehicleHandoverSnapshot.photoRequirements,
+  equipment:vehicleHandoverSnapshot.equipment
+};
 const handoverEquipmentGroups=handoverSourceGroups.map(group=>({
   id:group.id,
   eyebrow:group.eyebrow,
@@ -612,15 +612,7 @@ const handoverZoneEquipmentGroups=zone=>handoverEquipmentGroups.map(group=>({
 })).filter(group=>group.items.length);
 const handoverEquipmentItem=id=>vehicleHandoverSnapshot.equipment.find(item=>item.id===id);
 const freshVehicleHandoverProtocol=()=>({
-  odometerKm:'',
-  fuelLevel:'',
-  statuses:{},
-  notes:{},
-  vehiclePhotos:{},
-  issuePhotos:{},
-  receiverConfirmed:false,
-  pendingSync:false,
-  preparedAt:null
+  ...freshVehicleInspectionProtocol(),receiverConfirmed:false
 });
 const initialLoad=fresh('load');
 if(androidShell)initialLoad.arrived=nativeHasArrival(routePointIds.load);
@@ -1647,38 +1639,16 @@ function bindServiceView(){
   if($('#service-after'))$('#service-after').onchange=event=>{markServiceEdited();state.serviceSurvey.afterService=event.target.checked;refreshServiceProgress();};
 }
 
-const inventoryStatusMeta={
-  present:{label:'Jest',short:'Jest',icon:'check'},
-  missing:{label:'Brak',short:'Brak',icon:'close'},
-  damaged:{label:'Uszkodzone',short:'Uszk.',icon:'warning'}
-};
-const inventoryStatus=id=>state.inventoryProtocol.statuses[id]||null;
-const inventoryIssue=id=>['missing','damaged'].includes(inventoryStatus(id));
-const inventoryEvidenceRequired=id=>inventoryStatus(id)==='damaged';
-const inventoryItemReady=id=>{
-  const status=inventoryStatus(id);
-  if(status==='present'||status==='missing')return true;
-  if(!inventoryEvidenceRequired(id))return false;
-  return Boolean(state.inventoryProtocol.photos[id]&&has(state.inventoryProtocol.notes[id]));
-};
-const inventoryCompletedCount=()=>inventoryItems.filter(item=>inventoryItemReady(item.id)).length;
-const inventoryAnsweredCount=()=>inventoryItems.filter(item=>inventoryStatus(item.id)).length;
-const inventoryIssueCount=()=>inventoryItems.filter(item=>inventoryIssue(item.id)).length;
-const inventoryPresentCount=()=>inventoryItems.filter(item=>inventoryStatus(item.id)==='present').length;
-const inventoryAllItemsReady=()=>inventoryCompletedCount()===inventoryItems.length;
-const inventoryReady=()=>inventoryAllItemsReady()&&state.inventoryProtocol.confirmed;
+// Both protocols use the same inspection definition and rendering; their records stay separate.
+const inspectionMode=()=>state.servicePanel==='inventory'?'inventory':'handover';
+const inspectionProtocol=(mode=inspectionMode())=>mode==='inventory'?state.inventoryProtocol:state.vehicleHandover;
+const inspectionSnapshot=()=>inspectionMode()==='inventory'?vehicleInventorySnapshot:vehicleHandoverSnapshot;
+const inspectionConfirmationKey=(mode=inspectionMode())=>mode==='inventory'?'authorConfirmed':'receiverConfirmed';
+function inventoryProtocolView(){return vehicleHandoverView();}
+function inventoryActionView(){return vehicleHandoverActionView();}
+function inventoryDesignNotes(){return vehicleHandoverDesignNotes();}
+function bindInventoryView(){bindVehicleHandoverView();}
 
-function inventoryFirstProblem(){
-  for(const item of inventoryItems){
-    const status=inventoryStatus(item.id),photo=state.inventoryProtocol.photos[item.id],note=has(state.inventoryProtocol.notes[item.id]);
-    if(!status)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-status="${item.id}"]`,message:'Musisz wskazać stan tej pozycji.'};
-    if(status==='damaged'&&!photo&&!note)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia i dodać opis.'};
-    if(status==='damaged'&&!photo)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-photo="${item.id}"]`,message:'Musisz przesłać zdjęcie uszkodzenia.'};
-    if(status==='damaged'&&!note)return {row:`[data-inventory-item="${item.id}"]`,focus:`[data-inventory-note="${item.id}"]`,message:'Musisz dodać opis uszkodzenia.'};
-  }
-  if(!state.inventoryProtocol.confirmed)return {row:'.inventory-confirm',focus:'#inventory-confirm',message:'Musisz zaznaczyć potwierdzenie przed zakończeniem protokołu.'};
-  return null;
-}
 function clearProtocolProblem(){
   $$('.protocol-validation-error').forEach(element=>element.remove());
   $$('.protocol-validation-target').forEach(element=>element.classList.remove('protocol-validation-target'));
@@ -1703,139 +1673,29 @@ function showProtocolProblem(problem){
   return true;
 }
 
-function inventoryPhotoButton(id){
-  const record=state.inventoryProtocol.photos[id],item=inventoryItem(id);
-  return `<button class="inventory-photo-button ${record?'done':''}" data-inventory-photo="${id}" aria-label="${record?'Zmień':'Dodaj'} zdjęcie uszkodzenia: ${esc(item.name)}">${record?`<img src="${record.url}" alt="Uszkodzenie: ${esc(item.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?'Zdjęcie dodane':'Dodaj zdjęcie'}</strong><small>${record?'Dotknij, aby zmienić':'Wymagane przy uszkodzeniu'}</small></span>${icon(record?'check':'plus')}</button>`;
-}
-function inventoryItemRow(item){
-  const status=inventoryStatus(item.id),ready=inventoryItemReady(item.id),issue=inventoryIssue(item.id),evidenceRequired=inventoryEvidenceRequired(item.id),note=state.inventoryProtocol.notes[item.id]||'';
-  const stateClass=ready?'complete':issue?'issue-open':status?'incomplete':'';
-  return `<article class="inventory-item ${stateClass}" data-inventory-item="${item.id}"><div class="inventory-item-heading"><span class="inventory-item-icon">${icon(item.icon)}</span><div><strong>${esc(item.name)}</strong><small>Stan oczekiwany: ${esc(item.expected)}</small></div><b class="inventory-item-result">${ready?icon('check'):status?'Uzupełnij':'Oceń'}</b></div><div class="inventory-status-options" role="group" aria-label="Stan: ${esc(item.name)}">${Object.entries(inventoryStatusMeta).map(([value,meta])=>`<button data-inventory-status="${item.id}" data-status="${value}" aria-pressed="${status===value}" class="${status===value?`active ${value}`:''}">${icon(meta.icon)}<span>${meta.short}</span></button>`).join('')}</div>${evidenceRequired?`<div class="inventory-issue-details"><div class="inventory-issue-title">${icon('warning')}<span><strong>Udokumentuj uszkodzenie</strong><small>Zdjęcie i opis są wymagane przed zapisem protokołu.</small></span></div>${inventoryPhotoButton(item.id)}<label for="inventory-note-${item.id}"><span>Opis uszkodzenia *</span><textarea id="inventory-note-${item.id}" data-inventory-note="${item.id}" maxlength="300" placeholder="Opisz uszkodzenie i czy wyposażenia można bezpiecznie używać.">${esc(note)}</textarea></label></div>`:''}</article>`;
-}
-function inventoryGroupView(group){
-  const complete=group.items.filter(item=>inventoryItemReady(item.id)).length;
-  return `<section class="inventory-group"><div class="inventory-group-heading"><div><span>${esc(group.eyebrow)}</span><h3>${esc(group.title)}</h3></div><b data-inventory-group-count="${group.id}">${complete}/${group.items.length}</b></div><div class="panel inventory-group-card">${group.items.map(inventoryItemRow).join('')}</div></section>`;
-}
-function inventoryProtocolView(){
-  const protocol=state.inventoryProtocol,done=inventoryCompletedCount(),issues=inventoryIssueCount();
-  const badge=protocol.submitted?'Zatwierdzony':inventoryReady()?'Gotowy do zapisu':'Roboczy';
-  return `<div class="app-content service-screen inventory-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>WYPOSAŻENIE POJAZDU</span><h2>Protokół inwentaryzacji</h2></div><b class="service-state-badge inventory-state ${protocol.submitted?'saved':inventoryReady()?'ready':''}">${badge}</b></div>${serviceModuleSwitch('inventory')}<p class="service-intro">Sprawdź każdą pozycję przy pojeździe. Brak zaznacz bez zdjęcia; uszkodzenie udokumentuj zdjęciem i krótkim opisem.</p><section class="inventory-identity-card"><div class="inventory-identity-top"><span>${icon('clipboard')}</span><div><small>PROTOKÓŁ DEMONSTRACYJNY</small><strong>${esc(protocol.id)}</strong></div><b>DANE DEMO</b></div><div class="inventory-vehicle"><div><span>Pojazd</span><strong>${esc(protocol.vehicle)}</strong><small>${esc(protocol.registration)}</small></div><div><span>Kierowca</span><strong>${esc(protocol.driver)}</strong><small>Podgląd bez danych produkcyjnych</small></div></div></section>${protocol.submitted?`<div class="service-saved-banner inventory-saved">${icon('check')}<p><strong>Protokół demonstracyjny jest kompletny</strong>Zapisano lokalnie o ${esc(protocol.submittedAt)}. Nie wysłano danych do Super Spedytora.</p></div>`:''}<section class="service-progress-card inventory-progress-card"><div><span>POSTĘP PROTOKOŁU</span><strong id="inventory-progress-count">${done}/${inventoryItems.length}</strong></div><div class="service-progress-track"><span id="inventory-progress-bar" style="width:${done/inventoryItems.length*100}%"></span></div><div class="inventory-progress-stats"><span><b id="inventory-present-count">${inventoryPresentCount()}</b> zgodne</span><span><b id="inventory-issue-count">${issues}</b> niezgodności</span><span><b id="inventory-open-count">${inventoryItems.length-inventoryAnsweredCount()}</b> bez oceny</span></div></section>${issues?`<div class="inventory-alert">${icon('warning')}<p><strong>${issues} ${issues===1?'niezgodność':'niezgodności'}</strong>Brak potwierdzasz samym wyborem. Zdjęcie i opis są wymagane tylko przy uszkodzeniu.</p></div>`:`<div class="inventory-guidance">${icon('info')}Wybierz stan każdej pozycji: „Jest”, „Brak” albo „Uszkodzone”. Zdjęcie i opis pojawią się tylko przy uszkodzeniu.</div>`}${inventoryGroups.map(inventoryGroupView).join('')}<label class="panel check-row inventory-confirm"><input id="inventory-confirm" type="checkbox" ${protocol.confirmed?'checked':''} ${inventoryAllItemsReady()?'':'disabled'}><span><strong>Potwierdzam zgodność ze stanem faktycznym</strong><small>${inventoryAllItemsReady()?'Sprawdziłem wyposażenie przy pojeździe, a ewentualne uszkodzenia zostały udokumentowane.':'Najpierw oceń wszystkie pozycje i udokumentuj uszkodzenia.'}</small></span></label><p class="service-offline-note">${icon('info')}To interaktywny projekt panelu. Lista wyposażenia, pojazd i numer protokołu są demonstracyjne; zapis nie trafia do produkcyjnego Super Spedytora.</p></div>`;
-}
-function inventoryActionView(){
-  const protocol=state.inventoryProtocol,done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
-  if(protocol.submitted)return `<div class="flow-actions"><button class="primary-button" id="inventory-close">${icon('check')}Zamknij protokół</button></div><p class="action-caption">Wersja demonstracyjna: zapis istnieje tylko w tym podglądzie.</p>`;
-  const caption=inventoryAllItemsReady()?(protocol.confirmed?'Wszystkie pozycje i niezgodności są kompletne.':'Zaznacz potwierdzenie zgodności ze stanem faktycznym.'):`Oceniono ${answered}/${inventoryItems.length} · kompletne ${done}/${inventoryItems.length}. Naciśnij, aby przejść do pierwszego braku.`;
-  return `<div class="flow-actions"><button class="primary-button ${inventoryReady()?'':'validation-required'}" id="inventory-save">${icon('check')}Zapisz protokół</button></div><p class="action-caption">${caption}</p>`;
-}
-function inventoryDesignNotes(){
-  const issues=inventoryIssueCount(),done=inventoryCompletedCount();
-  const steps=[['01','Oceń każdą pozycję',inventoryAnsweredCount()===inventoryItems.length],['02','Udokumentuj uszkodzenia',inventoryItems.filter(item=>inventoryEvidenceRequired(item.id)).every(item=>inventoryItemReady(item.id))],['03','Potwierdź i zapisz',state.inventoryProtocol.submitted]];
-  return `<h2>Jedna lista.<br>Zero domysłów.</h2><p class="note-description">Kierowca zaznacza faktyczny stan wyposażenia. Brak jest kompletną oceną bez zdjęcia; zdjęcie i opis pojawiają się wyłącznie przy uszkodzeniu.</p><div class="design-progress"><div class="design-progress-title">PROTOKÓŁ INWENTARYZACJI<span>${done}/${inventoryItems.length}</span></div>${steps.map(([number,label,complete],index)=>`<div class="design-step ${complete?'done':index===0||steps[index-1][2]?'current':''}"><span class="design-step-num">${complete?icon('check'):number}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Niezgodności są widoczne od razu</strong><p>${issues?`W podglądzie oznaczono ${issues} ${issues===1?'niezgodność':'niezgodności'}.`:'Wybór „Brak” nie wymaga dowodu. Przy wyborze „Uszkodzone” aplikacja pokaże wymagane zdjęcie i opis.'} Zapis odblokowuje się dopiero po komplecie.</p></div>`;
-}
-function markInventoryEdited(){
-  const protocol=state.inventoryProtocol;
-  if(protocol.submitted){protocol.submitted=false;protocol.submittedAt=null;protocol.confirmed=false;}
-}
-function refreshInventoryProgress(){
-  clearProtocolProblem();
-  const done=inventoryCompletedCount(),answered=inventoryAnsweredCount();
-  if($('#inventory-progress-count'))$('#inventory-progress-count').textContent=`${done}/${inventoryItems.length}`;
-  if($('#inventory-progress-bar'))$('#inventory-progress-bar').style.width=`${done/inventoryItems.length*100}%`;
-  if($('#inventory-present-count'))$('#inventory-present-count').textContent=inventoryPresentCount();
-  if($('#inventory-issue-count'))$('#inventory-issue-count').textContent=inventoryIssueCount();
-  if($('#inventory-open-count'))$('#inventory-open-count').textContent=inventoryItems.length-answered;
-  inventoryGroups.forEach(group=>{
-    const counter=$(`[data-inventory-group-count="${group.id}"]`);
-    if(counter)counter.textContent=`${group.items.filter(item=>inventoryItemReady(item.id)).length}/${group.items.length}`;
-  });
-  inventoryItems.forEach(item=>{
-    const row=$(`[data-inventory-item="${item.id}"]`),ready=inventoryItemReady(item.id);
-    if(!row)return;
-    row.classList.toggle('complete',ready);
-    const result=$('.inventory-item-result',row);
-    if(result)result.innerHTML=ready?icon('check'):inventoryStatus(item.id)?'Uzupełnij':'Oceń';
-  });
-  const confirm=$('#inventory-confirm');
-  if(confirm){
-    confirm.disabled=!inventoryAllItemsReady();
-    const help=$('.inventory-confirm small');
-    if(help)help.textContent=inventoryAllItemsReady()?'Sprawdziłem wyposażenie przy pojeździe, a ewentualne uszkodzenia zostały udokumentowane.':'Najpierw oceń wszystkie pozycje i udokumentuj uszkodzenia.';
-  }
-  const badge=$('.inventory-state');
-  if(badge){
-    badge.textContent=inventoryReady()?'Gotowy do zapisu':'Roboczy';
-    badge.classList.toggle('ready',inventoryReady());
-    badge.classList.remove('saved');
-  }
-  if($('#design-context'))$('#design-context').innerHTML=inventoryDesignNotes();
-  $('#app-action').innerHTML=inventoryActionView();
-  bindInventoryAction();
-}
-function bindInventoryAction(){
-  if($('#inventory-save'))$('#inventory-save').onclick=()=>{
-    if(!inventoryReady()){
-      showProtocolProblem(inventoryFirstProblem());
-      return;
-    }
-    state.inventoryProtocol.submitted=true;
-    state.inventoryProtocol.submittedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    render();
-    toast('Protokół demonstracyjny został zapisany lokalnie.');
-  };
-  if($('#inventory-close'))$('#inventory-close').onclick=()=>closeService();
-}
-function bindInventoryView(){
-  bindInventoryAction();
-  if($('#service-back'))$('#service-back').onclick=()=>closeService();
-  $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
-  $$('[data-inventory-status]').forEach(button=>button.onclick=()=>{
-    const id=button.dataset.inventoryStatus,status=button.dataset.status,protocol=state.inventoryProtocol;
-    if(protocol.statuses[id]===status)return;
-    markInventoryEdited();
-    protocol.confirmed=false;
-    protocol.statuses[id]=status;
-    if(status!=='damaged'){
-      revoke(protocol.photos[id]);
-      delete protocol.photos[id];
-      delete protocol.notes[id];
-    }
-    render();
-  });
-  $$('[data-inventory-photo]').forEach(button=>button.onclick=()=>openModal('inventory-photo',{key:button.dataset.inventoryPhoto,inventory:true,kind:'inventory-photo'}));
-  $$('[data-inventory-note]').forEach(input=>input.oninput=event=>{
-    markInventoryEdited();
-    state.inventoryProtocol.confirmed=false;
-    state.inventoryProtocol.notes[event.target.dataset.inventoryNote]=event.target.value;
-    refreshInventoryProgress();
-  });
-  if($('#inventory-confirm'))$('#inventory-confirm').onchange=event=>{
-    markInventoryEdited();
-    state.inventoryProtocol.confirmed=event.target.checked;
-    refreshInventoryProgress();
-  };
-}
-
 const handoverStatusMeta={
   matching:{label:'Zgodne',short:'Zgodne',icon:'check'},
   missing:{label:'Brak',short:'Brak',icon:'close'},
   damaged:{label:'Uszkodzone',short:'Uszk.',icon:'warning'}
 };
-const handoverStatus=id=>state.vehicleHandover.statuses[id]||null;
+const handoverStatus=id=>inspectionProtocol().statuses[id]||null;
 const handoverIssue=id=>['missing','damaged'].includes(handoverStatus(id));
 const handoverEvidenceRequired=id=>handoverStatus(id)==='damaged';
-const handoverItemReady=id=>vehicleHandoverModel.itemReady(id,state.vehicleHandover);
-const handoverProgress=()=>vehicleHandoverModel.progress(vehicleHandoverSnapshot,state.vehicleHandover);
-const handoverVehiclePhotoProgress=()=>vehicleHandoverModel.photoProgress(vehicleHandoverSnapshot,state.vehicleHandover);
-const handoverPhotoRequirement=id=>vehicleHandoverSnapshot.photoRequirements.find(item=>item.id===id);
-const handoverReadingsReady=()=>vehicleHandoverModel.readingsReady(state.vehicleHandover);
+const handoverItemReady=id=>vehicleHandoverModel.itemReady(id,inspectionProtocol());
+const handoverProgress=()=>vehicleHandoverModel.progress(inspectionSnapshot(),inspectionProtocol());
+const handoverVehiclePhotoProgress=()=>vehicleHandoverModel.photoProgress(inspectionSnapshot(),inspectionProtocol());
+const handoverPhotoRequirement=id=>inspectionSnapshot().photoRequirements.find(item=>item.id===id);
+const handoverReadingsReady=()=>vehicleHandoverModel.readingsReady(inspectionProtocol());
 const handoverPrerequisitesReady=()=>{
   const progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
   return handoverReadingsReady()&&photos.complete===photos.total&&progress.complete===progress.total;
 };
-const handoverReady=()=>vehicleHandoverModel.ready(vehicleHandoverSnapshot,state.vehicleHandover);
+const handoverReady=()=>inspectionMode()==='inventory'
+  ?vehicleHandoverModel.inventoryReady(inspectionSnapshot(),inspectionProtocol())
+  :vehicleHandoverModel.ready(inspectionSnapshot(),inspectionProtocol());
 
 function handoverFirstProblem(){
-  const protocol=state.vehicleHandover;
+  const protocol=inspectionProtocol();
   if(!has(protocol.odometerKm))return {row:'.handover-readings',focus:'#handover-odometer',message:'Musisz podać przebieg pojazdu.'};
   if(!Number.isFinite(Number(protocol.odometerKm))||Number(protocol.odometerKm)<0)return {row:'.handover-readings',focus:'#handover-odometer',message:'Musisz podać prawidłowy przebieg pojazdu.'};
   if(!has(protocol.fuelLevel))return {row:'.handover-readings',focus:'#handover-fuel',message:'Musisz wskazać poziom paliwa.'};
@@ -1859,36 +1719,36 @@ function handoverFirstProblem(){
       }
     }
   }
-  if(!protocol.receiverConfirmed)return {row:'.handover-confirm',focus:'#handover-confirm',message:'Musisz potwierdzić przejęcie pojazdu przed zakończeniem protokołu.'};
+  if(!protocol[inspectionConfirmationKey()])return {row:'.handover-confirm',focus:'#handover-confirm',message:inspectionMode()==='inventory'?'Musisz potwierdzić stan pojazdu i wyposażenia przed zakończeniem inwentaryzacji.':'Musisz potwierdzić przejęcie pojazdu przed zakończeniem protokołu.'};
   return null;
 }
 
 function handoverVehiclePhotoButton(requirement){
-  const record=state.vehicleHandover.vehiclePhotos[requirement.id];
+  const record=inspectionProtocol().vehiclePhotos[requirement.id];
   return `<article class="handover-photo-row ${record?'complete':''}" data-handover-photo-row="${requirement.id}"><div class="handover-photo-copy"><span>${icon(requirement.icon||'camera')}</span><div><strong>${esc(requirement.name)}</strong><small>${esc(requirement.description)}</small></div></div><button class="handover-photo-capture ${record?'done':''}" data-handover-vehicle-photo="${requirement.id}" aria-label="${record?'Zmień':'Zrób'} zdjęcie: ${esc(requirement.name)}">${record?`<img src="${record.url}" alt="${esc(requirement.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?'Zdjęcie gotowe':'Zrób zdjęcie'}</strong><small>${record?'Dotknij, aby powtórzyć':'Wymagane'}</small></span>${icon(record?'check':'arrow')}</button></article>`;
 }
 function handoverPhotoGroupView(group){
-  const complete=group.items.filter(item=>state.vehicleHandover.vehiclePhotos[item.id]).length;
+  const complete=group.items.filter(item=>inspectionProtocol().vehiclePhotos[item.id]).length;
   return `<section class="handover-photo-group"><div class="inventory-group-heading"><div><span>${esc(group.eyebrow)}</span><h3>${esc(group.title)}</h3></div><b>${complete}/${group.items.length}</b></div><div class="panel handover-photo-list">${group.items.map(handoverVehiclePhotoButton).join('')}</div></section>`;
 }
 function handoverIssuePhotoButton(id,shot){
-  const record=state.vehicleHandover.issuePhotos[id]?.[shot],item=handoverEquipmentItem(id);
+  const record=inspectionProtocol().issuePhotos[id]?.[shot],item=handoverEquipmentItem(id);
   const label=shot==='wide'?'Zdjęcie ogólne':'Zbliżenie';
   const help=shot==='wide'?'Pokaż miejsce na pojeździe':'Pokaż szczegół uszkodzenia';
   return `<button class="inventory-photo-button handover-issue-photo ${record?'done':''}" data-handover-issue-photo="${id}" data-shot="${shot}" aria-label="${record?'Zmień':'Dodaj'} ${label.toLowerCase()}: ${esc(item.name)}">${record?`<img src="${record.url}" alt="${label}: ${esc(item.name)}">`:`<span>${icon('camera')}</span>`}<span><strong>${record?`${label} gotowe`:label}</strong><small>${record?'Dotknij, aby zmienić':help}</small></span>${icon(record?'check':'plus')}</button>`;
 }
 function handoverEquipmentRow(item){
-  const status=handoverStatus(item.id),ready=handoverItemReady(item.id),issue=handoverIssue(item.id),evidenceRequired=handoverEvidenceRequired(item.id),note=state.vehicleHandover.notes[item.id]||'';
+  const status=handoverStatus(item.id),ready=handoverItemReady(item.id),issue=handoverIssue(item.id),evidenceRequired=handoverEvidenceRequired(item.id),note=inspectionProtocol().notes[item.id]||'';
   const stateClass=ready?'complete':issue?'issue-open':status?'incomplete':'';
-  return `<article class="inventory-item ${stateClass}" data-handover-item="${item.id}"><div class="inventory-item-heading"><span class="inventory-item-icon">${icon(item.icon)}</span><div><strong>${esc(item.name)}</strong><small>Z Super Spedytora: ${esc(item.expectedLabel)}</small></div><b class="inventory-item-result">${ready?icon('check'):status?'Uzupełnij':'Sprawdź'}</b></div><div class="inventory-status-options" role="group" aria-label="Stan przy przekazaniu: ${esc(item.name)}">${Object.entries(handoverStatusMeta).map(([value,meta])=>`<button data-handover-status="${item.id}" data-status="${value}" aria-pressed="${status===value}" class="${status===value?`active ${value==='matching'?'present':value}`:''}">${icon(meta.icon)}<span>${meta.short}</span></button>`).join('')}</div>${evidenceRequired?`<div class="inventory-issue-details"><div class="inventory-issue-title">${icon('warning')}<span><strong>Udokumentuj uszkodzenie przy odbiorze</strong><small>Super Spedytor wymaga ujęcia ogólnego, zbliżenia i opisu. Oba zdjęcia pozostają przypisane do tej pozycji.</small></span></div><div class="handover-issue-photo-grid">${handoverIssuePhotoButton(item.id,'wide')}${handoverIssuePhotoButton(item.id,'close')}</div><label for="handover-note-${item.id}"><span>Opis uszkodzenia *</span><textarea id="handover-note-${item.id}" data-handover-note="${item.id}" maxlength="300" placeholder="Opisz uszkodzenie i możliwość dalszego używania.">${esc(note)}</textarea></label></div>`:''}</article>`;
+  return `<article class="inventory-item ${stateClass}" data-handover-item="${item.id}"><div class="inventory-item-heading"><span class="inventory-item-icon">${icon(item.icon)}</span><div><strong>${esc(item.name)}</strong><small>Z Super Spedytora: ${esc(item.expectedLabel)}</small></div><b class="inventory-item-result">${ready?icon('check'):status?'Uzupełnij':'Sprawdź'}</b></div><div class="inventory-status-options" role="group" aria-label="Stan: ${esc(item.name)}">${Object.entries(handoverStatusMeta).map(([value,meta])=>`<button data-handover-status="${item.id}" data-status="${value}" aria-pressed="${status===value}" class="${status===value?`active ${value==='matching'?'present':value}`:''}">${icon(meta.icon)}<span>${meta.short}</span></button>`).join('')}</div>${evidenceRequired?`<div class="inventory-issue-details"><div class="inventory-issue-title">${icon('warning')}<span><strong>Udokumentuj uszkodzenie</strong><small>Super Spedytor wymaga ujęcia ogólnego, zbliżenia i opisu. Oba zdjęcia pozostają przypisane do tej pozycji.</small></span></div><div class="handover-issue-photo-grid">${handoverIssuePhotoButton(item.id,'wide')}${handoverIssuePhotoButton(item.id,'close')}</div><label for="handover-note-${item.id}"><span>Opis uszkodzenia *</span><textarea id="handover-note-${item.id}" data-handover-note="${item.id}" maxlength="300" placeholder="Opisz uszkodzenie i możliwość dalszego używania.">${esc(note)}</textarea></label></div>`:''}</article>`;
 }
 function handoverEquipmentGroupView(group){
   const complete=group.items.filter(item=>handoverItemReady(item.id)).length;
   return `<section class="inventory-group"><div class="inventory-group-heading"><div><span>${esc(group.eyebrow)}</span><h3>${esc(group.title)}</h3></div><b data-handover-group-count="${group.id}">${complete}/${group.items.length}</b></div><div class="panel inventory-group-card">${group.items.map(handoverEquipmentRow).join('')}</div></section>`;
 }
 function handoverReadingsView(){
-  const protocol=state.vehicleHandover;
-  return `<section class="panel handover-readings"><div class="handover-section-heading"><span>${icon('edit')}</span><div><small>STAN POJAZDU PRZY ODBIORZE</small><h3>Przebieg i paliwo</h3></div><b>${handoverReadingsReady()?'Gotowe':'Wymagane'}</b></div><div class="handover-reading-grid"><label for="handover-odometer"><span>Przebieg *</span><span class="service-value-control"><input id="handover-odometer" type="number" min="0" step="1" inputmode="numeric" value="${esc(protocol.odometerKm)}" placeholder="np. 245000"><b>km</b></span></label><label for="handover-fuel"><span>Poziom paliwa *</span><select id="handover-fuel"><option value="">Wybierz poziom</option><option value="reserve" ${protocol.fuelLevel==='reserve'?'selected':''}>Rezerwa</option><option value="quarter" ${protocol.fuelLevel==='quarter'?'selected':''}>1/4</option><option value="half" ${protocol.fuelLevel==='half'?'selected':''}>1/2</option><option value="three_quarters" ${protocol.fuelLevel==='three_quarters'?'selected':''}>3/4</option><option value="full" ${protocol.fuelLevel==='full'?'selected':''}>Pełny</option></select></label></div></section>`;
+  const protocol=inspectionProtocol();
+  return `<section class="panel handover-readings"><div class="handover-section-heading"><span>${icon('edit')}</span><div><small>${inspectionMode()==='inventory'?'STAN POJAZDU PODCZAS INWENTARYZACJI':'STAN POJAZDU PRZY ODBIORZE'}</small><h3>Przebieg i paliwo</h3></div><b>${handoverReadingsReady()?'Gotowe':'Wymagane'}</b></div><div class="handover-reading-grid"><label for="handover-odometer"><span>Przebieg *</span><span class="service-value-control"><input id="handover-odometer" type="number" min="0" step="1" inputmode="numeric" value="${esc(protocol.odometerKm)}" placeholder="np. 245000"><b>km</b></span></label><label for="handover-fuel"><span>Poziom paliwa *</span><select id="handover-fuel"><option value="">Wybierz poziom</option><option value="reserve" ${protocol.fuelLevel==='reserve'?'selected':''}>Rezerwa</option><option value="quarter" ${protocol.fuelLevel==='quarter'?'selected':''}>1/4</option><option value="half" ${protocol.fuelLevel==='half'?'selected':''}>1/2</option><option value="three_quarters" ${protocol.fuelLevel==='three_quarters'?'selected':''}>3/4</option><option value="full" ${protocol.fuelLevel==='full'?'selected':''}>Pełny</option></select></label></div></section>`;
 }
 function handoverZoneView(zone){
   const photoGroups=zone.photoGroupIds.map(handoverPhotoGroup);
@@ -1901,41 +1761,43 @@ function handoverZoneView(zone){
   return `<section class="handover-zone" data-handover-zone="${zone.id}"><div class="handover-stage"><span>${zone.number}</span><div><strong>${esc(zone.title)}</strong><small>${esc(zone.description)}</small></div></div>${zone.id==='cabin'?handoverReadingsView():''}${orderedBlocks}</section>`;
 }
 function vehicleHandoverView(){
-  const protocol=state.vehicleHandover,progress=handoverProgress(),photoProgress=handoverVehiclePhotoProgress(),snapshot=vehicleHandoverSnapshot;
-  const badge=protocol.pendingSync?'Oczekuje na TMS':handoverReady()?'Gotowy':'Roboczy';
-  const issueLabel=progress.issues===1?'1 zastrzeżenie':`${progress.issues} zastrzeżenia`;
+  const protocol=inspectionProtocol(),progress=handoverProgress(),photoProgress=handoverVehiclePhotoProgress(),snapshot=inspectionSnapshot();
+  const inventory=inspectionMode()==='inventory',title=inventory?'Protokół inwentaryzacji':'Protokół przekazania auta';
+  const badge=protocol.pendingSync?(inventory?'Zapisany lokalnie':'Oczekuje na TMS'):handoverReady()?'Gotowy':'Roboczy';
   const confirmationReady=handoverPrerequisitesReady();
-  return `<div class="app-content service-screen handover-screen">
-    <div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>ZMIANA ODPOWIEDZIALNOŚCI ZA POJAZD</span><h2>Protokół przekazania auta</h2></div><b class="service-state-badge handover-state ${protocol.pendingSync?'pending':handoverReady()?'ready':''}">${badge}</b></div>
-    ${serviceModuleSwitch('handover')}
-    <div class="handover-api-source">${icon('signal')}<p><strong>Struktura zgodna z procesem Super Spedytora</strong>Pojazd, kierowcy, lista zdjęć oraz wyposażenie pochodzą z jednego wersjonowanego zadania. W podglądzie wartości są demonstracyjne.</p><b>v${snapshot.ownerVersion} · DEMO</b></div>
-    <section class="handover-vehicle-card"><div class="handover-vehicle-mark">${icon('truck')}</div><div><small>POJAZD DO PRZEJĘCIA</small><h3>${esc(snapshot.vehicle.registration)}</h3><p>${esc(snapshot.vehicle.makeModel)} · ${esc(snapshot.vehicle.name)}</p><p>${esc(snapshot.handoverPlace)}</p></div><span>${icon('lock')} DANE Z API</span></section>
-    <section class="panel handover-parties"><div class="handover-party complete"><span>${icon('check')}</span><div><small>PRZEKAZUJĄCY · POTWIERDZIŁ</small><strong>${esc(snapshot.transferor.displayName)}</strong><p>${esc(snapshot.transferor.code)}</p></div></div><div class="handover-party-arrow">${icon('arrow')}</div><div class="handover-party receiver"><span>${icon('truck')}</span><div><small>PRZEJMUJĄCY · TO KONTO</small><strong>${esc(snapshot.receiver.displayName)}</strong><p>${esc(snapshot.receiver.code)}</p></div></div></section>
-    ${protocol.pendingSync?`<div class="handover-pending-banner">${icon('clock')}<p><strong>Protokół przygotowany lokalnie o ${esc(protocol.preparedAt)}</strong>Podgląd nie wywołał API i nie zmienił przypisania samochodu. Stan „przekazano” pojawi się dopiero po readbacku Super Spedytora.</p></div>`:''}
+  const parties=inventory
+    ?`<section class="panel handover-parties inventory-author"><div class="handover-party receiver"><span>${icon('clipboard')}</span><div><small>KIEROWCA SPORZĄDZAJĄCY INWENTARYZACJĘ</small><strong>${esc(snapshot.author.displayName)}</strong><p>${esc(snapshot.author.code)}</p></div></div></section>`
+    :`<section class="panel handover-parties"><div class="handover-party complete"><span>${icon('check')}</span><div><small>PRZEKAZUJĄCY · POTWIERDZIŁ</small><strong>${esc(snapshot.transferor.displayName)}</strong><p>${esc(snapshot.transferor.code)}</p></div></div><div class="handover-party-arrow">${icon('arrow')}</div><div class="handover-party receiver"><span>${icon('truck')}</span><div><small>PRZEJMUJĄCY · TO KONTO</small><strong>${esc(snapshot.receiver.displayName)}</strong><p>${esc(snapshot.receiver.code)}</p></div></div></section>`;
+  return `<div class="app-content service-screen handover-screen ${inventory?'inventory-screen':''}">
+    <div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>${inventory?'KONTROLA STANU POJAZDU I WYPOSAŻENIA':'ZMIANA ODPOWIEDZIALNOŚCI ZA POJAZD'}</span><h2>${title}</h2></div><b class="service-state-badge handover-state ${protocol.pendingSync?'pending':handoverReady()?'ready':''}">${badge}</b></div>
+    ${serviceModuleSwitch(inspectionMode())}
+    <div class="handover-api-source">${icon('signal')}<p><strong>${inventory?'Inwentaryzacja · ten sam zakres kontroli co przy przekazaniu':'Struktura zgodna z procesem Super Spedytora'}</strong>${inventory?'Pojazd, kierowca sporządzający, zdjęcia i wyposażenie należą do jednego protokołu. W podglądzie wartości są demonstracyjne.':'Pojazd, kierowcy, lista zdjęć oraz wyposażenie pochodzą z jednego wersjonowanego zadania. W podglądzie wartości są demonstracyjne.'}</p><b>v${snapshot.ownerVersion} · DEMO</b></div>
+    <section class="handover-vehicle-card"><div class="handover-vehicle-mark">${icon('truck')}</div><div><small>${inventory?'POJAZD INWENTARYZOWANY':'POJAZD DO PRZEJĘCIA'}</small><h3>${esc(snapshot.vehicle.registration)}</h3><p>${esc(snapshot.vehicle.makeModel)} · ${esc(snapshot.vehicle.name)}</p><p>${esc(inventory?snapshot.inspectionPlace:snapshot.handoverPlace)}</p></div><span>${icon('lock')} DANE Z API</span></section>
+    ${parties}
+    ${protocol.pendingSync?`<div class="handover-pending-banner">${icon('clock')}<p><strong>${inventory?'Inwentaryzacja zapisana lokalnie':'Protokół przygotowany lokalnie'} o ${esc(protocol.preparedAt)}</strong>${inventory?'Dokumentacja jest kompletna w podglądzie. Zapis do Super Spedytora wymaga potwierdzenia przez system.':'Podgląd nie wywołał API i nie zmienił przypisania samochodu. Stan „przekazano” pojawi się dopiero po readbacku Super Spedytora.'}</p></div>`:''}
     <div class="handover-photo-guidance">${icon('route')}<p><strong>Trasa kontroli: kabina → paka i winda → obejście auta</strong>Każdy wymagany element ma osobne pole zdjęciowe. Nie łącz fotela, lodówki, lusterek ani nadkoli w jeden kadr.</p></div>
     <section class="service-progress-card inventory-progress-card handover-photo-progress"><div><span>ZDJĘCIA WYMAGANE PRZEZ PROTOKÓŁ</span><strong id="handover-photo-progress-count">${photoProgress.complete}/${photoProgress.total}</strong></div><div class="service-progress-track"><span id="handover-photo-progress-bar" style="width:${photoProgress.total?photoProgress.complete/photoProgress.total*100:0}%"></span></div></section>
     <section class="service-progress-card inventory-progress-card"><div><span>POZYCJE Z API</span><strong id="handover-progress-count">${progress.complete}/${progress.total}</strong></div><div class="service-progress-track"><span id="handover-progress-bar" style="width:${progress.total?progress.complete/progress.total*100:0}%"></span></div><div class="inventory-progress-stats"><span><b id="handover-matching-count">${progress.answered-progress.issues}</b> zgodne</span><span><b id="handover-issue-count">${progress.issues}</b> zastrzeżenia</span><span><b id="handover-open-count">${progress.total-progress.answered}</b> bez oceny</span></div></section>
-    ${progress.issues?`<div class="inventory-alert">${icon('warning')}<p><strong>${issueLabel}</strong>Brak zaznacz na liście. Uszkodzenie wymaga ujęcia ogólnego, zbliżenia i opisu.</p></div>`:`<div class="inventory-guidance">${icon('info')}Nie potwierdzaj pozycji na podstawie wpisu w protokole. Sprawdź fizycznie, czy przedmiot jest w aucie i gdzie się znajduje.</div>`}
+    ${progress.issues?`<div class="inventory-alert">${icon('warning')}<p><strong>${progress.issues} ${progress.issues===1?'zastrzeżenie':'zastrzeżenia'}</strong>Brak zaznacz na liście. Uszkodzenie wymaga ujęcia ogólnego, zbliżenia i opisu.</p></div>`:`<div class="inventory-guidance">${icon('info')}Nie potwierdzaj pozycji na podstawie wpisu w protokole. Sprawdź fizycznie, czy przedmiot jest w aucie i gdzie się znajduje.</div>`}
     ${handoverZones.map(handoverZoneView).join('')}
-    <div class="handover-stage"><span>4</span><div><strong>Potwierdzenie odbiorcy</strong><small>Dopiero po pełnej dokumentacji i sprawdzeniu wszystkich pozycji.</small></div></div>
-    <label class="panel check-row inventory-confirm handover-confirm"><input id="handover-confirm" type="checkbox" ${protocol.receiverConfirmed?'checked':''} ${confirmationReady?'':'disabled'}><span><strong>${progress.issues?'Przejmuję pojazd z zaznaczonymi zastrzeżeniami':'Przejmuję pojazd i wskazane wyposażenie'}</strong><small>${confirmationReady?'Potwierdzenie dotyczy zalogowanego kierowcy przejmującego.':'Najpierw uzupełnij wskazania, wszystkie zdjęcia i całą listę wyposażenia.'}</small></span></label>
-    <p class="service-offline-note">${icon('info')}Widok korzysta z danych syntetycznych. Produkcja musi pobrać całe zadanie przekazania z Driver API i potwierdzić zmianę przypisania właścicielskim readbackiem.</p>
+    <div class="handover-stage"><span>4</span><div><strong>${inventory?'Potwierdzenie sporządzającego':'Potwierdzenie odbiorcy'}</strong><small>Dopiero po pełnej dokumentacji i sprawdzeniu wszystkich pozycji.</small></div></div>
+    <label class="panel check-row inventory-confirm handover-confirm"><input id="handover-confirm" type="checkbox" ${protocol[inspectionConfirmationKey()]?'checked':''} ${confirmationReady?'':'disabled'}><span><strong>${inventory?'Potwierdzam faktyczny stan pojazdu i wyposażenia':progress.issues?'Przejmuję pojazd z zaznaczonymi zastrzeżeniami':'Przejmuję pojazd i wskazane wyposażenie'}</strong><small>${confirmationReady?(inventory?'Potwierdzenie dotyczy kierowcy sporządzającego inwentaryzację.':'Potwierdzenie dotyczy zalogowanego kierowcy przejmującego.'):'Najpierw uzupełnij wskazania, wszystkie zdjęcia i całą listę wyposażenia.'}</small></span></label>
+    <p class="service-offline-note">${icon('info')}${inventory?'Podgląd używa danych demonstracyjnych. Produkcyjna inwentaryzacja zapisuje stan pojazdu i potwierdzenie sporządzającego.':'Widok korzysta z danych syntetycznych. Produkcja musi pobrać całe zadanie przekazania z Driver API i potwierdzić zmianę przypisania właścicielskim readbackiem.'}</p>
   </div>`;
 }
 function vehicleHandoverActionView(){
-  const protocol=state.vehicleHandover,progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
-  if(protocol.pendingSync)return `<div class="flow-actions"><button class="secondary-button" id="handover-correct">${icon('edit')}Popraw protokół</button><button class="primary-button" id="handover-close">${icon('check')}Zamknij podgląd</button></div><p class="action-caption">Nie wysłano do TMS · przypisanie pojazdu pozostało bez zmian.</p>`;
+  const protocol=inspectionProtocol(),progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
+  if(protocol.pendingSync)return `<div class="flow-actions"><button class="secondary-button" id="handover-correct">${icon('edit')}Popraw protokół</button><button class="primary-button" id="handover-close">${icon('check')}Zamknij podgląd</button></div><p class="action-caption">${inspectionMode()==='inventory'?'Inwentaryzacja zapisana lokalnie w podglądzie.':'Nie wysłano do TMS · przypisanie pojazdu pozostało bez zmian.'}</p>`;
   const caption=handoverReady()?'Komplet gotowy do idempotentnego zapisu i właścicielskiego readbacku.':`Zdjęcia ${photos.complete}/${photos.total} · pozycje ${progress.complete}/${progress.total} · naciśnij, aby przejść do pierwszego braku.`;
-  return `<div class="flow-actions"><button class="primary-button ${handoverReady()?'':'validation-required'}" id="handover-prepare">${icon('check')}Przygotuj przekazanie</button></div><p class="action-caption">${caption}</p>`;
+  return `<div class="flow-actions"><button class="primary-button ${handoverReady()?'':'validation-required'}" id="handover-prepare">${icon('check')}${inspectionMode()==='inventory'?'Zapisz inwentaryzację':'Przygotuj przekazanie'}</button></div><p class="action-caption">${caption}</p>`;
 }
 function vehicleHandoverDesignNotes(){
   const progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
-  const steps=[['01','Zadanie i osoby z API',vehicleHandoverModel.validateSnapshot(vehicleHandoverSnapshot).valid],['02',`Zdjęcia pojazdu ${photos.complete}/${photos.total}`,photos.complete===photos.total],['03','Wyposażenie i potwierdzenie',handoverPrerequisitesReady()&&state.vehicleHandover.receiverConfirmed],['04','Readback nowego przypisania',false]];
-  return `<h2>Jedno auto.<br>Pełny stan.</h2><p class="note-description">Pojazd, kierowcy, wymagane ujęcia i wyposażenie pochodzą z jednego wersjonowanego zadania Super Spedytora. Kierowca dokumentuje stan w stałej kolejności.</p><div class="design-progress"><div class="design-progress-title">PRZEKAZANIE POJAZDU<span>${progress.complete}/${progress.total}</span></div>${steps.map(([number,label,complete],index)=>`<div class="design-step ${complete?'done':index===0||steps[index-1][2]?'current':''}"><span class="design-step-num">${complete?icon('check'):number}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Bez lokalnego „przepisania” auta</strong><p>Aplikacja pokaże zakończenie dopiero, gdy TMS zwróci nowe przypisanie auta do kierowcy przejmującego oraz wyższą wersję rekordu.</p></div>`;
+  const steps=[['01',inspectionMode()==='inventory'?'Pojazd i sporządzający':'Zadanie i osoby z API',(inspectionMode()==='inventory'?vehicleHandoverModel.validateInventorySnapshot(inspectionSnapshot()):vehicleHandoverModel.validateSnapshot(inspectionSnapshot())).valid],['02',`Zdjęcia pojazdu ${photos.complete}/${photos.total}`,photos.complete===photos.total],['03','Wyposażenie i potwierdzenie',handoverPrerequisitesReady()&&inspectionProtocol()[inspectionConfirmationKey()]],['04',inspectionMode()==='inventory'?'Potwierdzenie zapisu inwentaryzacji':'Readback nowego przypisania',false]];
+  return `<h2>Jedno auto.<br>Pełny stan.</h2><p class="note-description">${inspectionMode()==='inventory'?'Pojazd, sporządzający, wymagane ujęcia i wyposażenie należą do jednej inwentaryzacji.':'Pojazd, kierowcy, wymagane ujęcia i wyposażenie pochodzą z jednego wersjonowanego zadania Super Spedytora.'} Kierowca dokumentuje stan w stałej kolejności.</p><div class="design-progress"><div class="design-progress-title">${inspectionMode()==='inventory'?'INWENTARYZACJA POJAZDU':'PRZEKAZANIE POJAZDU'}<span>${progress.complete}/${progress.total}</span></div>${steps.map(([number,label,complete],index)=>`<div class="design-step ${complete?'done':index===0||steps[index-1][2]?'current':''}"><span class="design-step-num">${complete?icon('check'):number}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>${inspectionMode()==='inventory'?'Jedna osoba, pełna kontrola':'Bez lokalnego „przepisania” auta'}</strong><p>${inspectionMode()==='inventory'?'Inwentaryzacja obejmuje te same zdjęcia, wskazania i wyposażenie. Sporządza ją jeden kierowca.':'Aplikacja pokaże zakończenie dopiero, gdy TMS zwróci nowe przypisanie auta do kierowcy przejmującego oraz wyższą wersję rekordu.'}</p></div>`;
 }
-function markVehicleHandoverEdited(){
-  const protocol=state.vehicleHandover;
-  if(protocol.pendingSync){protocol.pendingSync=false;protocol.preparedAt=null;protocol.receiverConfirmed=false;}
+function markVehicleHandoverEdited(protocol=inspectionProtocol(),mode=inspectionMode()){
+  if(protocol.pendingSync){protocol.pendingSync=false;protocol.preparedAt=null;protocol[inspectionConfirmationKey(mode)]=false;}
 }
 function refreshVehicleHandoverProgress(){
   clearProtocolProblem();
@@ -1954,7 +1816,7 @@ function refreshVehicleHandoverProgress(){
   const confirm=$('#handover-confirm');
   if(confirm){
     confirm.disabled=!handoverPrerequisitesReady();
-    if(confirm.disabled){state.vehicleHandover.receiverConfirmed=false;confirm.checked=false;}
+    if(confirm.disabled){inspectionProtocol()[inspectionConfirmationKey()]=false;confirm.checked=false;}
   }
   const readings=$('.handover-readings .handover-section-heading>b');
   if(readings)readings.textContent=handoverReadingsReady()?'Gotowe':'Wymagane';
@@ -1970,10 +1832,10 @@ function bindVehicleHandoverAction(){
       showProtocolProblem(handoverFirstProblem());
       return;
     }
-    state.vehicleHandover.pendingSync=true;
-    state.vehicleHandover.preparedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    inspectionProtocol().pendingSync=true;
+    inspectionProtocol().preparedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     render();
-    toast('Protokół demonstracyjny przygotowano lokalnie. Nie wysłano go do TMS.');
+    toast(inspectionMode()==='inventory'?'Inwentaryzację zapisano lokalnie w podglądzie.':'Protokół demonstracyjny przygotowano lokalnie. Nie wysłano go do TMS.');
   };
   if($('#handover-correct'))$('#handover-correct').onclick=()=>{markVehicleHandoverEdited();render();};
   if($('#handover-close'))$('#handover-close').onclick=()=>closeService();
@@ -1983,10 +1845,10 @@ function bindVehicleHandoverView(){
   if($('#service-back'))$('#service-back').onclick=()=>closeService();
   $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
   $$('[data-handover-status]').forEach(button=>button.onclick=()=>{
-    const id=button.dataset.handoverStatus,status=button.dataset.status,protocol=state.vehicleHandover;
+    const id=button.dataset.handoverStatus,status=button.dataset.status,protocol=inspectionProtocol();
     if(protocol.statuses[id]===status)return;
     markVehicleHandoverEdited();
-    protocol.receiverConfirmed=false;
+    protocol[inspectionConfirmationKey()]=false;
     protocol.statuses[id]=status;
     if(status!=='damaged'){
       Object.values(protocol.issuePhotos[id]||{}).forEach(revoke);
@@ -1995,29 +1857,29 @@ function bindVehicleHandoverView(){
     }
     render();
   });
-  $$('[data-handover-vehicle-photo]').forEach(button=>button.onclick=()=>openModal('handover-photo',{key:button.dataset.handoverVehiclePhoto,handover:true,photoKind:'vehicle',kind:'handover-photo'}));
-  $$('[data-handover-issue-photo]').forEach(button=>button.onclick=()=>openModal('handover-photo',{key:button.dataset.handoverIssuePhoto,shot:button.dataset.shot,handover:true,photoKind:'issue',kind:'handover-photo'}));
+  $$('[data-handover-vehicle-photo]').forEach(button=>button.onclick=()=>openModal('handover-photo',{key:button.dataset.handoverVehiclePhoto,handover:true,inspectionMode:inspectionMode(),photoKind:'vehicle',kind:'handover-photo'}));
+  $$('[data-handover-issue-photo]').forEach(button=>button.onclick=()=>openModal('handover-photo',{key:button.dataset.handoverIssuePhoto,shot:button.dataset.shot,handover:true,inspectionMode:inspectionMode(),photoKind:'issue',kind:'handover-photo'}));
   $$('[data-handover-note]').forEach(input=>input.oninput=event=>{
     markVehicleHandoverEdited();
-    state.vehicleHandover.receiverConfirmed=false;
-    state.vehicleHandover.notes[event.target.dataset.handoverNote]=event.target.value;
+    inspectionProtocol()[inspectionConfirmationKey()]=false;
+    inspectionProtocol().notes[event.target.dataset.handoverNote]=event.target.value;
     refreshVehicleHandoverProgress();
   });
   if($('#handover-odometer'))$('#handover-odometer').oninput=event=>{
     markVehicleHandoverEdited();
-    state.vehicleHandover.receiverConfirmed=false;
-    state.vehicleHandover.odometerKm=event.target.value;
+    inspectionProtocol()[inspectionConfirmationKey()]=false;
+    inspectionProtocol().odometerKm=event.target.value;
     refreshVehicleHandoverProgress();
   };
   if($('#handover-fuel'))$('#handover-fuel').onchange=event=>{
     markVehicleHandoverEdited();
-    state.vehicleHandover.receiverConfirmed=false;
-    state.vehicleHandover.fuelLevel=event.target.value;
+    inspectionProtocol()[inspectionConfirmationKey()]=false;
+    inspectionProtocol().fuelLevel=event.target.value;
     refreshVehicleHandoverProgress();
   };
   if($('#handover-confirm'))$('#handover-confirm').onchange=event=>{
     markVehicleHandoverEdited();
-    state.vehicleHandover.receiverConfirmed=event.target.checked;
+    inspectionProtocol()[inspectionConfirmationKey()]=event.target.checked;
     refreshVehicleHandoverProgress();
   };
 }
@@ -2548,11 +2410,6 @@ function openModal(type,target){
     title=meta.title;
     body=`<p>${esc(meta.description)}</p><div class="fuel-photo-modal-icon service-photo-modal-icon">${icon(meta.icon)}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub galeria</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Wersja preview: zdjęcie pozostaje tylko na tym urządzeniu i nie jest wysyłane do backendu.</p>`;
   }
-  if(type==='inventory-photo'){
-    const item=inventoryItem(target.key);
-    title='Zdjęcie uszkodzenia';
-    body=`<p>Zrób czytelne zdjęcie uszkodzonej pozycji „${esc(item.name)}”.</p><div class="fuel-photo-modal-icon service-photo-modal-icon">${icon('camera')}</div><button class="primary-button" id="choose-file">${icon('camera')}Aparat lub galeria</button><button class="secondary-button" id="use-demo">Dodaj zdjęcie demonstracyjne</button><p class="small-note">Wersja preview: zdjęcie pozostaje tylko w tym podglądzie i nie jest wysyłane do backendu.</p>`;
-  }
   if(type==='handover-photo'){
     if(target.photoKind==='vehicle'){
       const requirement=handoverPhotoRequirement(target.key);
@@ -2618,7 +2475,7 @@ function openModal(type,target){
   }
   if(type==='inventory-help'){
     title='Pomoc · inwentaryzacja';
-    body=`<p>Sprawdź wyposażenie przy pojeździe i wybierz stan każdej pozycji. Brak potwierdzasz samym wyborem. Tylko uszkodzenie wymaga zdjęcia i krótkiego opisu.</p><div class="help-options"><button id="help-inventory-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Lista w podglądzie jest demonstracyjna. Produkcyjny protokół wymaga zatwierdzonej listy wyposażenia i endpointu zapisu.</p>`;
+    body=`<p>Wykonaj tę samą kontrolę co przy przekazaniu auta: kabina, paka i winda, obejście zewnętrzne. Wpisz przebieg i paliwo, dodaj każde wymagane zdjęcie oraz oceń całe wyposażenie. Inwentaryzację potwierdza kierowca ją sporządzający.</p><p>Brak wyposażenia potwierdzasz samym wyborem. Uszkodzenie wymaga zdjęcia ogólnego, zbliżenia i opisu.</p><div class="help-options"><button id="help-inventory-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Dane i zapis w podglądzie są demonstracyjne.</p>`;
   }
   if(type==='handover-help'){
     title='Pomoc · przekazanie auta';
@@ -2686,33 +2543,22 @@ function openModal(type,target){
   if($('#use-demo'))$('#use-demo').onclick=()=>{
     if(target.routeStop==='transshipment'){saveTransferredPhoto(target,{hash:`transfer-${target.pieceId}-${target.side}`,demo:true,mime:'image/svg+xml',url:demoPhoto(target.side==='near'?0:1),source:'transshipment',name:'Zdjęcie po przeładunku'});return;}
     if(target.handover){
-      const protocol=state.vehicleHandover;
+      const protocol=inspectionProtocol(target.inspectionMode);
       if(target.photoKind==='vehicle'){
         const requirement=handoverPhotoRequirement(target.key),previous=protocol.vehiclePhotos[target.key];
         revoke(previous);
-        protocol.vehiclePhotos[target.key]={hash:`demo-handover-vehicle-${target.key}`,demo:true,kind:'handover-vehicle-photo',name:`Przekazanie · ${requirement.name}`,mime:'image/svg+xml',url:demoPhoto(['odometer','front','rear','driverCab'].includes(target.key)?0:1),source:'vehicle-handover'};
+        protocol.vehiclePhotos[target.key]={hash:`demo-handover-vehicle-${target.key}`,demo:true,kind:'handover-vehicle-photo',name:`${target.inspectionMode==='inventory'?'Inwentaryzacja':'Przekazanie'} · ${requirement.name}`,mime:'image/svg+xml',url:demoPhoto(['odometer','front','rear','driverCab'].includes(target.key)?0:1),source:target.inspectionMode==='inventory'?'vehicle-inventory':'vehicle-handover'};
       }else{
         const item=handoverEquipmentItem(target.key),previous=protocol.issuePhotos[target.key]?.[target.shot];
         revoke(previous);
         protocol.issuePhotos[target.key]??={};
-        protocol.issuePhotos[target.key][target.shot]={hash:`demo-handover-issue-${target.key}-${target.shot}`,demo:true,kind:`handover-issue-${target.shot}`,name:`${target.shot==='wide'?'Ujęcie ogólne':'Zbliżenie'} · ${item.name}`,mime:'image/svg+xml',url:demoPhoto(target.shot==='wide'?0:1),source:'vehicle-handover'};
+        protocol.issuePhotos[target.key][target.shot]={hash:`demo-handover-issue-${target.key}-${target.shot}`,demo:true,kind:`handover-issue-${target.shot}`,name:`${target.shot==='wide'?'Ujęcie ogólne':'Zbliżenie'} · ${item.name}`,mime:'image/svg+xml',url:demoPhoto(target.shot==='wide'?0:1),source:target.inspectionMode==='inventory'?'vehicle-inventory':'vehicle-handover'};
       }
-      markVehicleHandoverEdited();
-      state.vehicleHandover.receiverConfirmed=false;
+      markVehicleHandoverEdited(protocol,target.inspectionMode);
+      protocol[inspectionConfirmationKey(target.inspectionMode)]=false;
       closeModal(false);
       render();
       toast(target.photoKind==='vehicle'?'Zdjęcie pojazdu dodano do protokołu.':'Zdjęcie uszkodzenia dodano do protokołu.');
-      return;
-    }
-    if(target.inventory){
-      const previous=state.inventoryProtocol.photos[target.key],item=inventoryItem(target.key);
-      revoke(previous);
-      state.inventoryProtocol.photos[target.key]={hash:`demo-inventory-${target.key}`,demo:true,kind:'inventory-photo',name:`Niezgodność · ${item.name}`,mime:'image/svg+xml',url:demoPhoto(target.key==='extinguisher'||target.key==='triangle'?0:1),source:'inventory-protocol'};
-      markInventoryEdited();
-      state.inventoryProtocol.confirmed=false;
-      closeModal(false);
-      render();
-      toast('Zdjęcie uszkodzenia zostało dodane do protokołu.');
       return;
     }
     if(target.service){
@@ -2943,7 +2789,8 @@ function reset(){
   Object.values(state.routeStops).forEach(stop=>{if(stop.photos)Object.values(stop.photos).forEach(revoke);});
   collection().groups.forEach(group=>{group.documents.forEach(revoke);revoke(group.pendingDocument);});
   Object.values(state.serviceSurvey.photos).forEach(revoke);
-  Object.values(state.inventoryProtocol.photos).forEach(revoke);
+  Object.values(state.inventoryProtocol.vehiclePhotos).forEach(revoke);
+  Object.values(state.inventoryProtocol.issuePhotos).forEach(records=>Object.values(records).forEach(revoke));
   Object.values(state.vehicleHandover.vehiclePhotos).forEach(revoke);
   Object.values(state.vehicleHandover.issuePhotos).forEach(records=>Object.values(records).forEach(revoke));
   state.operations={load:fresh('load'),unload:fresh('unload')};
@@ -2992,41 +2839,22 @@ $('#file-input').onchange=async event=>{
       if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
       const url=URL.createObjectURL(file);
       if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
-      const protocol=state.vehicleHandover;
+      const protocol=inspectionProtocol(target.inspectionMode);
       if(target.photoKind==='vehicle'){
         const previous=protocol.vehiclePhotos[target.key];
         revoke(previous);
-        protocol.vehiclePhotos[target.key]={hash:`handover-vehicle-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'handover-vehicle-photo',source:'vehicle-handover'};
+        protocol.vehiclePhotos[target.key]={hash:`handover-vehicle-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'handover-vehicle-photo',source:target.inspectionMode==='inventory'?'vehicle-inventory':'vehicle-handover'};
       }else{
         const previous=protocol.issuePhotos[target.key]?.[target.shot];
         revoke(previous);
         protocol.issuePhotos[target.key]??={};
-        protocol.issuePhotos[target.key][target.shot]={hash:`handover-issue-${target.key}-${target.shot}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:`handover-issue-${target.shot}`,source:'vehicle-handover'};
+        protocol.issuePhotos[target.key][target.shot]={hash:`handover-issue-${target.key}-${target.shot}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:`handover-issue-${target.shot}`,source:target.inspectionMode==='inventory'?'vehicle-inventory':'vehicle-handover'};
       }
-      markVehicleHandoverEdited();
-      state.vehicleHandover.receiverConfirmed=false;
+      markVehicleHandoverEdited(protocol,target.inspectionMode);
+      protocol[inspectionConfirmationKey(target.inspectionMode)]=false;
       closeModal(false);
       render();
       toast(target.photoKind==='vehicle'?'Zdjęcie pojazdu dodano do protokołu.':'Zdjęcie uszkodzenia dodano do protokołu.');
-    }catch(error){toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}
-    finally{uploadBusy=false;}
-    return;
-  }
-  if(target.inventory){
-    try{
-      const file=files[0];
-      if(!file.type.startsWith('image/')){toast('Wybierz zdjęcie JPG, PNG lub WebP.');return;}
-      if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
-      const url=URL.createObjectURL(file);
-      if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
-      const previous=state.inventoryProtocol.photos[target.key];
-      revoke(previous);
-      state.inventoryProtocol.photos[target.key]={hash:`inventory-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'inventory-photo',source:'inventory-protocol'};
-      markInventoryEdited();
-      state.inventoryProtocol.confirmed=false;
-      closeModal(false);
-      render();
-      toast('Zdjęcie uszkodzenia zostało dodane do protokołu.');
     }catch(error){toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}
     finally{uploadBusy=false;}
     return;
