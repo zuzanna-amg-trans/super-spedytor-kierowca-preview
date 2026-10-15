@@ -5,9 +5,9 @@
   const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const native=()=>window.SuperSpedytorNative;
   const available=()=>typeof native()?.scanQr==='function';
-  const androidApp=()=>new URLSearchParams(window.location.search).get('android')==='1';
+  const androidApp=()=>new URLSearchParams(window.location.search).get('android')==='1'&&!window.SuperSpedytorWeb;
   const liveCamera=()=>typeof native()?.scanCmr==='function';
-  const appVersion=()=>{try{return native()?.getAppVersion?.()||'Podgląd';}catch{return 'Podgląd';}};
+  const appVersion=()=>{try{return (native()||window.SuperSpedytorWeb)?.getAppVersion?.()||'Podgląd';}catch{return 'Podgląd';}};
   const launchIdError='Nie udało się bezpiecznie uruchomić skanera. Zaktualizuj Android System WebView i spróbuj ponownie.';
   const id=()=>{
     if(typeof crypto==='undefined')throw new Error('Secure randomness unavailable');

@@ -11,10 +11,12 @@ const mapTarget=place=>has(place.latitude)&&has(place.longitude)?`${place.latitu
 const locationUrl=place=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapTarget(place))}`;
 const navigationUrl=place=>`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapTarget(place))}`;
 const androidShell=document.documentElement.classList.contains('android-shell');
-const installedAppVersion=(()=>{try{return window.SuperSpedytorNative?.getAppVersion?.()||'';}catch{return '';}})();
+const driverBridge=window.SuperSpedytorNative||window.SuperSpedytorWeb;
+const browserBackend=Boolean(window.SuperSpedytorWeb)&&!window.SuperSpedytorNative;
+const installedAppVersion=(()=>{try{return driverBridge?.getAppVersion?.()||'';}catch{return '';}})();
 const appQuery=new URLSearchParams(window.location.search);
 const previewMode=appQuery.get('preview')==='1';
-const nativeBackendAvailable=(()=>{try{return androidShell&&Boolean(window.SuperSpedytorNative?.backendEnabled());}catch{return false;}})();
+const nativeBackendAvailable=(()=>{try{return androidShell&&Boolean(driverBridge?.backendEnabled());}catch{return false;}})();
 const backendMode=nativeBackendAvailable&&appQuery.get('backend')==='1';
 const attachmentLimitBytes=100*1024*1024;
 let transshipmentPreviewRole='receiver';
@@ -26,16 +28,16 @@ const transshipmentModel=window.SuperSpedytorTransshipment;
 document.documentElement.classList.toggle('backend-mode',backendMode);
 const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',transshipment:'demo-transshipment-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
 const nativeHasArrival=stopId=>{
-  try{return androidShell&&Boolean(window.SuperSpedytorNative?.hasArrival(stopId));}catch{return false;}
+  try{return androidShell&&Boolean(driverBridge?.hasArrival(stopId));}catch{return false;}
 };
 const nativeConfirmArrival=operation=>{
-  try{if(androidShell)window.SuperSpedytorNative?.markArrivalConfirmed(routePointIds[operation]);}catch{}
+  try{if(androidShell)driverBridge?.markArrivalConfirmed(routePointIds[operation]);}catch{}
 };
 const nativeReset=()=>{
-  try{if(androidShell)window.SuperSpedytorNative?.resetDemo();}catch{}
+  try{if(androidShell)driverBridge?.resetDemo();}catch{}
 };
 const nativeOpenExternal=url=>{
-  try{if(androidShell)window.SuperSpedytorNative?.openExternal(url);}catch{}
+  try{if(androidShell)driverBridge?.openExternal(url);}catch{}
 };
 
 const pickup={company:'Magazyn demonstracyjny Alfa',address:'Punkt demonstracyjny A · Warszawa',country:'PL',countryName:'Polska',latitude:52.22970,longitude:21.01220};
@@ -1700,7 +1702,7 @@ function bindServiceHistoryView(){
   $$('[data-service-history-id]').forEach(button=>button.onclick=()=>{
     state.serviceHistorySelectedId=button.dataset.serviceHistoryId;
     if(serviceHistoryIsLive()){
-      window.SuperSpedytorNative?.backendServiceSurvey(Number(button.dataset.serviceHistoryId));
+      driverBridge?.backendServiceSurvey(Number(button.dataset.serviceHistoryId));
       return;
     }
     render();
@@ -2738,7 +2740,7 @@ function openModal(type,target){
     closeModal(false);render();$('#app-scroll').scrollTop=0;toast('Brak odnotowany. Do koperty trafią tylko odebrane dokumenty.');
   };
   if($('#open-cmr-scanner'))$('#open-cmr-scanner').onclick=()=>openCmrScanner(target);
-  if(['scan','collection-scan','transshipment-scan'].includes(type)&&typeof window.SuperSpedytorNative?.scanQr==='function'){
+  if(['scan','collection-scan','transshipment-scan'].includes(type)&&typeof driverBridge?.scanQr==='function'){
     const camera=$('.scan-camera');
     if(camera){
       const button=document.createElement('button');button.type='button';button.className='primary-button scanner-qr-button';button.innerHTML=`${icon('qr')}Odczytaj QR aparatem`;
@@ -3239,7 +3241,7 @@ function updateDriverWorkspaceBar(){
   updateServiceNavIndicator();
   bar.classList.toggle('testing',backendTestWorkspace);
   bar.innerHTML=backendTestWorkspace
-    ?`<div><strong>Test widoków · dane przykładowe</strong><small>Zmiany zostają na telefonie${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">Wróć do SS</button>`
+    ?`<div><strong>Test widoków · dane przykładowe</strong><small>${browserBackend?'Zmiany zostają na tym urządzeniu':'Zmiany zostają na telefonie'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">Wróć do SS</button>`
     :`<div><strong>Dane Super Spedytora</strong><small>Twoja trasa i historia ankiet${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Testuj widoki</button>`;
   $('#workspace-choose').onclick=()=>openModal('designed-views',{});
   if($('#workspace-live'))$('#workspace-live').onclick=leaveTestingWorkspace;
@@ -3249,7 +3251,7 @@ function updateDriverWorkspaceBar(){
 function enterTestingWorkspace(viewId,renderView=true){
   if(!backendMode||backendState?.status!=='connected')return;
   backendTestWorkspace=true;
-  window.SuperSpedytorNative?.backendTestingMode(true);
+  driverBridge?.backendTestingMode(true);
   $('.device')?.classList.remove('backend-operation-mode');
   state.manualLanguage=true;
   state.language='pl';
@@ -3270,7 +3272,7 @@ function leaveTestingWorkspace(){
   closeModal(false);
   cancelArrivalCountdown(false);
   backendTestWorkspace=false;
-  window.SuperSpedytorNative?.backendTestingMode(false);
+  driverBridge?.backendTestingMode(false);
   backendActiveNav='now';
   state.serviceOpen=false;
   state.routeStop=null;
@@ -3529,8 +3531,8 @@ function renderBackendOperationScreen(scroll=0){
   $('#scenario-select').disabled=true;
   $('#mobile-scenario').disabled=true;
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='now'));
-  $('#backend-refresh').onclick=()=>window.SuperSpedytorNative?.backendRefresh();
-  $('#backend-logout').onclick=()=>window.SuperSpedytorNative?.backendLogout();
+  $('#backend-refresh').onclick=()=>driverBridge?.backendRefresh();
+  $('#backend-logout').onclick=()=>driverBridge?.backendLogout();
   $$('[data-backend-point-action]').forEach(button=>button.onclick=()=>{
     const action=button.dataset.backendPointAction;
     const pointId=button.dataset.pointId;
@@ -3538,7 +3540,7 @@ function renderBackendOperationScreen(scroll=0){
       ?'Potwierdzasz, że jesteś na miejscu i rozpoczynasz tę operację?'
       :'Potwierdzasz, że ta operacja została faktycznie zakończona?';
     if(!window.confirm(question))return;
-    window.SuperSpedytorNative?.backendPointAction(pointId,action);
+    driverBridge?.backendPointAction(pointId,action);
   });
   $('#app-scroll').scrollTop=scroll;
 }
@@ -3588,7 +3590,7 @@ function renderBackendPanel(){
     return;
   }
   const error=status==='error'?backendState.message:'';
-  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym telefonie</span></label>${backendState.can_retry?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit">${icon('signal')} Połącz z Super Spedytorem</button><div class="backend-security">${icon('check')} Po zaznaczeniu „Zapamiętaj mnie” aplikacja przywróci logowanie po ponownym otwarciu. Wylogowanie usunie zapamiętaną sesję.</div></form>`;
+  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym urządzeniu</span></label>${backendState.can_retry?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit">${icon('signal')} Połącz z Super Spedytorem</button><div class="backend-security">${icon('check')} ${browserBackend?'Zapamiętanie sesji wymaga pliku cookie Super Spedytora. Jeśli przeglądarka go zablokuje, zalogujesz się ponownie.':'Po zaznaczeniu „Zapamiętaj mnie” aplikacja przywróci logowanie po ponownym otwarciu. Wylogowanie usunie zapamiętaną sesję.'}</div></form>`;
   $('#backend-login',panel).onsubmit=event=>{
     event.preventDefault();
     const username=$('#backend-username',panel).value;
@@ -3596,10 +3598,10 @@ function renderBackendPanel(){
     const rememberMe=$('#backend-remember',panel).checked;
     backendRememberMe=rememberMe;
     $('#backend-password',panel).value='';
-    window.SuperSpedytorNative?.backendLogin(username,password,rememberMe);
+    driverBridge?.backendLogin(username,password,rememberMe);
   };
   const retry=$('#backend-retry',panel);
-  if(retry)retry.onclick=()=>window.SuperSpedytorNative?.backendRefresh();
+  if(retry)retry.onclick=()=>driverBridge?.backendRefresh();
 }
 window.SuperSpedytorBackend={
   setActiveNav(nav){
@@ -3612,6 +3614,7 @@ window.SuperSpedytorBackend={
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
     renderBackendPanel();
+    if(browserBackend&&backendState?.remember_error)toast(backendState.remember_error);
     const write=backendState?.write;
     const writeKey=`${write?.id||''}:${write?.status||''}`;
     if(write?.id&&writeKey!==previousWriteKey&&write.status!=='pending'&&write.message)toast(write.message);
@@ -3620,7 +3623,7 @@ window.SuperSpedytorBackend={
 function initializeBackendPanel(){
   if(!backendMode)return;
   try{
-    const initial=window.SuperSpedytorNative?.backendState();
+    const initial=driverBridge?.backendState();
     if(initial)window.SuperSpedytorBackend.receive(initial);
     else renderBackendPanel();
   }catch{
@@ -3645,7 +3648,7 @@ if(backendMode){
   }
 }
 
-if(androidShell){
+if(androidShell&&!browserBackend){
   document.addEventListener('click',event=>{
     const link=event.target.closest('a[href]');
     if(!link)return;
@@ -3659,6 +3662,7 @@ if(androidShell){
 if(!backendMode&&Object.hasOwn(collectionScenarios,appQuery.get('cmrScenario')))startCollectionScenario(appQuery.get('cmrScenario'));
 else render();
 initializeBackendPanel();
+if(browserBackend)window.SuperSpedytorWeb.backendRefresh();
 if(!backendMode){
   window.addEventListener('pagehide',()=>{if(state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted)flushServiceDraft().catch(()=>{});});
   const operationTimerTicker=setInterval(updateOperationTimerDom,1000);

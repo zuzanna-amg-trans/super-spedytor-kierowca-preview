@@ -1,137 +1,158 @@
 <!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f5f5f3">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="description" content="SuperSpedytor: nawigacja do załadunku, rozładunku, przeładunku, parkingu i tankowania, dokumentacja ładunku, ankieta serwisowa, inwentaryzacja, protokół przekazania auta oraz wydatki kierowcy.">
-  <title>Super Spedytor — tryb kierowcy</title>
-  <script>
-    if (new URLSearchParams(window.location.search).get('android') === '1') {
-      document.documentElement.classList.add('android-shell');
+  <meta name="theme-color" content="#f5f5f3">
+  <title>Super Spedytor — podgląd aplikacji</title>
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#252c30;background:#f5f5f3;color-scheme:light;font-synthesis:none}
+    *{box-sizing:border-box}
+    body{margin:0}
+    button,a{font:inherit}
+    button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #ffac78;outline-offset:3px}
+    .preview-page{max-width:1024px;margin:0 auto;padding:24px 16px 32px}
+    .preview-intro{max-width:680px;margin:0 auto 18px;text-align:center}
+    h1{font-size:22px;line-height:1.3;margin:0 0 8px;letter-spacing:-.4px}
+    .preview-intro p{font-size:13px;line-height:1.6;color:#66705f;margin:0}
+    .preview-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:14px 0 0}
+    .preview-controls button,.preview-controls a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 14px;border:1px solid #d7ddcf;border-radius:10px;background:#fff;color:#34412c;text-decoration:none;font-size:13px;font-weight:700;cursor:pointer}
+    .preview-controls .primary{background:#ff6a1a;border-color:#ff6a1a;color:#35281f}
+    .preview-controls button:disabled{opacity:.5;cursor:wait}
+    .phone{width:362px;max-width:100%;margin:0 auto;border:1px solid #dfe3d9;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 12px 35px #303a2510}
+    .native-header{height:52px;padding:6px 14px;display:flex;flex-direction:column;justify-content:center;background:#fff;border-bottom:1px solid #e4e4df;overflow:hidden}
+    .native-header strong{font-size:14px;line-height:17px;white-space:nowrap}
+    .native-header span{font-size:15px;line-height:18px;font-weight:700;color:#a63b0a;white-space:nowrap}
+    .app-frame{display:block;width:360px;max-width:100%;height:800px;border:0;background:#f5f5f3}
+    .preview-details{max-width:680px;margin:18px auto 0;padding:14px 16px;background:#fff;border:1px solid #e1e5dc;border-radius:12px;font-size:12px;line-height:1.65;color:#626e59}
+    .preview-details p{margin:0 0 8px}
+    .preview-details p:last-child{margin-bottom:0}
+    .preview-details summary{font-weight:700;cursor:pointer;color:#34412c}
+    .preview-details dl{display:grid;grid-template-columns:112px minmax(0,1fr);gap:5px 12px;margin:12px 0 0}
+    .preview-details dt{font-weight:700}
+    .preview-details dd{margin:0;overflow-wrap:anywhere}
+    .preview-details code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;color:#444e3b}
+    .preview-status{min-height:20px;margin:10px 0 0;color:#94451e;font-size:12px;line-height:1.6;text-align:center}
+    [hidden]{display:none!important}
+    @media(max-width:600px){
+      .preview-page{padding:16px 0 20px}
+      .preview-intro{padding:0 14px;margin-bottom:14px}
+      h1{font-size:20px}
+      .phone{width:100%;max-width:none;border-left:0;border-right:0;border-radius:0;box-shadow:none}
+      .app-frame{width:100%;max-width:none;height:calc(100dvh - 52px);min-height:420px}
+      .preview-details{margin:14px 12px 0;padding:12px}
+      .preview-details dl{grid-template-columns:92px minmax(0,1fr);gap:5px 8px}
     }
-  </script>
-  <link rel="stylesheet" href="driver.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="flow.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="tacho.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="service.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="handover-v2.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="transshipment.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="android-shell.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-  <link rel="stylesheet" href="scanner.css?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-<meta name="preview-source-commit" content="36bd77c18f68ec607cfcee5e5a16a882ee193e66">
-<style>.web-build-info{max-width:1100px;margin:16px auto;padding:0 24px 20px;text-align:center;font:12px/1.5 system-ui,sans-serif;color:#656565}.web-build-info a{color:inherit}.android-shell .web-build-info{display:none}</style>
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+  </style>
 </head>
 <body>
-  <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
-    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v11H3zM14 10h4l3 4v3h-7M3 12h6"/><circle cx="6.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></symbol>
-    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
-    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7M7 12h14"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M8 6 9.5 3h5L16 6h4a1 1 0 0 1 1 1v12H3V7a1 1 0 0 1 1-1Z"/><circle cx="12" cy="12.5" r="4"/></symbol>
-    <symbol id="i-qr" viewBox="0 0 24 24"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h3v3h3v3h-6zM12 3v3M12 9v3h9M3 12h6M12 15v6"/></symbol>
-    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5ZM14 3v5h5M8 12h8M8 16h8"/></symbol>
-    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 9 5v9l-9 5-9-5V8Zm0 10v9M3 8l9 5 9-5M7.5 5.5l9 5v4"/></symbol>
-    <symbol id="i-phone" viewBox="0 0 24 24"><path d="m6 3 4 4-2 3a18 18 0 0 0 6 6l3-2 4 4-2 3C10 22 2 14 3 5Z"/></symbol>
-    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h8a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h8"/></symbol>
-    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/></symbol>
-    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-    <symbol id="i-nav" viewBox="0 0 24 24"><path d="m21 3-7 18-3-8-8-3Z"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
-    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5ZM10 21h4"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
-    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5L9 20l-6 1 1-6ZM13 6l5 5"/></symbol>
-    <symbol id="i-signal" viewBox="0 0 24 24"><path d="M4 19v-3M9 19v-7M14 19V8M19 19V4"/></symbol>
-    <symbol id="i-help" viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2M4 11H2v7h4v-7ZM20 11h2v7h-4v-7ZM18 18v3h-6"/></symbol>
-    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4ZM8 8h8M8 12h5"/></symbol>
-    <symbol id="i-clip" viewBox="0 0 24 24"><path d="m9 15 7-7a3 3 0 0 0-4-4L4 12a5 5 0 0 0 7 7l9-9M7 13l7-7"/></symbol>
-    <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M4 21V3h10v18M3 21h13M7 7h4M14 8h3l3 3v7a2 2 0 0 1-4 0v-5h-2M18 10l2-2"/></symbol>
-    <symbol id="i-parking" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9M9 13h4"/></symbol>
-    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
-    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2ZM9 8h6M9 12h6M9 16h3"/></symbol>
-    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/></symbol>
-    <symbol id="i-service" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5-5l2.5 2.5-3 3-2.5-2.5a4 4 0 0 0 5 5L19 17l-2 2-7.5-7.5a4 4 0 0 0-5 5L7 14l3 3-2.5 2.5a4 4 0 0 0 5-5"/></symbol>
-    <symbol id="i-oil" viewBox="0 0 24 24"><path d="M4 9h11l3 4v6H4ZM7 9V5h7v4M18 10h2l1 3M8 14h5"/><path d="M19 17s2 2.2 2 3.5a2 2 0 0 1-4 0c0-1.3 2-3.5 2-3.5Z"/></symbol>
-    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h12v14H4zM8 5v14M12 5v14M16 9h3l2 3v5h-5M2 8h2M2 12h2M2 16h2"/></symbol>
-    <symbol id="i-envelope" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6M15 16h4M17 14v4"/></symbol>
-    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 9h6M9 13h6M9 17h4"/></symbol>
-    <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5M12 17.5h.01"/></symbol>
-    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
-  </defs></svg>
-
-  <header class="studio-header">
-    <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
-    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 08</span></div>
-    <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
-  </header>
-
-  <div class="studio-layout">
-    <aside class="studio-sidebar">
-      <div class="eyebrow">SUPERSPEDYTOR / DRIVER</div>
-      <h1>Jedno zadanie.<br><span>Jeden ekran.</span></h1>
-      <p class="intro">Ładunek. Dokumenty. Przeładunek. Parking. Tankowanie. Inwentaryzacja. Przekazanie auta.<br>Każde zadanie prowadzi kierowcę krok po kroku.</p>
-      <label class="scenario-picker"><span>PRZYKŁAD DANYCH ZLECENIA</span><select id="scenario-select"><option value="basic">Firma + kraj + pinezka</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
-      <div class="operation-label">PODGLĄD PUNKTU NA TRASIE</div>
-      <div class="operation-switch route-type-switch" role="group" aria-label="Rodzaj zadania kierowcy"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button><button data-route-stop="collection">Dokumenty CMR</button><button data-route-stop="transshipment">Przeładunek</button><button data-route-stop="parking">Parking</button><button data-route-stop="fueling">Tankowanie</button><button data-service-preview="inventory">Inwentaryzacja</button><button data-service-preview="handover">Przekazanie auta</button></div>
-      <label class="mobile-stage"><span>DANE ZLECENIA</span><select id="mobile-scenario" aria-label="Przykład danych zlecenia"><option value="basic">Podstawowe</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
-      <nav class="screen-list" aria-label="Ekrany prototypu">
-        <button data-screen="travel"><span class="screen-num">↗</span><span>Widok w drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="info" class="active"><span class="screen-num">00</span><span>Zlecenie i załadunek</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="photos"><span class="screen-num">01</span><span>Sztuki ładunku</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="seals"><span class="screen-num">02</span><span>Plomba ostatniej strony CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="documents"><span class="screen-num">03</span><span>Skan dokumentu CMR</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-        <button data-screen="review"><span class="screen-num">04</span><span>Sprawdź i zakończ</span><svg class="icon"><use href="#i-arrow"/></svg></button>
-      </nav>
-      <div class="sidebar-foot"><div class="light-mode-dot"></div><span>Tryb jasny</span><button id="reset" aria-label="Zresetuj postęp prototypu">Zresetuj podgląd</button></div>
-    </aside>
-
-    <main class="preview-area">
-      <div class="preview-topline"><span id="preview-label">ZAŁADUNEK / INFORMACJE</span><span>Android <span class="tiny-dot">·</span> 360 × 800 px</span></div>
-      <section class="device" aria-label="Prototyp aplikacji kierowcy">
-        <div class="status-bar"><span>10:42</span><div class="status-icons"><svg class="icon"><use href="#i-signal"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M1 4c4-4 11-4 15 0M4 7c2-2 7-2 9 0M7 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="battery"></span></div></div>
-        <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
-        <div id="driver-workspace-bar" class="driver-workspace-bar" hidden></div>
-        <div class="app-scroll" id="app-scroll"><div id="app"></div></div>
-        <div id="app-action" class="app-action"></div>
-        <nav class="bottom-nav five-items" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="tacho"><svg class="icon"><use href="#i-clock"/></svg><span>Tacho</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="service"><svg class="icon"><use href="#i-service"/></svg><span>Serwis</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
-        <div class="android-home"><span></span></div>
-        <div id="toast" class="toast" role="status" aria-live="polite"></div>
-        <div id="modal-root"></div>
-        <div id="scanner-root"></div>
-      </section>
-      <div class="preview-bottomline"><span class="live-dot"></span> Podgląd telefonu · dla porównania użyj powiększenia przeglądarki 100%</div>
-    </main>
-
-    <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> PROSTY PRZEBIEG OPERACJI</div><div id="design-context"></div>
-      <div class="design-palette"><div class="swatches"><span style="--swatch:#f5f5f3"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#ff6a1a"></span><span style="--swatch:#202124"></span></div><span>Pomarańcz AMG. Jasne powierzchnie.</span></div>
-      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Przeładunek korzysta z kolejności rozładunków: towar rozładowywany najpóźniej jest odbierany jako pierwszy. CMR i każda sztuka ładunku wymagają osobnej kontroli plomby.</p></div>
-    </aside>
-  </div>
-  <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
-  <script src="demo-assets.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="break-suggestion.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="operation-timing.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="service-survey.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="vehicle-handover.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="vehicle-inspection-v2.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="handover-v2.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="transshipment.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="scan-quality.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="vendor/pdf-lib-1.17.1.min.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="document-pdf.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="document-export.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="ss-scanner/core.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="paper-scanner.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="document-processing.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="scanner.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="cmr-collection.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="flow.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="tacho-day-summary.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-  <script src="tacho.js?v=36bd77c18f68ec607cfcee5e5a16a882ee193e66"></script>
-<footer class="web-build-info">Podgląd 0.1.25-internal · aktualizacja 15.10.2026, 23:51 · <a href="build-info.json" target="_blank" rel="noopener">wersja 36bd77c</a></footer>
+  <main class="preview-page">
+    <header class="preview-intro">
+      <h1>Super Spedytor — podgląd aplikacji</h1>
+      <p>Te same widoki i rozmiar tekstu co w aplikacji Android. Na komputerze ekran ma 360 × 800 px; porównuj przy powiększeniu przeglądarki 100%.</p>
+      <div class="preview-controls" aria-label="Sterowanie podglądem">
+        <button id="choose-views" class="primary" type="button" disabled>Testuj widoki</button>
+        <button id="restart-preview" type="button" disabled>Od początku</button>
+        <a id="android-download" hidden>Android z tej samej wersji</a>
+      </div>
+      <div id="preview-status" class="preview-status" role="status" aria-live="polite">Wczytuję widoki aplikacji…</div>
+    </header>
+    <section class="phone" aria-label="Ekran aplikacji Android">
+      <header class="native-header">
+        <strong>Super Spedytor Kierowca</strong>
+        <span id="native-version">Wersja podglądu</span>
+      </header>
+      <iframe id="app-frame" class="app-frame" title="Super Spedytor — te same widoki co w aplikacji" src="app.html?android=1&amp;backend=1&amp;web=1" referrerpolicy="no-referrer"></iframe>
+    </section>
+    <section class="preview-details" aria-label="Wersja i zakres podglądu">
+      <p>Zaloguj się tym samym kontem kierowcy co w aplikacji. Profil, pojazd, trasa i historia ankiet pochodzą bezpośrednio z Super Spedytora. Aparat i skaner na żywo działają na telefonie; w przeglądarce możesz importować gotowe pliki.</p>
+      <p id="matching-apk-hint" hidden>Do porównania obu urządzeń użyj Androida z przycisku powyżej. Ten podgląd i plik aplikacji pochodzą z tej samej wersji kodu.</p>
+      <p id="private-apk-hint" hidden>Pobranie Androida wymaga zalogowania do GitHuba na konto z dostępem do repozytorium AMG-Trans.</p>
+      <details>
+        <summary id="source-summary">Wersja źródeł podglądu</summary>
+        <dl>
+          <dt>Wersja aplikacji</dt><dd id="source-version">—</dd>
+          <dt>Gałąź źródeł</dt><dd id="source-branch">—</dd>
+          <dt>Commit</dt><dd><code id="source-commit">—</code></dd>
+          <dt>Przygotowano</dt><dd id="source-built-at">—</dd>
+          <dt id="asset-manifest-label" hidden>Pliki widoków</dt><dd id="asset-manifest-value" hidden><code id="asset-manifest">—</code></dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+  <script id="build-info" type="application/json">{"protocol":2,"sourceCommit":"4db891c0706244542434743c4e5fafd1bbffd9ab","sourceBranch":"codex/preview-integration","androidSourceVersion":"0.1.25-internal","builtAt":"2026-10-15T21:57:10.680Z","assetManifestSha256":"1d4296f59570ac32c373265d9052e1221a4fdfe670d522d3072adce738443532","mode":"live-driver-session","androidRuntimeVersion":"0.1.25-internal-test","note":"Te same źródła widoków i prawdziwe logowanie bezpośrednio do SS; dane sesji nie są publikowane. Funkcje aparatu pozostają natywne.","integration":{"candidateSha":"4db891c0706244542434743c4e5fafd1bbffd9ab","initialIntegrationSha":null,"integrationBranch":"codex/preview-integration","baseSha":"36bd77c18f68ec607cfcee5e5a16a882ee193e66","branches":[{"name":"main","sha":"a7893120efe8f67b8d0602ad5104ad6b2c09208d"},{"name":"codex/play-internal-testing","sha":"36bd77c18f68ec607cfcee5e5a16a882ee193e66"},{"name":"codex/advanced-document-scanner","sha":"36bd77c18f68ec607cfcee5e5a16a882ee193e66"},{"name":"codex/shared-preview-parity","sha":"a39e6db38a638083a2423a739e7ce4dfa68fda00"}],"mergedBranches":["codex/shared-preview-parity"],"skippedBranches":["main","codex/play-internal-testing","codex/advanced-document-scanner"]},"androidDownloadUrl":"https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-4db891c0706244542434743c4e5fafd1bbffd9ab/Super-Spedytor-Test-1to1.apk","androidDownloadLabel":"Pobierz tę samą wersję na Androida","androidDownloadRequiresRepoAccess":true}</script>
+  <script>
+    (function(){
+      'use strict';
+      const info=JSON.parse(document.getElementById('build-info').textContent);
+      const frame=document.getElementById('app-frame');
+      const choose=document.getElementById('choose-views');
+      const restart=document.getElementById('restart-preview');
+      const status=document.getElementById('preview-status');
+      const commit=String(info.sourceCommit||'');
+      const version=String(info.androidRuntimeVersion||info.androidSourceVersion||'Podgląd');
+      const shortCommit=commit.slice(0,7);
+      const text=(id,value)=>{document.getElementById(id).textContent=value;};
+      text('native-version',`Wersja ${version}${shortCommit?' · '+shortCommit:''}`);
+      text('source-summary',`Wersja źródeł${shortCommit?' · '+shortCommit:''}`);
+      text('source-version',version);
+      text('source-branch',String(info.sourceBranch||'—'));
+      text('source-commit',commit||'—');
+      const buildDate=new Date(info.builtAt||'');
+      text('source-built-at',Number.isNaN(buildDate.getTime())?'—':new Intl.DateTimeFormat('pl-PL',{timeZone:'Europe/Warsaw',dateStyle:'medium',timeStyle:'short'}).format(buildDate));
+      if(info.assetManifestSha256||info.androidAssetManifestSha256){
+        text('asset-manifest',String(info.assetManifestSha256||info.androidAssetManifestSha256));
+        document.getElementById('asset-manifest-label').hidden=false;
+        document.getElementById('asset-manifest-value').hidden=false;
+      }
+      if(info.androidDownloadUrl){
+        try{
+          const downloadUrl=new URL(String(info.androidDownloadUrl),window.location.href);
+          if(downloadUrl.protocol==='https:'||downloadUrl.origin===window.location.origin){
+            const download=document.getElementById('android-download');
+            download.href=downloadUrl.href;
+            download.textContent=String(info.androidDownloadLabel||'Android z tej samej wersji');
+            download.target='_blank';
+            download.rel='noopener noreferrer';
+            download.hidden=false;
+            document.getElementById('matching-apk-hint').hidden=false;
+            document.getElementById('private-apk-hint').hidden=!info.androidDownloadRequiresRepoAccess;
+          }
+        }catch{}
+      }
+      function connectPreview(){
+        try{
+          const app=frame.contentWindow;
+          if(!app||app.location.origin!==window.location.origin)throw new Error('Wrong preview origin');
+          if(typeof app.openModal!=='function')throw new Error('Preview controls unavailable');
+          choose.disabled=false;
+          restart.disabled=false;
+          status.textContent='';
+        }catch{
+          choose.disabled=true;
+          restart.disabled=false;
+          status.textContent='Nie udało się wczytać widoków. Kliknij „Od początku” lub odśwież stronę.';
+        }
+      }
+      frame.addEventListener('load',connectPreview);
+      choose.addEventListener('click',function(){
+        try{const app=frame.contentWindow;if(!app.document.documentElement.classList.contains('backend-connected')){status.textContent='Najpierw zaloguj się w aplikacji poniżej.';app.document.querySelector('#backend-username')?.focus();return;}app.openModal('designed-views',{});}
+        catch{status.textContent='Lista widoków jest chwilowo niedostępna. Kliknij „Od początku”.';}
+      });
+      restart.addEventListener('click',function(){
+        choose.disabled=true;
+        restart.disabled=true;
+        status.textContent='Wczytuję początek podglądu…';
+        // Reload only: persisted survey data and selected browser storage stay intact.
+        frame.contentWindow.location.reload();
+      });
+      // Include the source SHA in the document URL without changing the app flags.
+      const appUrl=new URL(frame.getAttribute('src'),window.location.href);
+      if(commit)appUrl.searchParams.set('v',commit);
+      frame.src=appUrl.href;
+    })();
+  </script>
 </body>
 </html>

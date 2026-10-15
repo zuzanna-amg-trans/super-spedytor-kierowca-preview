@@ -1,10 +1,46 @@
 {
   "protocol": 2,
-  "sourceCommit": "36bd77c18f68ec607cfcee5e5a16a882ee193e66",
-  "sourceBranch": "codex/play-internal-testing",
-  "assetManifestSha256": "c61ec3f17942552b42b3e0948315dc8e11f43a5edef857d2319f297c1997432f",
+  "sourceCommit": "4db891c0706244542434743c4e5fafd1bbffd9ab",
+  "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.25-internal",
-  "builtAt": "2026-10-15T21:51:09.539Z",
-  "mode": "demo",
-  "note": "Wersja źródeł podglądu; publikacja i aktualizacja Androida odbywają się osobno."
+  "builtAt": "2026-10-15T21:57:10.680Z",
+  "assetManifestSha256": "1d4296f59570ac32c373265d9052e1221a4fdfe670d522d3072adce738443532",
+  "mode": "live-driver-session",
+  "androidRuntimeVersion": "0.1.25-internal-test",
+  "note": "Te same źródła widoków i prawdziwe logowanie bezpośrednio do SS; dane sesji nie są publikowane. Funkcje aparatu pozostają natywne.",
+  "integration": {
+    "candidateSha": "4db891c0706244542434743c4e5fafd1bbffd9ab",
+    "initialIntegrationSha": null,
+    "integrationBranch": "codex/preview-integration",
+    "baseSha": "36bd77c18f68ec607cfcee5e5a16a882ee193e66",
+    "branches": [
+      {
+        "name": "main",
+        "sha": "a7893120efe8f67b8d0602ad5104ad6b2c09208d"
+      },
+      {
+        "name": "codex/play-internal-testing",
+        "sha": "36bd77c18f68ec607cfcee5e5a16a882ee193e66"
+      },
+      {
+        "name": "codex/advanced-document-scanner",
+        "sha": "36bd77c18f68ec607cfcee5e5a16a882ee193e66"
+      },
+      {
+        "name": "codex/shared-preview-parity",
+        "sha": "a39e6db38a638083a2423a739e7ce4dfa68fda00"
+      }
+    ],
+    "mergedBranches": [
+      "codex/shared-preview-parity"
+    ],
+    "skippedBranches": [
+      "main",
+      "codex/play-internal-testing",
+      "codex/advanced-document-scanner"
+    ]
+  },
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-4db891c0706244542434743c4e5fafd1bbffd9ab/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
+  "androidDownloadRequiresRepoAccess": true
 }

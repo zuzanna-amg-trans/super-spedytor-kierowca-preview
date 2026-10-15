@@ -1,217 +1,220 @@
 {
   "protocol": 2,
-  "sourceCommit": "36bd77c18f68ec607cfcee5e5a16a882ee193e66",
-  "assetManifestSha256": "c61ec3f17942552b42b3e0948315dc8e11f43a5edef857d2319f297c1997432f",
+  "sourceCommit": "4db891c0706244542434743c4e5fafd1bbffd9ab",
+  "sourceBranch": "codex/preview-integration",
+  "androidSourceVersion": "0.1.25-internal",
+  "assetManifestSha256": "1d4296f59570ac32c373265d9052e1221a4fdfe670d522d3072adce738443532",
+  "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
-      "path": ".nojekyll",
-      "size": 1,
-      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
-    },
-    {
       "path": "android-shell.css",
-      "size": 20658,
-      "sha256": "e7915ce02cf4f829f902bd58a1b3b0c8d2fa98c2c4cac364696c5cb82b9af6ee"
-    },
-    {
-      "path": "assets/manrope-400.ttf",
-      "size": 94972,
-      "sha256": "a13d9b41b0a471ce58f0e46d377fa3cc76615e4632c3b15eb397caadf7a13f0a"
-    },
-    {
-      "path": "assets/manrope-500.ttf",
-      "size": 95060,
-      "sha256": "f433e5d333be1128d8ec8a28b8aadd0314d10e14e4105406076666bc830fc15d"
-    },
-    {
-      "path": "assets/manrope-600.ttf",
-      "size": 95096,
-      "sha256": "6bad1a774228464cc88b8b0271555b266f7a3c64a7bedf15e165fdab4f6ac0ce"
-    },
-    {
-      "path": "assets/manrope-700.ttf",
-      "size": 94928,
-      "sha256": "b9584e099e0e7f1e1e914c3037aabb9010c50346a3ce8df5eeeeecc0563044d8"
-    },
-    {
-      "path": "assets/manrope-800.ttf",
-      "size": 95688,
-      "sha256": "b8f802f05b322a7345805f5b89f8bb976604cc719a91530918d5ce3c47160950"
+      "sha256": "e7915ce02cf4f829f902bd58a1b3b0c8d2fa98c2c4cac364696c5cb82b9af6ee",
+      "size": 20658
     },
     {
       "path": "assets/OFL.txt",
-      "size": 4386,
-      "sha256": "d6a309fcfb963d329a93baf9df66fa5f3c23a4be2b5f67edf24d6cafecde12ac"
+      "sha256": "d6a309fcfb963d329a93baf9df66fa5f3c23a4be2b5f67edf24d6cafecde12ac",
+      "size": 4386
+    },
+    {
+      "path": "assets/manrope-400.ttf",
+      "sha256": "a13d9b41b0a471ce58f0e46d377fa3cc76615e4632c3b15eb397caadf7a13f0a",
+      "size": 94972
+    },
+    {
+      "path": "assets/manrope-500.ttf",
+      "sha256": "f433e5d333be1128d8ec8a28b8aadd0314d10e14e4105406076666bc830fc15d",
+      "size": 95060
+    },
+    {
+      "path": "assets/manrope-600.ttf",
+      "sha256": "6bad1a774228464cc88b8b0271555b266f7a3c64a7bedf15e165fdab4f6ac0ce",
+      "size": 95096
+    },
+    {
+      "path": "assets/manrope-700.ttf",
+      "sha256": "b9584e099e0e7f1e1e914c3037aabb9010c50346a3ce8df5eeeeecc0563044d8",
+      "size": 94928
+    },
+    {
+      "path": "assets/manrope-800.ttf",
+      "sha256": "b8f802f05b322a7345805f5b89f8bb976604cc719a91530918d5ce3c47160950",
+      "size": 95688
     },
     {
       "path": "break-suggestion.js",
-      "size": 3764,
-      "sha256": "ecb63a3d8474a014fd8169d8313a2013f38f1ec5ec67c16d36fd5c878ce252f0"
+      "sha256": "ecb63a3d8474a014fd8169d8313a2013f38f1ec5ec67c16d36fd5c878ce252f0",
+      "size": 3764
     },
     {
       "path": "cmr-collection.js",
-      "size": 3500,
-      "sha256": "12b5f41c21061890283aea2e08b44d852a2aeb2f988658df22d26c5b409280fe"
+      "sha256": "12b5f41c21061890283aea2e08b44d852a2aeb2f988658df22d26c5b409280fe",
+      "size": 3500
     },
     {
       "path": "demo-assets.js",
-      "size": 2195,
-      "sha256": "41e22185e7974bc8d0cdb5bbb590dc861689eb747d21657d27d14798fb815fb8"
+      "sha256": "41e22185e7974bc8d0cdb5bbb590dc861689eb747d21657d27d14798fb815fb8",
+      "size": 2195
     },
     {
       "path": "document-export.js",
-      "size": 3982,
-      "sha256": "b1c38363a032bb17d3814bd4746c82b977b2f5dc3f2ce2902503f99ad0da8c5f"
+      "sha256": "b1c38363a032bb17d3814bd4746c82b977b2f5dc3f2ce2902503f99ad0da8c5f",
+      "size": 3982
     },
     {
       "path": "document-pdf.js",
-      "size": 13312,
-      "sha256": "d469b63871902e94f3e83bed6404fea3f4a65ab97b656967552cf6de35471be5"
+      "sha256": "d469b63871902e94f3e83bed6404fea3f4a65ab97b656967552cf6de35471be5",
+      "size": 13312
     },
     {
       "path": "document-processing.js",
-      "size": 4452,
-      "sha256": "8e143ffc9abc6331fa0b065afdf36172b6465ff6ea7832a8edc5b80571f95827"
+      "sha256": "8e143ffc9abc6331fa0b065afdf36172b6465ff6ea7832a8edc5b80571f95827",
+      "size": 4452
     },
     {
       "path": "driver.css",
-      "size": 34430,
-      "sha256": "9196948cf326cc39989e1569644ee21405c709d21e9194ed04636798847f1c58"
+      "sha256": "9196948cf326cc39989e1569644ee21405c709d21e9194ed04636798847f1c58",
+      "size": 34430
     },
     {
       "path": "flow.css",
-      "size": 98803,
-      "sha256": "30419e5c0b9bc77244fc8a7a68afe98ea4386afdd19e52102312c0b10d12d333"
+      "sha256": "30419e5c0b9bc77244fc8a7a68afe98ea4386afdd19e52102312c0b10d12d333",
+      "size": 98803
     },
     {
       "path": "flow.js",
-      "size": 348932,
-      "sha256": "d4e050114b78b52a210421273ce74321a54a4b89d10cd22662d51cef6f43b39c"
+      "sha256": "83b46c572150557d0cddbb796b77dcd66442827810ef0acc868b08fa87a83c7f",
+      "size": 349228
     },
     {
       "path": "handover-v2.css",
-      "size": 20339,
-      "sha256": "53f8e538e7e129430c53937cded43ce934f1faeb7b882ede4030cd4a873370b0"
+      "sha256": "53f8e538e7e129430c53937cded43ce934f1faeb7b882ede4030cd4a873370b0",
+      "size": 20339
     },
     {
       "path": "handover-v2.js",
-      "size": 23676,
-      "sha256": "104e2b67792418d212f293200ac4da44ff7b352a81064fb1a269d5af104f4276"
+      "sha256": "104e2b67792418d212f293200ac4da44ff7b352a81064fb1a269d5af104f4276",
+      "size": 23676
     },
     {
       "path": "index.html",
-      "size": 13143,
-      "sha256": "321bcfbe595aa00f61370197ffb218286a0f2645bd482cf9c203340f02f51b99"
+      "sha256": "101e8ff5ba401b852fa8d5d19bbe5bdf03f85d5c86fff6c44e782da376ce2c9b",
+      "size": 13184
     },
     {
       "path": "operation-timing.js",
-      "size": 2727,
-      "sha256": "fb1a0318f34842e9efce767136ed2a57bad3594395f69b79c00808fc506585fc"
+      "sha256": "fb1a0318f34842e9efce767136ed2a57bad3594395f69b79c00808fc506585fc",
+      "size": 2727
     },
     {
       "path": "paper-scanner.js",
-      "size": 12537,
-      "sha256": "e1de376385b1b7babf6f0cafa011c662eadeea4e686f18b957d0a96f00eb7880"
+      "sha256": "e1de376385b1b7babf6f0cafa011c662eadeea4e686f18b957d0a96f00eb7880",
+      "size": 12537
     },
     {
       "path": "robots.txt",
-      "size": 26,
-      "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1"
+      "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1",
+      "size": 26
     },
     {
       "path": "scan-quality.js",
-      "size": 3391,
-      "sha256": "ee0eb508d0de7f20c358265263241cf73757b59445308ce6655f03598f6b82fa"
+      "sha256": "ee0eb508d0de7f20c358265263241cf73757b59445308ce6655f03598f6b82fa",
+      "size": 3391
     },
     {
       "path": "scanner.css",
-      "size": 10644,
-      "sha256": "9067e061fe22a03506881f3f040b8522c8eb0a0fa5216e70777514efbf350cfb"
+      "sha256": "9067e061fe22a03506881f3f040b8522c8eb0a0fa5216e70777514efbf350cfb",
+      "size": 10644
     },
     {
       "path": "scanner.js",
-      "size": 36386,
-      "sha256": "c47b90d87ead64660ac9fc26263c5c9afa84ecb79b4ae7df96f7ebde0138b05b"
+      "sha256": "3ab19206aee762427de93cc87ec412c76187118715c2f3a4b0fb21fbbe4d071c",
+      "size": 36439
     },
     {
       "path": "service-survey.js",
-      "size": 4113,
-      "sha256": "2721e1009d270dd2e8ccff28965563b8c43c4aef12852f1a6d9ea96a81753647"
+      "sha256": "2721e1009d270dd2e8ccff28965563b8c43c4aef12852f1a6d9ea96a81753647",
+      "size": 4113
     },
     {
       "path": "service.css",
-      "size": 42301,
-      "sha256": "f601163832db3d1e318b38123d73392852ed2988f17ba7545f4cbc109c68e2ce"
+      "sha256": "f601163832db3d1e318b38123d73392852ed2988f17ba7545f4cbc109c68e2ce",
+      "size": 42301
     },
     {
       "path": "ss-scanner/core.js",
-      "size": 92211,
-      "sha256": "44e316d8f784108b474afb5ee720f3fce10a915d3c504f568db479e799d6a29a"
+      "sha256": "44e316d8f784108b474afb5ee720f3fce10a915d3c504f568db479e799d6a29a",
+      "size": 92211
     },
     {
       "path": "tacho-day-summary.js",
-      "size": 1955,
-      "sha256": "3d16eda1287f98605490b35fec42b7ed2b02c6330ae9999f91b4ac91cf0a18c6"
+      "sha256": "3d16eda1287f98605490b35fec42b7ed2b02c6330ae9999f91b4ac91cf0a18c6",
+      "size": 1955
     },
     {
       "path": "tacho.css",
-      "size": 23613,
-      "sha256": "62bb3d2346c5527a2893daca6cfeb5451dfae749e564010275e530e838e42df0"
+      "sha256": "62bb3d2346c5527a2893daca6cfeb5451dfae749e564010275e530e838e42df0",
+      "size": 23613
     },
     {
       "path": "tacho.js",
-      "size": 36471,
-      "sha256": "e62050aad39672abb36d12816de854e4ad7c0177c2ec2a86402453bb53bd8bec"
+      "sha256": "e62050aad39672abb36d12816de854e4ad7c0177c2ec2a86402453bb53bd8bec",
+      "size": 36471
     },
     {
       "path": "transshipment.css",
-      "size": 27929,
-      "sha256": "d56dd7b7dd7eaf51d9fe5bd3720570b9c0c2a856e952bdc20e88d622af8c3885"
+      "sha256": "d56dd7b7dd7eaf51d9fe5bd3720570b9c0c2a856e952bdc20e88d622af8c3885",
+      "size": 27929
     },
     {
       "path": "transshipment.js",
-      "size": 8659,
-      "sha256": "330bb6cc9d0d4804c160a9c381227f54affad6d50b49bfa811abc76157f824df"
+      "sha256": "330bb6cc9d0d4804c160a9c381227f54affad6d50b49bfa811abc76157f824df",
+      "size": 8659
     },
     {
       "path": "vehicle-handover.js",
-      "size": 5958,
-      "sha256": "a72eabdf3d2b8e8c6beb8b655e1dd072d3a5f3ed80455a8ad431d0488ba745ee"
+      "sha256": "a72eabdf3d2b8e8c6beb8b655e1dd072d3a5f3ed80455a8ad431d0488ba745ee",
+      "size": 5958
     },
     {
       "path": "vehicle-inspection-v2.js",
-      "size": 9744,
-      "sha256": "afffe222d55049bba5fa434b0639f5aef880519fedb03aa64be7c7996bfb59b7"
-    },
-    {
-      "path": "vendor/opencv-4.13.0.js",
-      "size": 10964323,
-      "sha256": "63366510248adf3a7eddf3e793dd825404efb7df3749f4d6f8557c7fa4ca8aa0"
+      "sha256": "afffe222d55049bba5fa434b0639f5aef880519fedb03aa64be7c7996bfb59b7",
+      "size": 9744
     },
     {
       "path": "vendor/OpenCV-LICENSE.txt",
-      "size": 11358,
-      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
     },
     {
       "path": "vendor/OpenCV-NOTICE.txt",
-      "size": 500,
-      "sha256": "bca6efdc15e7dac49ec88f9dfb331dd7692473e724251639e9137994edcc1a70"
+      "sha256": "bca6efdc15e7dac49ec88f9dfb331dd7692473e724251639e9137994edcc1a70",
+      "size": 500
+    },
+    {
+      "path": "vendor/opencv-4.13.0.js",
+      "sha256": "63366510248adf3a7eddf3e793dd825404efb7df3749f4d6f8557c7fa4ca8aa0",
+      "size": 10964323
     },
     {
       "path": "vendor/pdf-lib-1.17.1.min.js",
-      "size": 525099,
-      "sha256": "0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f"
+      "sha256": "0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f",
+      "size": 525099
     },
     {
       "path": "vendor/pdf-lib-LICENSE.txt",
-      "size": 1070,
-      "sha256": "f2c9fc00fdb66eb99ac156ba52d734af66d8d309f65753ae809ad34ee2883bcb"
+      "sha256": "f2c9fc00fdb66eb99ac156ba52d734af66d8d309f65753ae809ad34ee2883bcb",
+      "size": 1070
     },
     {
       "path": "vendor/pdf-lib-NOTICE.txt",
-      "size": 571,
-      "sha256": "2a04adfbad19023be781b0bcb6fcaf561ca53261d881a97f3dd7130d5f861552"
+      "sha256": "2a04adfbad19023be781b0bcb6fcaf561ca53261d881a97f3dd7130d5f861552",
+      "size": 571
+    },
+    {
+      "path": "web-backend.js",
+      "sha256": "848b596602308bf987f9ba8a91d29b4509346f70ed679edf1ca64df1ff5fa0b4",
+      "size": 21960
     }
   ]
 }
