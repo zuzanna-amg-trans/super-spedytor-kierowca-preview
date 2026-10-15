@@ -84,8 +84,8 @@ const routeStopDefinitions={
   }
 };
 const collectionSources=[
-  {id:'driver-demo-a',name:'Kierowca demonstracyjny A',vehicle:'Pojazd DEMO 01'},
-  {id:'driver-demo-b',name:'Kierowca demonstracyjny B',vehicle:'Pojazd DEMO 02'}
+  {id:'driver-demo-a',name:'Marek Nowak',vehicle:'Zestaw 01',color:'blue',initials:'MN'},
+  {id:'driver-demo-b',name:'Piotr Wiśniewski',vehicle:'Zestaw 02',color:'violet',initials:'PW'}
 ];
 const collectionOrders=[
   {id:'handover-demo-1',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0001',qrCode:'DEMO-CMR-0001',unloadedAt:'11 paź · 16:40'},
@@ -97,15 +97,19 @@ const collectionOrders=[
   {id:'handover-demo-7',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0007',qrCode:'DEMO-CMR-0007',unloadedAt:'12 paź · 15:05'},
   {id:'handover-demo-8',sourceId:'driver-demo-b',orderId:'DEMO/CMR/0008',qrCode:'DEMO-CMR-0008',unloadedAt:'12 paź · 17:20'},
   {id:'handover-demo-9',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0009',qrCode:'DEMO-CMR-0009',unloadedAt:'13 paź · 07:30'},
-  {id:'handover-demo-10',sourceId:'driver-demo-b',orderId:'DEMO/CMR/0010',qrCode:'DEMO-CMR-0010',unloadedAt:'13 paź · 08:10'}
+  {id:'handover-demo-10',sourceId:'driver-demo-b',orderId:'DEMO/CMR/0010',qrCode:'DEMO-CMR-0010',unloadedAt:'13 paź · 08:10'},
+  {id:'handover-demo-11',sourceId:'driver-demo-a',orderId:'DEMO/CMR/0011',qrCode:'DEMO-CMR-0011',unloadedAt:'13 paź · 09:15'},
+  {id:'handover-demo-12',sourceId:'driver-demo-b',orderId:'DEMO/CMR/0012',qrCode:'DEMO-CMR-0012',unloadedAt:'13 paź · 10:40'}
 ];
+const collectionModel=window.SuperSpedytorCmrCollection;
+const collectionScenarios={complete:'Komplet dokumentów',missing:'Brakuje 1 CMR · 5 z 6',foreign:'Szósty CMR od innej osoby'};
 const transshipmentPlan={
   id:'TS/DEMO/2026/001',
   ownerVersion:41,
-  sourceDriver:{id:'driver-demo-transfer',name:'Kierowca demonstracyjny C',vehicle:'DEMO 03 · ciągnik + naczepa'},
+  sourceDriver:{id:'driver-demo-transfer',name:'Adam Kowalski',vehicle:'DEMO 03 · ciągnik + naczepa'},
   receiverVehicle:{id:'vehicle-demo-receiver',registration:'DEMO 04',label:'Twój pojazd · DEMO 04'},
   orders:[
-    {id:'DEMO/TS/640',sourceDriver:{id:'driver-demo-d',name:'Kierowca demonstracyjny D',vehicle:'DEMO 05'},goods:'Skrzynia oświetleniowa',massKg:180,unload:{sequence:5,company:'Centrum demonstracyjne Hamburg',city:'DE-20095 Hamburg',appointment:'16 paź · 09:00',plannedAt:'2026-10-16T09:00:00+02:00'},cmr:{expectedSeal:'CMR-HAM-640',pages:1},pieces:[{id:'TS-640-1',name:'Skrzynia oświetleniowa',description:'Sprzęt oświetleniowy · 100 × 80 cm',expectedSeal:'LAD-640-A',photoIndex:1}]},
+    {id:'DEMO/TS/640',sourceDriver:{id:'driver-demo-d',name:'Tomasz Zieliński',vehicle:'DEMO 05'},goods:'Skrzynia oświetleniowa',massKg:180,unload:{sequence:5,company:'Centrum demonstracyjne Hamburg',city:'DE-20095 Hamburg',appointment:'16 paź · 09:00',plannedAt:'2026-10-16T09:00:00+02:00'},cmr:{expectedSeal:'CMR-HAM-640',pages:1},pieces:[{id:'TS-640-1',name:'Skrzynia oświetleniowa',description:'Sprzęt oświetleniowy · 100 × 80 cm',expectedSeal:'LAD-640-A',photoIndex:1}]},
     {
       id:'DEMO/TS/310',customerRef:'REF-POZ-310',goods:'2 skrzynie eventowe',massKg:420,
       unload:{sequence:2,company:'Centrum demonstracyjne Poznań',city:'PL-60-101 Poznań',appointment:'14 paź · 09:00',plannedAt:'2026-10-14T09:00:00+02:00'},
@@ -200,10 +204,12 @@ const freshRouteStop=type=>({
 });
 const freshHandoverGroup=source=>({
   sourceId:source.id,prepared:false,preparedAt:null,documents:[],pendingDocument:null,
+  shortage:null,blockedDocument:null,rejectedScans:[],
   envelope:{contentsConfirmed:false,sealCode:null,sealedAt:null},syncState:'LOCAL_ONLY'
 });
 const freshDocumentCollection=()=>({
   type:'collection',role:collectionPreviewRole,transferorSourceId:collectionSources[0].id,activeSourceId:null,
+  scenario:Object.hasOwn(collectionScenarios,appQuery.get('cmrScenario'))?appQuery.get('cmrScenario'):'complete',
   screen:'info',returnScreen:'info',started:false,finished:false,messages:[],groups:collectionSources.map(freshHandoverGroup),syncState:'LOCAL_ONLY'
 });
 const freshTransshipment=()=>transshipmentModel.createSession(transshipmentPlan);
@@ -591,8 +597,8 @@ const vehicleHandoverSnapshot={
   status:'awaiting_receiver',
   createdAt:'2026-10-13T08:30:00+02:00',
   vehicle:{id:'vehicle-demo-01',registration:'DEMO 01',name:'Pojazd demonstracyjny',makeModel:'Ciągnik demonstracyjny'},
-  transferor:{id:'driver-demo-a',code:'K-DEMO-A',displayName:'Kierowca demonstracyjny A',confirmedAt:'2026-10-13T08:34:00+02:00'},
-  receiver:{id:'driver-demo-b',code:'K-DEMO-B',displayName:'Kierowca demonstracyjny B'},
+  transferor:{id:'driver-demo-a',code:'K-DEMO-A',displayName:'Marek Nowak',confirmedAt:'2026-10-13T08:34:00+02:00'},
+  receiver:{id:'driver-demo-b',code:'K-DEMO-B',displayName:'Piotr Wiśniewski'},
   handoverPlace:'Baza AMG · miejsce demonstracyjne',
   photoRequirements:handoverPhotoGroups.flatMap(group=>group.items.map(item=>({...item,groupId:group.id}))),
   equipment:handoverSourceGroups.flatMap(group=>group.items.map(item=>({
@@ -802,8 +808,10 @@ const collection=()=>state.routeStops.collection;
 const collectionSource=id=>collectionSources.find(source=>source.id===id)||collectionSources[0];
 const collectionGroup=(sourceId=collection().activeSourceId)=>sourceId?collection().groups.find(group=>group.sourceId===sourceId)||null:null;
 const collectionGroupOrders=(group=collectionGroup())=>group?collectionOrders.filter(order=>order.sourceId===group.sourceId):[];
-const availableCollectionOrders=(group=collectionGroup())=>group?collectionGroupOrders(group).filter(order=>!group.documents.some(record=>record.handoverId===order.id)&&group.pendingDocument?.handoverId!==order.id):[];
-const collectionDocumentsReady=(group=collectionGroup())=>Boolean(group&&!group.pendingDocument&&collectionGroupOrders(group).length>0&&group.documents.length===collectionGroupOrders(group).length&&group.documents.every(record=>record.confirmed));
+const collectionAssessment=(group=collectionGroup())=>collectionModel.assess(group,collectionOrders);
+const availableCollectionOrders=(group=collectionGroup())=>group?collectionAssessment(group).remaining.filter(order=>group.pendingDocument?.handoverId!==order.id):[];
+const collectionDocumentsReady=(group=collectionGroup())=>collectionAssessment(group).canSeal;
+const collectionMissingOrders=(group=collectionGroup())=>collectionAssessment(group).missing;
 const collectionEnvelopeReady=(group=collectionGroup())=>Boolean(group&&collectionDocumentsReady(group)&&group.envelope.contentsConfirmed&&group.envelope.sealCode);
 const allCollectionGroupsReady=()=>collection().groups.every(group=>collectionEnvelopeReady(group));
 const nextPendingCollectionGroup=()=>collection().groups.find(group=>!collectionEnvelopeReady(group));
@@ -966,8 +974,9 @@ function goStop(screen){
   if(!stop)return;
   if(state.routeStop==='collection'){
     if(collection().role!=='receiver'&&screen!=='info'){toast('To konto ma tylko zadanie przygotowania własnych dokumentów.');return;}
-    if(screen==='photos'&&(!collection().started||!collectionGroup())){toast('Najpierw zeskanuj QR pierwszego dokumentu CMR. System sam rozpozna kierowcę.');return;}
-    if(screen==='documents'&&!collectionDocumentsReady()){toast('Najpierw zeskanuj i sprawdź wszystkie CMR-y tego kierowcy.');return;}
+    if(screen==='photos'&&(!collection().started||!collectionGroup())){toast('Najpierw wybierz osobę, od której odbierasz dokumenty.');return;}
+    if(screen==='documents'&&!collectionDocumentsReady()){toast('Najpierw odbierz pozostałe CMR-y lub odnotuj brak oryginałów.');return;}
+    if(screen==='envelope-scan'&&(!collectionDocumentsReady()||!collectionGroup().envelope.contentsConfirmed||collectionGroup().envelope.sealCode)){toast('Najpierw sprawdź i potwierdź zawartość koperty.');return;}
     if(screen==='review'&&!collectionEnvelopeReady()){toast('Najpierw potwierdź zawartość, naklej nieużytą plombę i zeskanuj jej QR.');return;}
   }
   if(state.routeStop==='transshipment'){
@@ -983,7 +992,7 @@ function goStop(screen){
   render();
   if(state.routeStop==='transshipment'&&screen==='photos')focusTransshipmentAction();
   else if(state.routeStop==='collection'&&screen==='photos')focusNextAction(collectionGroup()?.pendingDocument?'.collection-pending-preview':'#collection-add-document','center');
-  else if(state.routeStop==='collection'&&screen==='documents')focusNextAction('#collection-envelope-confirm','center');
+  else if(state.routeStop==='collection'&&screen==='documents')focusNextAction('#collection-envelope-checklist','start');
   else $('#app-scroll').scrollTop=0;
 }
 function switchOperation(operation,screen='info'){
@@ -1290,7 +1299,47 @@ function transferorCollectionView(){
 function receiverCollectionInfoView(){
   const record=collection(),active=collectionGroup(),activeSource=active?collectionSource(active.sourceId):null,hasOpenEnvelope=Boolean(active&&!collectionEnvelopeReady(active)&&record.started);
   if(hasOpenEnvelope)return `${collectionHeader('info',`Dokończ odbiór od kierowcy`,`${activeSource.name} ma rozpoczętą kopertę. Wróć do niej i zakończ wszystkie CMR-y przed wyborem kolejnej osoby.`)}<section class="panel collection-active-driver"><div class="collection-active-driver-icon">${icon('envelope')}</div><div><small>AKTYWNA KOPERTA</small><h3>${esc(activeSource.name)}</h3><p>${esc(activeSource.vehicle)}</p><div class="collection-order-chips">${collectionGroupOrders(active).map(order=>`<span>${esc(order.orderId)}</span>`).join('')}</div></div></section><div class="collection-open-warning collection-large-instruction">${icon('info')}<p><strong>Teraz zajmujesz się tylko tym kierowcą</strong>Nie rozpoczynaj odbioru od innej osoby, dopóki ta koperta nie zostanie sprawdzona i zaplombowana.</p></div>`;
-  return `${collectionHeader('info','Od którego kierowcy odbierasz dokumenty?','Wybierz osobę, z którą właśnie się spotkałeś. Po wyborze zobaczysz wyłącznie jej CMR-y i jej oddzielną kopertę.')}<div class="collection-queue-title"><span>KIEROWCY I CMR-Y DO ODBIORU</span><b>${record.groups.filter(collectionEnvelopeReady).length}/${record.groups.length} koperty gotowe</b></div><div class="collection-driver-queue collection-driver-choice-list">${record.groups.map(group=>{const item=collectionSource(group.sourceId),orders=collectionGroupOrders(group),sealed=collectionEnvelopeReady(group);const content=`<span class="collection-driver-state">${sealed?icon('check'):icon('envelope')}</span><span class="collection-driver-choice-content"><strong>${esc(item.name)}</strong><small>${esc(item.vehicle)}</small><span class="collection-driver-orders">${orders.map(order=>`<b>${esc(order.orderId)}</b>`).join('')}</span>${sealed?`<em>Koperta zamknięta · plomba ${esc(group.envelope.sealCode)}</em>`:`<span class="collection-driver-choice-action">Odbieram dokumenty od tego kierowcy ${icon('arrow')}</span>`}</span>`;return sealed?`<div class="collection-driver-choice complete">${content}</div>`:`<button data-collection-source="${esc(group.sourceId)}" class="collection-driver-choice" aria-label="Odbieram dokumenty od: ${esc(item.name)}">${content}</button>`;}).join('')}</div><div class="collection-large-instruction collection-selection-help">${icon('info')}<p><strong>Jedna osoba = jedna koperta</strong>Najpierw wybierz kierowcę. Potem skanuj i sprawdzaj wyłącznie jego dokumenty.</p></div>`;
+  const ready=record.groups.filter(collectionEnvelopeReady).length;
+  return `${collectionHeader('info','Lista kierowców, od których odbierzesz dokumenty.','Wybierz osobę, od której odbierzesz dokumenty. Następnie zeskanuj każdą plombę na CMR i dodaj dokumenty do nowej, pustej koperty.')}
+    <div class="collection-envelope-progress" role="status"><span>${icon('envelope')}</span><div><strong>${ready}/${record.groups.length}</strong><b>koperty gotowe</b><small>Każdy kierowca ma osobną kopertę</small></div></div>
+    <div class="collection-queue-title"><span>KIEROWCY I CMR-Y DO ODBIORU</span></div>
+    <div class="collection-driver-queue collection-driver-choice-list">${[...record.groups].sort((left,right)=>Number(collectionEnvelopeReady(left))-Number(collectionEnvelopeReady(right))).map(group=>{
+      const item=collectionSource(group.sourceId),orders=collectionGroupOrders(group),sealed=collectionEnvelopeReady(group),missing=collectionMissingOrders(group);
+      const content=`<span class="collection-driver-state">${sealed?icon('check'):esc(item.initials)}</span><span class="collection-driver-choice-content"><strong>${esc(item.name)}</strong><small>${esc(item.vehicle)} · ${sealed?`Przejęto ${group.documents.length}/${orders.length} CMR`:`${orders.length} CMR do odbioru`}</small><span class="collection-driver-orders">${orders.map(order=>`<b>${esc(order.orderId)}</b>`).join('')}</span>${sealed?`<em><span class="collection-received-badge">${icon('check')}Koperta odebrana</span>${missing.length?`<span class="collection-shortage-badge">Do wyjaśnienia: brak ${missing.length} CMR</span>`:''}Plomba ${esc(group.envelope.sealCode)}</em>`:`<span class="collection-driver-choice-action">Odbieram dokumenty ${icon('arrow')}</span>`}</span>`;
+      return sealed?`<div class="collection-driver-choice collection-color-${item.color} complete">${content}</div>`:`<button data-collection-source="${esc(group.sourceId)}" class="collection-driver-choice collection-color-${item.color}" aria-label="Odbieram dokumenty od: ${esc(item.name)}">${content}</button>`;
+    }).join('')}</div>
+    <div class="collection-large-instruction collection-selection-help">${icon('info')}<p><strong>Jedna osoba = jedna koperta</strong>Porównaj każdy papierowy CMR z podglądem i zatwierdź odbiór, zanim włożysz go do koperty.</p></div>
+    ${collectionSimulationControls()}`;
+}
+function collectionSimulationControls(){
+  if(androidShell)return '';
+  return `<details class="collection-simulation-controls"><summary>Symulacje odbioru dokumentów</summary><p>Fikcyjne osoby i dane. Rozpoczniesz nowy przykład odbioru od Marka Nowaka.</p><button data-collection-scenario="missing">Brakuje CMR · odbiór 5 z 6</button><button data-collection-scenario="foreign">6 dokumentów · jeden innej osoby</button><button data-collection-scenario="complete">Pełny komplet · zacznij od nowa</button></details>`;
+}
+function startCollectionScenario(scenario){
+  if(!Object.hasOwn(collectionScenarios,scenario))return;
+  clearTimeout(toastTimer);$('#toast').textContent='';$('#toast').classList.remove('visible');
+  const record=freshDocumentCollection();record.scenario=scenario;
+  state.routeStops.collection=record;
+  state.routeStop='collection';state.serviceOpen=false;
+  if(scenario!=='complete'){
+    const group=record.groups[0];
+    record.activeSourceId=group.sourceId;record.started=true;
+    group.documents=collectionOrders.filter(order=>order.sourceId===group.sourceId).slice(0,5).map((order,index)=>({
+      id:`collection-fixture-${order.id}`,hash:`tms-scan-${order.id}`,demo:true,kind:'collection-cmr-reference',mime:'image/svg+xml',
+      name:`CMR-${order.orderId}`,handoverId:order.id,sourceId:order.sourceId,orderId:order.orderId,qrCode:order.qrCode,
+      unloadedAt:order.unloadedAt,confirmed:true,acceptedAt:`10:${String(30+index).padStart(2,'0')}`
+    })).reverse();
+  }
+  goStop(scenario==='complete'?'info':'photos');
+}
+function collectionShortageView(group){
+  const missing=collectionMissingOrders(group);
+  if(!missing.length)return '';
+  return `<section class="collection-exception recorded" role="status"><div class="collection-exception-title">${icon('warning')}<h3>Odebrano ${group.documents.length}/${collectionGroupOrders(group).length} CMR · brak ${missing.length}</h3></div><p>Brakujące oryginały:</p><ul>${missing.map(order=>`<li><strong>${esc(order.orderId)}</strong><small>Plomba ${esc(order.qrCode)}</small><button class="collection-reference-button" data-collection-reference="${esc(order.id)}" data-collection-source="${esc(group.sourceId)}">${icon('doc')}Pokaż skan brakującej CMR</button></li>`).join('')}</ul><p>Te dokumenty nie zostały przejęte i nie znajdą się w kopercie. Brak pozostaje przy przekazującym do wyjaśnienia.</p><b class="collection-local-report">Brak odnotowany w podglądzie · oczekuje na wysłanie</b></section>`;
+}
+function collectionBlockedDocumentView(group){
+  const document=group.blockedDocument,owner=collectionSource(document.sourceId),active=collectionSource(group.sourceId);
+  return `<section class="collection-exception blocked" role="alert"><div class="collection-exception-title">${icon('warning')}<h2>To CMR innej osoby</h2></div><strong class="collection-blocked-order">${esc(document.orderId)}</strong><dl><div><dt>Przypisany do</dt><dd>${esc(owner.name)}</dd></div><div><dt>Odbierasz teraz od</dt><dd>${esc(active.name)}</dd></div></dl><p><strong>Nie wkładaj tego dokumentu do aktualnej koperty.</strong>Odłóż go osobno i wyjaśnij z przekazującym. Nie został przejęty.</p><div class="collection-rejected-counter">Przejęte nadal: ${group.documents.length}/${collectionGroupOrders(group).length}</div><button class="primary-button" id="collection-dismiss-foreign">Odłożony · wróć do odbioru</button></section>`;
 }
 function collectionInfoView(){
   return `<div class="app-content">${collection().role==='transferor'?transferorCollectionView():receiverCollectionInfoView()}</div>`;
@@ -1299,6 +1348,9 @@ function collectionDocumentPreview(record,index){
   const source=collectionSource(record.sourceId);
   const preview=record.demo?demoDocument(1,'unload',record.orderId):record.mime==='application/pdf'?`<a href="${record.url}" target="_blank" rel="noopener" class="pdf-preview">${icon('doc')}<strong>${esc(record.name)}</strong><span>Otwórz skan CMR z systemu ${icon('arrow')}</span></a>`:`<img class="collection-document-image" src="${record.url}" alt="Skan CMR z systemu dla zlecenia ${esc(record.orderId)}">`;
   return `<section class="panel collection-document-card confirmed"><div class="collection-document-heading"><span class="number-circle">${index+1}</span><div>${index===0?'<span class="collection-newest-badge">NAJNOWSZY PRZEJĘTY</span>':''}<small>${esc(source.name)} · przejęto ${esc(record.acceptedAt||record.scannedAt||'przed chwilą')}</small><h3>${esc(record.orderId)}</h3></div><span class="collection-accepted-icon" aria-label="Dokument przejęty">${icon('check')}</span></div><div class="collection-match-status">${icon('check')} DOKUMENT PRZEJĘTY · oryginał zgodny ze skanem CMR</div><div class="collection-preview">${preview}</div></section>`;
+}
+function collectionSearchPreview(order){
+  return `<div class="collection-reference-meta"><strong>${esc(order.orderId)}</strong><span>Plomba CMR: ${esc(order.qrCode)}</span></div><div class="collection-preview collection-search-preview">${demoDocument(1,'unload',order.orderId)}</div><p class="collection-reference-note">Podgląd do szukania oryginału. Nie potwierdza odbioru i nie dodaje CMR do koperty.</p>`;
 }
 function collectionPendingDocumentView(record){
   const source=collectionSource(record.sourceId);
@@ -1309,19 +1361,46 @@ function collectionPendingDocumentView(record){
 function collectionScanView(){
   const group=collectionGroup(),source=collectionSource(group.sourceId),orders=collectionGroupOrders(group),available=availableCollectionOrders(group),verifying=group.pendingDocument;
   if(verifying)return `<div class="app-content cmr-verification-content">${collectionPendingDocumentView(verifying)}</div>`;
+  if(group.blockedDocument)return `<div class="app-content">${collectionBlockedDocumentView(group)}</div>`;
   const headerTitle=verifying?'Sprawdź zeskanowany CMR':`Odbierasz dokumenty od: ${source.name}`;
   const headerDescription=verifying?'QR został rozpoznany, ale dokument nie został jeszcze przejęty. Porównaj papierowy oryginał z podglądem i wybierz jedną decyzję.':'Skup się teraz wyłącznie na tej osobie. Po zatwierdzeniu każdy przejęty CMR trafi na samą górę listy.';
   const acceptedList=group.documents.length?`<div class="collection-accepted-heading"><span>JUŻ PRZEJĘTE DOKUMENTY</span><b>${group.documents.length}/${orders.length}</b></div>${group.documents.map(collectionDocumentPreview).join('')}`:'';
-  return `<div class="app-content">${collectionHeader('photos',headerTitle,headerDescription)}<div class="collection-driver-ribbon"><span>${icon('envelope')}</span><p><small>AKTYWNA KOPERTA</small><strong>${esc(source.name)}</strong>${esc(source.vehicle)}</p><b>${group.documents.length}/${orders.length}</b></div>${verifying?collectionPendingDocumentView(verifying):group.envelope.sealCode?'':available.length?`<button class="collection-add-document collection-scan-primary" id="collection-add-document">${icon('qr')}<span><strong>${group.documents.length?'Skanuj następny CMR':'Skanuj pierwszy CMR'}</strong><small>Po odczycie zobaczysz właściwy skan. Dokument trafi do koperty dopiero po zatwierdzeniu.</small></span>${icon('arrow')}</button>`:''}<div class="collection-counter"><span>${icon('check')}<strong>Przejęte: ${group.documents.length} z ${orders.length}</strong></span><b>${verifying?'1 oczekuje na decyzję':'Brak dokumentu do decyzji'}</b></div>${acceptedList}${!available.length&&!verifying&&!group.envelope.sealCode?`<div class="collection-prepared-state collection-large-instruction">${icon('check')}<p><strong>Wszystkie CMR-y zostały przejęte</strong>Każdy oryginał zatwierdzono po porównaniu z podglądem. Możesz przejść do zamknięcia tej koperty.</p></div>`:''}<div class="collection-chain-note collection-large-instruction">${icon('info')}<p><strong>Aktualna koperta: ${esc(source.name)}</strong>Wkładaj tutaj tylko zatwierdzone dokumenty tej osoby. CMR innego kierowcy nie zostanie dodany do tej koperty.</p></div></div>`;
+  const missing=collectionMissingOrders(group),simulation=collection().scenario!=='complete'&&group.sourceId===collectionSources[0].id&&group.documents.length===5;
+  const simulationNote=simulation?`<div class="collection-simulation-note"><b>SYMULACJA · ${esc(collectionScenarios[collection().scenario])}</b><span>Pięć CMR już sprawdzono i przyjęto. ${collection().scenario==='missing'?'Marek nie ma ostatniej CMR z listy.':'Marek podaje szósty dokument, ale QR wskazuje Piotra Wiśniewskiego.'}</span></div>`:'';
+  const unresolved=available.length?`<section class="collection-outstanding"><h3>Jeszcze do odebrania · ${available.length}</h3><p>Nie możecie znaleźć CMR? Otwórz skan i sprawdźcie inne koszulki. Jeśli nadal go nie ma, zgłoś brak.</p>${available.map(order=>`<div><strong>${esc(order.orderId)}</strong><small>Plomba ${esc(order.qrCode)}</small><button class="collection-reference-button" data-collection-reference="${esc(order.id)}">${icon('doc')}Pokaż skan CMR</button></div>`).join('')}<button class="collection-report-missing" id="collection-report-missing">${icon('warning')}Zgłoś brak dokumentu</button></section>`:'';
+  const success=collectionAssessment(group).complete&&!group.envelope.sealCode?`<div class="collection-prepared-state collection-large-instruction">${icon('check')}<p><strong>Wszystkie CMR-y zostały przejęte</strong>Możesz zamknąć kopertę z ${group.documents.length} dokumentami.</p></div>`:'';
+  return `<div class="app-content">${collectionHeader('photos',headerTitle,headerDescription)}${simulationNote}<div class="collection-driver-ribbon collection-color-${source.color}"><span>${esc(source.initials)}</span><p><small>AKTYWNA KOPERTA</small><strong>${esc(source.name)}</strong>${esc(source.vehicle)}</p><b>${group.documents.length}/${orders.length}</b></div>
+    ${group.envelope.sealCode||(!available.length&&!missing.length)?'':`<button class="collection-add-document collection-scan-primary" id="collection-add-document">${icon('qr')}<span><strong>${missing.length&&!available.length?'Skanuj odnaleziony CMR':group.documents.length?'Skanuj następny CMR':'Skanuj pierwszy CMR'}</strong><small>Porównaj podgląd i zatwierdź dokument. Dopiero wtedy zostanie przejęty.</small></span>${icon('arrow')}</button>`}
+    <div class="collection-counter"><span>${icon('check')}<strong>Przejęte: ${group.documents.length} z ${orders.length}</strong></span><b>${missing.length?'Odnotowano brak: '+missing.length:'Tylko zatwierdzone CMR'}</b></div>${collectionShortageView(group)}${unresolved}${success}${acceptedList}<div class="collection-chain-note collection-large-instruction">${icon('info')}<p><strong>Aktualna koperta: ${esc(source.name)}</strong>Wkładaj tutaj tylko zatwierdzone dokumenty tej osoby. CMR innego kierowcy nie zostanie dodany do tej koperty.</p></div></div>`;
 }
 function collectionEnvelopeView(){
   const group=collectionGroup(),source=collectionSource(group.sourceId),sealed=Boolean(group.envelope.sealCode);
-  return `<div class="app-content">${collectionHeader('documents',`Zamknij kopertę · ${source.name}`,'Wybierz nieużytą plombę, naklej ją na zamknięcie koperty i zeskanuj jej QR. Dopiero ten odczyt przypisze numer plomby do koperty.')}<section class="panel collection-envelope-card"><div class="collection-envelope-visual"><span>${icon('envelope')}</span>${sealed?`<b>${icon('check')}</b>`:'<i>QR</i>'}</div><div class="collection-envelope-owner"><small>KOPERTA KIEROWCY</small><strong>${esc(source.name)}</strong><span>${esc(source.vehicle)}</span></div>${sealed?`<div class="collection-assigned-seal compact"><span>PLOMBA PRZYPISANA PRZY ZAMKNIĘCIU</span><strong>${esc(group.envelope.sealCode)}</strong></div>`:`<div class="collection-open-warning">${icon('info')}<p><strong>Plomba nie jest jeszcze przypisana</strong>Najpierw sprawdź zawartość. Potem weź dowolną nieużytą plombę, naklej ją na kopertę i zeskanuj QR — wtedy numer zostanie zapisany przy tej kopercie.</p></div>`}<div class="section-kicker">ZAWARTOŚĆ · ${group.documents.length} CMR</div><div class="collection-envelope-list">${group.documents.map((document,index)=>`<div><span>${index+1}</span><p><strong>${esc(document.orderId)}</strong><small>${esc(source.name)} · QR dokumentu sprawdzony</small></p>${icon('check')}</div>`).join('')}</div><label class="check-row collection-envelope-confirm"><input id="collection-envelope-confirm" type="checkbox" ${group.envelope.contentsConfirmed?'checked':''} ${sealed?'disabled':''}><span>Sprawdziłem zawartość i włożyłem do tej koperty wszystkie wymienione oryginały CMR tego kierowcy.</span></label><div class="seal-code-row">${sealed?`<strong>${esc(group.envelope.sealCode)}</strong>`:'<span>Brak przypisanej plomby</span>'}<button class="scan-button ${sealed?'scanned':''}" id="scan-collection-envelope" ${group.envelope.contentsConfirmed&&!sealed?'':'disabled'}>${icon(sealed?'check':'qr')}${sealed?'Zamknięta':'Naklej i skanuj plombę'}</button></div></section>${sealed?`<div class="collection-locked-note">${icon('check')}<p><strong>Ta koperta jest zamknięta</strong>Plomba ${esc(group.envelope.sealCode)} została przypisana w chwili skanowania. Dokumenty kierowcy ${esc(source.name)} są zablokowane.</p></div>`:`<p class="small-note">Numer plomby nie jest wybierany wcześniej. System sprawdzi jedynie, czy zeskanowany QR nie został już użyty.</p>`}</div>`;
+  return `<div class="app-content">${collectionHeader('documents',`Zamknij kopertę · ${source.name}`,'Włóż odebrane CMR do nowej, pustej koperty. Zamknij ją, naklej nieużytą plombę i zeskanuj jej QR.')}
+    <section class="panel collection-envelope-card" id="collection-envelope-checklist">
+      <div class="collection-packing-instruction">${icon('envelope')}<div><strong>Sprawdź wszystkie dokumenty.</strong><p>Zamknij kopertę, naklej i zeskanuj plombę.</p></div></div>
+      <div class="collection-envelope-owner"><small>OSOBNA KOPERTA</small><strong>${esc(source.name)}</strong><span>${esc(source.vehicle)}</span></div>
+      ${collectionShortageView(group)}
+      ${sealed?`<div class="collection-assigned-seal compact"><span>PLOMBA PRZYPISANA PRZY ZAMKNIĘCIU</span><strong>${esc(group.envelope.sealCode)}</strong></div>`:''}
+      <div class="section-kicker">FAKTYCZNA ZAWARTOŚĆ · ${group.documents.length} CMR</div>
+      <div class="collection-envelope-list">${group.documents.map((document,index)=>`<div><span>${index+1}</span><p><strong>${esc(document.orderId)}</strong><small>${esc(source.name)} · dokument przejęty</small></p>${icon('check')}</div>`).join('')}</div>
+      <label class="check-row collection-envelope-confirm"><input id="collection-envelope-confirm" type="checkbox" ${group.envelope.contentsConfirmed?'checked':''} ${sealed?'disabled':''}><span>Sprawdziłem zawartość. W kopercie jest dokładnie ${group.documents.length} wymienionych, odebranych oryginałów CMR.</span></label>
+      <div class="seal-code-row">${sealed?`<strong>${esc(group.envelope.sealCode)}</strong>`:'<span>Plomba zostanie przypisana po zeskanowaniu QR.</span>'}</div>
+    </section>${sealed?`<div class="collection-locked-note">${icon('check')}<p><strong>Ta koperta jest zamknięta</strong>Plomba ${esc(group.envelope.sealCode)} zabezpiecza ${group.documents.length} odebranych CMR. Odnotowane braki nadal pozostają do wyjaśnienia.</p></div>`:''}</div>`;
+}
+function collectionEnvelopeScannerView(){
+  const group=collectionGroup(),source=collectionSource(group.sourceId);
+  return `<div class="app-content collection-envelope-scanner"><div class="stage-header"><button data-collection-back="documents" aria-label="Wróć do zawartości koperty">${icon('back')}</button><div><span>Koperta · ${esc(source.name)}</span><b>SKANUJ PLOMBĘ KOPERTY</b></div></div>
+    <h2>Zeskanuj plombę z koperty</h2><p class="collection-envelope-scan-hint">Naklej nieużytą plombę na zamknięcie koperty. Skieruj aparat na jej kod QR.</p>
+    <div class="collection-envelope-visual collection-envelope-scan-art" role="img" aria-label="Zamknięta koperta z plombą QR na zamknięciu"><span>${icon('envelope')}</span><i>${icon('qr')}</i><small>Plomba na zamknięciu koperty</small></div>
+    <div class="collection-scan-owner"><strong>${esc(source.name)}</strong><span>W kopercie: ${group.documents.length} CMR</span></div>
+    <button class="primary-button" id="collection-read-envelope-qr">${icon('camera')}Otwórz skaner plomby</button>
+    <p class="small-note">Samo otwarcie skanera nie zamyka odbioru. Numer plomby zostanie przypisany dopiero po odczycie QR.</p></div>`;
 }
 function collectionReviewView(){
   const record=collection(),group=collectionGroup(),source=collectionSource(group.sourceId),totalDocuments=record.groups.reduce((sum,item)=>sum+item.documents.length,0);
-  if(record.finished)return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('envelope')}</span><h2>Odbiór zabezpieczony</h2><p>${totalDocuments} ${totalDocuments===1?'oryginał CMR został rozdzielony':'oryginały CMR zostały rozdzielone'} do osobnych, zaplombowanych kopert kierowców.</p><div class="summary-line">${icon('check')} Kierowcy przekazujący <b>${record.groups.length}</b></div><div class="summary-line">${icon('check')} Osobne koperty <b>${record.groups.length}</b></div>${record.groups.map(item=>{const owner=collectionSource(item.sourceId);return `<div class="summary-line">${icon('check')} ${esc(owner.name)} <b>${esc(item.envelope.sealCode)}</b></div>`;}).join('')}<div class="summary-line">${icon('clock')} Synchronizacja z TMS <b>OCZEKUJE</b></div></section><p class="small-note">To demonstracja offline. Zapis nie został potwierdzony przez produkcyjny Super Spedytor.</p></div>`;
-  return `<div class="app-content">${collectionHeader('review',`Koperta zamknięta · ${source.name}`,'Sprawdź dokumenty i plombę tej osoby. Każdy kolejny kierowca przechodzi identyczny proces we własnej kopercie.')}<section class="panel review-checklist"><div>${icon('check')}<span>Kierowca przekazujący<small>${esc(source.vehicle)}</small></span><b>${esc(source.name)}</b></div><div>${icon('check')}<span>Oryginały porównane ze skanami<small>${group.documents.map(document=>esc(document.orderId)).join(' · ')}</small></span><b>${group.documents.length}</b></div><div>${icon('check')}<span>Osobna koperta<small>Nie zawiera dokumentów innych kierowców.</small></span><b>1</b></div><div>${icon('check')}<span>Plomba koperty<small>Przypisana w chwili naklejenia i zeskanowania QR.</small></span><b>${esc(group.envelope.sealCode)}</b></div></section><div class="collection-chain-note">${icon('info')}<p><strong>${allCollectionGroupsReady()?'Wszystkie koperty są gotowe':'Następny kierowca otrzyma nową kopertę'}</strong>${allCollectionGroupsReady()?'Możesz zakończyć cały odbiór i zapisać go do kolejki synchronizacji.':'Nie otwieraj ani nie uzupełniaj ponownie tej zaplombowanej koperty.'}</p></div></div>`;
+  const missing=record.groups.flatMap(item=>collectionMissingOrders(item));
+  if(record.finished)return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon(missing.length?'warning':'envelope')}</span><h2>${missing.length?'Koperty zamknięte · odbiór z brakami':'Odbiór zabezpieczony'}</h2><p>Odebrano ${totalDocuments}/${collectionOrders.length} CMR. Odebrane dokumenty są w ${record.groups.length} osobnych, zaplombowanych kopertach.</p>${record.groups.map(item=>`<div class="summary-line">${icon('envelope')} ${esc(collectionSource(item.sourceId).name)} <b>${item.documents.length}/${collectionGroupOrders(item).length} CMR<br>${esc(item.envelope.sealCode)}</b></div>`).join('')}<div class="summary-line">${icon('clock')} Synchronizacja z TMS <b>OCZEKUJE</b></div></section>${record.groups.map(collectionShortageView).join('')}<p class="small-note">To demonstracja offline. Zgłoszenie braku i odbiór nie zostały wysłane do Super Spedytora.</p>${collectionSimulationControls()}</div>`;
+  return `<div class="app-content">${collectionHeader('review',`Koperta zamknięta · ${source.name}`,'Sprawdź zawartość i plombę. Odnotowany brak pozostaje widoczny także po zamknięciu koperty.')}${collectionShortageView(group)}<section class="panel review-checklist"><div>${icon('check')}<span>Kierowca przekazujący<small>${esc(source.vehicle)}</small></span><b>${esc(source.name)}</b></div><div>${icon('check')}<span>Faktycznie przejęte CMR<small>${group.documents.map(document=>esc(document.orderId)).join(' · ')}</small></span><b>${group.documents.length}/${collectionGroupOrders(group).length}</b></div><div>${icon('check')}<span>Osobna koperta<small>Tylko odebrane dokumenty tej osoby.</small></span><b>1</b></div><div>${icon('check')}<span>Plomba koperty<small>Przypisana przy zeskanowaniu QR.</small></span><b>${esc(group.envelope.sealCode)}</b></div></section><div class="collection-chain-note">${icon('info')}<p><strong>${allCollectionGroupsReady()?'Wszystkie koperty są zamknięte':'Możesz wybrać kolejną osobę'}</strong>Nie otwieraj ponownie zaplombowanej koperty.${missing.length?' Brakujące CMR pozostają do wyjaśnienia.':''}</p></div></div>`;
 }
 function transshipmentHeader(screen,title,description){
   const steps=['info','photos','review'],index=steps.indexOf(screen),record=transshipment(),progress=transshipmentProgress();
@@ -1401,14 +1480,23 @@ function stopActionView(){
     return `<div class="flow-actions"><button class="primary-button" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(action==='transshipment-finish'?'check':'arrow')}${text}</button></div>${caption?`<p class="action-caption">${caption}</p>`:''}`;
   }
   if(state.routeStop==='collection'){
+    if(screen==='envelope-scan')return '';
     const group=collection().role==='transferor'?collectionGroup(collection().transferorSourceId):collectionGroup(),orders=collectionGroupOrders(group);
     if(screen==='info'&&collection().role==='transferor'){text=group.prepared?'Dokumenty przygotowane':'Potwierdź przygotowanie otwartej koperty';action=group.prepared?'collection-prepared':'collection-prepare';disabled=group.prepared;caption=group.prepared?'Czekaj na osobę odbierającą. Nie zaklejaj koperty i nie naklejaj plomby.':'Włóż wymienione dokumenty do koperty, ale jej nie zamykaj i nie używaj plomby.';}
     if(screen==='info'&&collection().role==='receiver'){
       if(group&&collection().started&&!collectionEnvelopeReady(group)){text=`Kontynuuj kopertę · ${collectionSource(group.sourceId).name}`;action='collection-resume';caption='Nie rozpoczynaj dokumentów innej osoby, dopóki ta koperta nie zostanie zaplombowana.';}
       else return nextPendingCollectionGroup()?'<p class="action-caption collection-selection-caption">Wybierz powyżej przycisk „Odbieram dokumenty od tego kierowcy”.</p>':'<p class="action-caption collection-selection-caption">Wszystkie osobne koperty są już zamknięte.</p>';
     }
-    if(screen==='photos'){text='Dalej: zamknij tę kopertę';action='collection-envelope';disabled=!collectionDocumentsReady(group);caption=group.pendingDocument?'Najpierw zatwierdź albo odrzuć wyświetlony dokument. Nie możesz teraz skanować kolejnego CMR.':group.documents.length?collectionDocumentsReady(group)?'Wszystkie oryginały tego kierowcy zostały przejęte po porównaniu ze skanami CMR z systemu.':`Przejęte CMR-y ${group.documents.length}/${orders.length} · zeskanuj i zatwierdź każdy pozostały dokument.`:`Zeskanuj QR na ${orders.length} ${orders.length===1?'dokumencie':'dokumentach'} tego kierowcy.`;}
-    if(screen==='documents'){text='Dalej: sprawdź tę kopertę';action='collection-review';disabled=!collectionEnvelopeReady(group);caption=collectionEnvelopeReady(group)?'Koperta tego kierowcy jest zamknięta, a zeskanowana plomba została do niej przypisana.':'Potwierdź zawartość, naklej nieużytą plombę i zeskanuj jej QR.';}
+    if(screen==='photos'){
+      const missing=collectionMissingOrders(group);
+      text=missing.length?`Zamknij kopertę z ${group.documents.length} CMR`:'Dalej: zamknij tę kopertę';action='collection-envelope';disabled=!collectionDocumentsReady(group);
+      caption=group.blockedDocument?'Obcy CMR nie został przyjęty. Odłóż go osobno.':group.pendingDocument?'Najpierw porównaj podgląd i zatwierdź albo odrzuć dokument.':missing.length?`Odebrano ${group.documents.length}/${orders.length}. Brak ${missing.length} CMR jest odnotowany i pozostaje do wyjaśnienia.`:group.documents.length?collectionDocumentsReady(group)?'Wszystkie oryginały zostały przejęte. Możesz zamknąć kopertę.':`Przejęte ${group.documents.length}/${orders.length} · zeskanuj pozostałe CMR lub odnotuj brak.`:`Zeskanuj QR na ${orders.length} dokumentach tej osoby.`;
+    }
+    if(screen==='documents'){
+      const sealed=collectionEnvelopeReady(group);
+      text=sealed?'Dalej: sprawdź tę kopertę':'Naklej i skanuj plombę';action=sealed?'collection-review':'collection-scan-envelope';disabled=!sealed&&!group.envelope.contentsConfirmed;
+      caption=sealed?'Plomba została przypisana do tej koperty.':'Sprawdź listę i potwierdź zawartość koperty.';
+    }
     if(screen==='review'&&!allCollectionGroupsReady()){text='Wybierz następnego kierowcę';action='collection-next-driver';caption='Wrócisz do listy osób i rozpoczniesz dla wybranego kierowcy nową, oddzielną kopertę.';}
     if(screen==='review'&&allCollectionGroupsReady()){text=collection().finished?'Wróć do trasy':'Zakończ cały odbiór CMR';action=collection().finished?'collection-next':'collection-finish';disabled=!allCollectionGroupsReady();caption=collection().finished?'Zapis pozostaje lokalny do czasu potwierdzenia przez TMS.':`Gotowe ${collection().groups.length}/${collection().groups.length} osobne koperty.`;}
     if(screen==='chat')return '<p class="action-caption chat-action-caption">Wiadomości w tym prototypie są symulowane.</p>';
@@ -1436,6 +1524,7 @@ function stopDesignNotes(){
     return `<h2>Najpóźniejszy rozładunek.<br>Najpierw na auto.</h2><p class="note-description">Kierowca widzi pełny plan, ale realizuje tylko jeden bieżący krok. Dla zlecenia najpierw skanuje plombę dokumentu, potwierdza CMR, a potem odbiera po jednej sztuce ładunku.</p><div class="design-progress"><div class="design-progress-title">PRZEŁADUNEK<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Jedna sesja = jeden przekazujący</strong><p>Zlecenia i sztuki są pogrupowane po kierowcy źródłowym. Nie można przejść do kolejnego zlecenia ani kolejnej osoby bez kompletnego CMR i zgodnych plomb.</p></div>`;
   }
   if(state.routeStop==='collection'){
+    $$('[data-collection-scenario]').forEach(button=>button.onclick=()=>startCollectionScenario(button.dataset.collectionScenario));
     const activeScreen=state.screen==='chat'?(collection().returnScreen||'info'):state.screen;
     const steps=[['info','Wybór kierowcy z listy'],['photos','Najnowszy skan CMR na górze'],['documents','Naklejenie i przypisanie plomby'],['review','Potwierdzenie zamkniętej koperty']];
     const activeIndex=Math.max(0,steps.findIndex(([screen])=>screen===activeScreen));
@@ -2066,14 +2155,14 @@ function render(){
     return;
   }
   if(state.routeStop){
-    const collectionViews={info:collectionInfoView,photos:collectionScanView,documents:collectionEnvelopeView,review:collectionReviewView,chat:stopChatView};
+    const collectionViews={info:collectionInfoView,photos:collectionScanView,documents:collectionEnvelopeView,'envelope-scan':collectionEnvelopeScannerView,review:collectionReviewView,chat:stopChatView};
     const transshipmentViews={info:transshipmentInfoView,photos:transshipmentGuidedView,review:transshipmentReviewView,chat:stopChatView};
     const ordinaryViews={travel:stopTravelView,info:state.routeStop==='parking'?parkingInfoView:fuelingInfoView,photos:fuelingInProgressView,documents:fuelingExpenseView,review:routeStopSuccessView,chat:stopChatView};
     const views=state.routeStop==='collection'?collectionViews:state.routeStop==='transshipment'?transshipmentViews:ordinaryViews;
     $('#app').innerHTML=views[state.screen]();
     $('#app-action').innerHTML=stopActionView();
     $('#design-context').innerHTML=stopDesignNotes();
-    const stopStage=state.routeStop==='collection'?{info:'START',photos:'SKANOWANIE',documents:'KOPERTA',review:collection().finished?'GOTOWE':'KONTROLA',chat:'CZAT'}:state.routeStop==='transshipment'?{info:'PLAN',photos:'ODBIÓR',review:transshipment().finished?'GOTOWE':'KONTROLA',chat:'CZAT'}:{travel:'W DRODZE',info:'NA MIEJSCU',photos:'W TRAKCIE',documents:'WYDATEK',review:'GOTOWE',chat:'CZAT'};
+    const stopStage=state.routeStop==='collection'?{info:'START',photos:'SKANOWANIE',documents:'KOPERTA','envelope-scan':'SKAN PLOMBY KOPERTY',review:collection().finished?'GOTOWE':'KONTROLA',chat:'CZAT'}:state.routeStop==='transshipment'?{info:'PLAN',photos:'ODBIÓR',review:transshipment().finished?'GOTOWE':'KONTROLA',chat:'CZAT'}:{travel:'W DRODZE',info:'NA MIEJSCU',photos:'W TRAKCIE',documents:'WYDATEK',review:'GOTOWE',chat:'CZAT'};
     $('#preview-label').textContent=`${stopDefinition().title.toUpperCase()} / ${stopStage[state.screen]}`;
     $$('[data-operation]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
     $$('[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
@@ -2200,13 +2289,15 @@ function bindStopAction(){
     }
     if(action==='collection-resume'&&collectionGroup())goStop('photos');
     if(action==='collection-envelope'&&collectionDocumentsReady())goStop('documents');
+    if(action==='collection-scan-envelope')goStop('envelope-scan');
     if(action==='collection-review'&&collectionEnvelopeReady())goStop('review');
     if(action==='collection-next-driver'){
       collection().activeSourceId=null;
       collection().started=false;
       goStop('info');
+      focusNextAction('.collection-driver-choice-list','start');
     }
-    if(action==='collection-finish'&&allCollectionGroupsReady()){collection().finished=true;collection().syncState='PENDING_SYNC';collection().groups.forEach(group=>group.syncState='PENDING_SYNC');render();toast('Każdą kopertę zapisano osobno. Odbiór oczekuje na potwierdzenie TMS.');}
+    if(action==='collection-finish'&&allCollectionGroupsReady()){collection().finished=true;collection().syncState='PENDING_SYNC';collection().groups.forEach(group=>{group.syncState='PENDING_SYNC';if(group.shortage)group.shortage.syncState='PENDING_SYNC';});render();toast('Koperty i ewentualne braki oczekują na potwierdzenie TMS.');}
     if(action==='collection-next')switchOperation('load','travel');
     if(action==='stop-next')switchOperation('load','travel');
   };
@@ -2250,14 +2341,14 @@ function bindStopView(){
       toast(`Odbierasz dokumenty od: ${collectionSource(group.sourceId).name}.`);
     });
     if($('#collection-add-document'))$('#collection-add-document').onclick=()=>openModal('collection-scan');
+    if($('#collection-report-missing'))$('#collection-report-missing').onclick=()=>openModal('collection-missing');
+    $$('[data-collection-reference]').forEach(button=>button.onclick=()=>openModal('collection-reference',{itemId:button.dataset.collectionReference,sourceId:button.dataset.collectionSource||collectionGroup()?.sourceId}));
+    if($('#collection-dismiss-foreign'))$('#collection-dismiss-foreign').onclick=()=>{collectionGroup().blockedDocument=null;render();$('#app-scroll').scrollTop=0;};
     if($('#collection-accept-document'))$('#collection-accept-document').onclick=()=>{
       const group=collectionGroup(),record=group?.pendingDocument;
       if(!group||!record)return;
-      record.confirmed=true;
-      record.acceptedAt=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-      group.documents.unshift(record);
-      group.pendingDocument=null;
-      group.envelope.contentsConfirmed=false;
+      try{collectionModel.acceptPending(group,collectionOrders,new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}));}
+      catch(error){toast(error.message);return;}
       render();
       $('#app-scroll').scrollTop=0;
       if(availableCollectionOrders(group).length)openModal('collection-scan');
@@ -2274,7 +2365,7 @@ function bindStopView(){
       toast('Dokument nie został przejęty. Zeskanuj właściwy CMR.');
     };
     if($('#collection-envelope-confirm'))$('#collection-envelope-confirm').onchange=event=>{collectionGroup().envelope.contentsConfirmed=event.target.checked;render();};
-    if($('#scan-collection-envelope'))$('#scan-collection-envelope').onclick=()=>openModal('scan',{kind:'collection-envelope'});
+    if($('#collection-read-envelope-qr'))$('#collection-read-envelope-qr').onclick=()=>openModal('scan',{kind:'collection-envelope',sourceId:collectionGroup().sourceId});
   }
   $$('[data-stop-back]').forEach(button=>button.onclick=()=>goStop(button.dataset.stopBack));
   if($('#fuel-expense-back'))$('#fuel-expense-back').onclick=()=>{currentStop().finished=false;goStop('documents');};
@@ -2469,6 +2560,11 @@ function attachmentChoices(){
 }
 
 function openModal(type,target){
+  if(type==='collection-reference'&&!collectionModel.referenceFor(collectionGroup(target?.sourceId),collectionOrders,target?.itemId))return;
+  if(type==='collection-missing'){
+    const group=collectionGroup();
+    if(!group||group.envelope.sealCode||group.pendingDocument||group.blockedDocument||!availableCollectionOrders(group).length)return;
+  }
   if(type==='piece-form'&&current().started)return;
   if(type==='attachment'){
     if(!current().started||!current().physicalConfirmed){toast(isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.');return;}
@@ -2477,7 +2573,7 @@ function openModal(type,target){
   }
   if(type==='scan'){
     const collectionEnvelope=target.kind==='collection-envelope';
-    const allowed=collectionEnvelope?collectionDocumentsReady()&&collectionGroup().envelope.contentsConfirmed:isLoad()?(target.kind==='cmr'?current().cmrLabel:current().items[target.index]?.label):true;
+    const allowed=collectionEnvelope?collectionDocumentsReady()&&collectionGroup().envelope.contentsConfirmed&&!collectionGroup().envelope.sealCode&&target.sourceId===collectionGroup().sourceId:isLoad()?(target.kind==='cmr'?current().cmrLabel:current().items[target.index]?.label):true;
     if(!allowed)return;
   }
   if(type==='finish'&&!finishReady())return;
@@ -2547,11 +2643,24 @@ function openModal(type,target){
   }
   if(type==='collection-scan'){
     const group=collectionGroup(),source=group?collectionSource(group.sourceId):null,available=group?availableCollectionOrders(group):[];
-    const first=available[0];
-    target={kind:'collection-document',routeStop:'collection',sourceId:group?.sourceId||null,demoQrCode:first?.qrCode||null};
+    const first=available[0]||collectionMissingOrders(group)[0];
+    const foreign=collection().scenario==='foreign'&&group?.sourceId===collectionSources[0].id&&group.documents.length===5&&available.length>0;
+    const missing=collection().scenario==='missing'&&group?.sourceId===collectionSources[0].id&&group.documents.length===5&&available.length>0;
+    target={kind:'collection-document',routeStop:'collection',sourceId:group?.sourceId||null,demoQrCode:foreign?collectionOrders.find(order=>order.sourceId===collectionSources[1].id).qrCode:first?.qrCode||null};
     state.modal.target=target;
     title=group?`${group.documents.length?'Kolejny':'Pierwszy'} CMR · ${source.name}`:'Najpierw wybierz kierowcę';
-    body=available.length?`<p>Odbierasz dokumenty od kierowcy <strong>${esc(source.name)}</strong>. Zeskanowany QR musi należeć do tej osoby.</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Skanuj CMR kierowcy ${esc(source.name)}</span></div><button class="primary-button" id="simulate-collection-document">${icon('qr')}Symuluj odczyt QR dokumentu</button><label for="collection-document-qr" class="field-label">Lub wpisz kod QR dokumentu</label><input id="collection-document-qr" class="text-input" autocomplete="off" maxlength="64" placeholder="np. ${esc(first.qrCode)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-collection-document">Pokaż właściwy skan CMR</button><p class="small-note">Odczyt QR tylko otworzy podgląd. Dokument zostanie przejęty i trafi na górę listy dopiero po Twoim zatwierdzeniu.</p>`:`<p>Wszystkie oczekiwane dokumenty tego kierowcy zostały już przejęte.</p>`;
+    body=first?`<p>Odbierasz dokumenty od: <strong>${esc(source.name)}</strong>. Zeskanowany QR musi należeć do tej osoby.</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Skanuj plombę na CMR</span></div>${missing?`<div class="collection-exception"><p><strong>Symulacja: kierowca nie ma tej CMR.</strong>Na liście pozostaje ${esc(first.orderId)}. Otwórz skan i sprawdźcie inne koszulki przed zgłoszeniem braku.</p></div>`:`<button class="primary-button" id="simulate-collection-document">${icon('qr')}${foreign?'Symuluj QR szóstego dokumentu':'Symuluj odczyt QR dokumentu'}</button>`}${available.length?`<button class="collection-report-missing" id="collection-missing-from-scan">${icon('warning')}Zgłoś brak / sprawdź skan CMR</button>`:''}<label for="collection-document-qr" class="field-label">Lub wpisz kod QR dokumentu</label><input id="collection-document-qr" class="text-input" autocomplete="off" maxlength="64" placeholder="np. ${esc(first.qrCode)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-collection-document">Pokaż właściwy skan CMR</button><p class="small-note">Odczyt QR otworzy podgląd. CMR zostanie przejęty dopiero po zatwierdzeniu.</p>`:`<p>Wszystkie oczekiwane dokumenty zostały już przejęte.</p>`;
+  }
+  if(type==='collection-reference'){
+    const group=collectionGroup(target.sourceId),order=collectionModel.referenceFor(group,collectionOrders,target.itemId);
+    const canReport=group===collectionGroup()&&!group.envelope.sealCode&&!group.documents.some(document=>document.handoverId===order.id)&&!collectionMissingOrders(group).some(item=>item.id===order.id);
+    title='Znajdź papierowy oryginał CMR';
+    body=`<p>Dokument od: <strong>${esc(collectionSource(group.sourceId).name)}</strong>. Porównajcie ten skan z dokumentami w innych koszulkach.</p>${collectionSearchPreview(order)}<button class="secondary-button" id="collection-reference-back">Wróć do listy dokumentów</button>${canReport?`<button class="collection-report-missing" id="collection-reference-missing">${icon('warning')}Nie ma oryginału · zgłoś brak</button>`:''}`;
+  }
+  if(type==='collection-missing'){
+    const group=collectionGroup(),remaining=availableCollectionOrders(group);
+    title='Którego dokumentu brakuje?';
+    body=`<p>Przekazujący: <strong>${esc(collectionSource(group.sourceId).name)}</strong>. Najpierw otwórz skan i sprawdźcie inne koszulki. Zaznacz tylko CMR, których oryginałów nadal nie ma.</p><div class="collection-missing-choices">${remaining.map(order=>`<section><label><input type="checkbox" data-missing-cmr="${esc(order.id)}" ${target?.itemId===order.id?'checked':''}><span><strong>${esc(order.orderId)}</strong><small>Plomba ${esc(order.qrCode)}</small></span></label><details class="collection-missing-preview" ${remaining.length===1||target?.itemId===order.id?'open':''}><summary>Pokaż skan CMR · sprawdź inne koszulki</summary>${collectionSearchPreview(order)}</details></section>`).join('')}</div><label class="check-row collection-shortage-confirm"><input type="checkbox" id="collection-shortage-checked"><span>Sprawdziliśmy też inne koszulki. Zaznaczonych oryginałów nie ma — nie przejmuję ich.</span></label><p class="collection-missing-consequence">Do koperty trafi wyłącznie ${group.documents.length} odebranych CMR. Brakujące pozycje pozostaną do wyjaśnienia przy przekazującym.</p><p id="collection-missing-error" class="field-error" role="alert"></p><button class="primary-button" id="collection-save-shortage">Zgłoś brak zaznaczonych CMR</button><p class="small-note">Podgląd zapisze brak lokalnie. Spedytor nie otrzyma teraz zgłoszenia.</p>`;
   }
   if(type==='scan'){
     const collectionEnvelope=target.kind==='collection-envelope',cmr=['cmr','cmr-return'].includes(target.kind),piece=collectionEnvelope||cmr?null:current().items[target.index];
@@ -2559,7 +2668,8 @@ function openModal(type,target){
     title=collectionEnvelope?'Plomba koperty':cmr?'Plomba CMR':`Plomba · sztuka ${target.index+1}`;
     const scanInstruction=target.kind==='cmr-return'?`Po rozładunku weź z powrotem CMR z plombą ${esc(current().cmrSeal)}. Dokument z tą plombą zostaje u Ciebie. Zeskanuj ponownie jego QR, zanim odjedziesz.`:collectionEnvelope?`Weź dowolną nieużytą plombę, naklej ją na zamknięcie koperty kierowcy ${esc(collectionSource(collectionGroup().sourceId).name)}, a następnie zeskanuj jej QR. Odczytany numer zostanie teraz przypisany do tej koperty.`:isLoad()?(cmr?'Zeskanuj kod QR z etykiety naklejonej na pustym tyle ostatniej strony CMR.':`Skieruj aparat na etykietę fizycznie przyklejoną do opakowania sztuki „${esc(piece.name)}”.`):(cmr?`Zeskanuj plombę znajdującą się na tyle dokumentu CMR. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`:`Zeskanuj istniejącą plombę sztuki „${esc(piece.name)}”. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`);
     const placeholder=collectionEnvelope?'np. PL-ENV-000123':expected||(cmr?'DEMO-PL-CMR':`DEMO-PL-${String(target.index+1).padStart(2,'0')}`);
-    body=`<p>${scanInstruction}</p><div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Podgląd skanera — odczyt symulowany</span></div><button class="primary-button" id="simulate-scan">${icon('qr')}Symuluj odczyt QR</button><label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(placeholder)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
+    const scanVisual=collectionEnvelope?`<div class="scan-camera collection-envelope-camera"><div class="collection-envelope-visual" role="img" aria-label="Koperta z plombą QR w wizjerze skanera"><span>${icon('envelope')}</span><i>${icon('qr')}</i></div><span class="scan-guide"></span><span class="demo-watermark">Ustaw QR plomby koperty w ramce</span></div>`:`<div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Podgląd skanera — odczyt symulowany</span></div>`;
+    body=`<p>${scanInstruction}</p>${scanVisual}${collectionEnvelope?`<div class="collection-scan-owner"><strong>${esc(collectionSource(collectionGroup().sourceId).name)}</strong><span>${collectionGroup().documents.length} CMR · plomba jeszcze nieprzypisana</span></div>`:''}<button class="primary-button" id="simulate-scan">${icon('qr')}${collectionEnvelope?'Symuluj odczyt QR plomby':'Symuluj odczyt QR'}</button><label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(placeholder)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
   }
   if(type==='supplied'){
     const photo=optional().photos[target];
@@ -2617,6 +2727,16 @@ function openModal(type,target){
 
   $('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="modal-title">${title}</h3><button class="icon-button" id="close-modal" aria-label="Zamknij">${icon('close')}</button></div>${body}</section></div>`;
   $('#close-modal').onclick=()=>closeModal();
+  if($('#collection-missing-from-scan'))$('#collection-missing-from-scan').onclick=()=>openModal('collection-missing');
+  if($('#collection-reference-back'))$('#collection-reference-back').onclick=()=>closeModal();
+  if($('#collection-reference-missing'))$('#collection-reference-missing').onclick=()=>openModal('collection-missing',{itemId:target.itemId});
+  if($('#collection-save-shortage'))$('#collection-save-shortage').onclick=()=>{
+    const ids=$$('[data-missing-cmr]:checked').map(input=>input.dataset.missingCmr);
+    if(!$('#collection-shortage-checked').checked){$('#collection-missing-error').textContent='Potwierdź, że wspólnie sprawdziliście brakujące oryginały.';return;}
+    try{collectionModel.reportMissing(collectionGroup(),collectionOrders,ids,new Date().toISOString());}
+    catch(error){$('#collection-missing-error').textContent=error.message;return;}
+    closeModal(false);render();$('#app-scroll').scrollTop=0;toast('Brak odnotowany. Do koperty trafią tylko odebrane dokumenty.');
+  };
   if($('#open-cmr-scanner'))$('#open-cmr-scanner').onclick=()=>openCmrScanner(target);
   if(['scan','collection-scan','transshipment-scan'].includes(type)&&typeof window.SuperSpedytorNative?.scanQr==='function'){
     const camera=$('.scan-camera');
@@ -2626,12 +2746,14 @@ function openModal(type,target){
       const modal=state.modal;
       button.onclick=()=>{
         button.disabled=true;
-        window.SuperSpedytorScanner.scanQr(value=>{
-          if(state.modal!==modal)return;
-          button.disabled=false;
-          // Decoding only: existing validation and explicit CMR acceptance still apply.
-          if(type==='transshipment-scan')saveTransshipmentSeal(target,value);else saveQR(target,value);
-        },message=>{if(state.modal!==modal)return;button.disabled=false;$('#qr-error').textContent=message;});
+        try{
+          window.SuperSpedytorScanner.scanQr(value=>{
+            if(state.modal!==modal)return;
+            button.disabled=false;
+            // Decoding only: existing validation and explicit CMR acceptance still apply.
+            if(type==='transshipment-scan')saveTransshipmentSeal(target,value);else saveQR(target,value);
+          },message=>{if(state.modal!==modal)return;button.disabled=false;$('#qr-error').textContent=message;});
+        }catch{button.disabled=false;$('#qr-error').textContent='Nie udało się uruchomić aparatu. Spróbuj ponownie lub wpisz numer plomby.';}
       };
     }
   }
@@ -2851,12 +2973,17 @@ function saveQR(target,raw){
   if(!/^[A-Z0-9][A-Z0-9._/-]{3,63}$/.test(code)){$('#qr-error').textContent='Wpisz kod z etykiety: minimum 4 znaki, bez spacji.';return;}
   if(target.kind==='collection-document'){
     const group=collectionGroup();
-    const order=collectionOrders.find(item=>item.qrCode===code);
-    if(!order){$('#qr-error').textContent='Nie znaleziono dokumentu dla tego kodu QR. Sprawdź etykietę albo zgłoś brak spedytorowi.';return;}
-    if(collection().groups.some(item=>item.documents.some(record=>record.handoverId===order.id)||item.pendingDocument?.handoverId===order.id)){$('#qr-error').textContent='Ten QR został już odczytany. Najpierw zakończ wyświetloną weryfikację dokumentu.';return;}
-    if(!group){$('#qr-error').textContent='Najpierw wróć do listy i wybierz kierowcę, od którego odbierasz dokumenty.';return;}
-    if(group.pendingDocument){$('#qr-error').textContent='Najpierw zatwierdź albo odrzuć dokument, który jest już wyświetlony.';return;}
-    if(order.sourceId!==group.sourceId){$('#qr-error').textContent=`Ten dokument należy do innego kierowcy: ${collectionSource(order.sourceId).name}. Nie wkładaj go do tej koperty.`;return;}
+    const verdict=collectionModel.validateScan(group,collectionOrders,code);
+    if(!verdict.ok){
+      if(verdict.kind==='wrong_driver'){
+        group.blockedDocument={...verdict.order};
+        group.rejectedScans.push({code,sourceId:verdict.order.sourceId,reason:'WRONG_DRIVER',at:new Date().toISOString()});
+        closeModal(false);render();$('#app-scroll').scrollTop=0;return;
+      }
+      const reasons={unknown:'Nie znaleziono dokumentu dla tego kodu QR.',no_driver:'Najpierw wybierz osobę, od której odbierasz dokumenty.',sealed:'Ta koperta jest już zamknięta. Nie można dodać dokumentu.',decision_pending:'Najpierw zakończ decyzję o wyświetlonym dokumencie.',duplicate:'Ten CMR został już przejęty. Nie dodamy go ponownie.'};
+      $('#qr-error').textContent=reasons[verdict.kind];return;
+    }
+    const order=verdict.order;
     group.pendingDocument={id:`collection-document-${Date.now()}`,hash:`tms-scan-${order.id}`,demo:true,kind:'collection-cmr-reference',mime:'image/svg+xml',name:`CMR-${order.orderId}`,handoverId:order.id,sourceId:order.sourceId,orderId:order.orderId,qrCode:order.qrCode,unloadedAt:order.unloadedAt,scannedAt:new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}),confirmed:false,acceptedAt:null};
     group.envelope.contentsConfirmed=false;
     closeModal(false);
@@ -2869,13 +2996,14 @@ function saveQR(target,raw){
   }
   if(target.kind==='collection-envelope'){
     const group=collectionGroup();
-    if(!collectionDocumentsReady(group)||!group.envelope.contentsConfirmed)return;
+    if(target.sourceId!==group?.sourceId)return;
+    if(!collectionDocumentsReady(group)||!group.envelope.contentsConfirmed||group.envelope.sealCode)return;
     const usedByAnother=collection().groups.some(item=>item.sourceId!==group.sourceId&&item.envelope.sealCode===code);
     if(usedByAnother){$('#qr-error').textContent='Ten numer plomby zamyka już kopertę innego kierowcy.';return;}
     group.envelope.sealCode=code;
     group.envelope.sealedAt=new Date().toISOString();
     closeModal(false);
-    render();
+    if(state.screen==='envelope-scan')goStop('review');else render();
     toast('Plomba została przypisana podczas skanowania. Koperta jest zamknięta.');
     return;
   }
@@ -3528,7 +3656,8 @@ if(androidShell){
   },true);
 }
 
-render();
+if(!backendMode&&Object.hasOwn(collectionScenarios,appQuery.get('cmrScenario')))startCollectionScenario(appQuery.get('cmrScenario'));
+else render();
 initializeBackendPanel();
 if(!backendMode){
   window.addEventListener('pagehide',()=>{if(state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted)flushServiceDraft().catch(()=>{});});
