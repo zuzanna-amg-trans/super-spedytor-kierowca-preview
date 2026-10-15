@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "a32222c04a1ef82f7ac9a4dfc7d3cd001afb7e47",
+  "sourceCommit": "9eca3fcaca9e6aace9747b92783fc8b41b8f00c5",
   "sourceBranch": "codex/play-internal-testing",
-  "assetManifestSha256": "192b7722a7da5dd8077ff8875541480f9511b268fe508771f3873cdbb026545e",
+  "assetManifestSha256": "1e639f1ef79cb253021966ff98adcda59e1d38e93e6fa2f14539d7240edab5d8",
   "androidSourceVersion": "0.1.25-internal",
-  "builtAt": "2026-10-15T21:41:30.582Z",
+  "builtAt": "2026-10-15T21:42:46.071Z",
   "mode": "demo",
   "note": "Wersja źródeł podglądu; publikacja i aktualizacja Androida odbywają się osobno."
 }

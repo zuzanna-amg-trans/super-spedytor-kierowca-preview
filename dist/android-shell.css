@@ -542,6 +542,12 @@ html.android-shell .backend-panel {
   background: #fff;
   overflow: hidden;
 }
+.backend-destination-heading { margin-top: 16px; }
+.backend-point-destination .backend-point-heading strong { font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
+.backend-point-destination > p { margin-top: 10px; font-size: 13px; }
+.backend-map-actions.pin-only { grid-template-columns: 1fr; justify-items: start; }
+.backend-map-actions.pin-only .backend-show-map { min-height: 44px; padding: 10px 14px; }
+.backend-upcoming-body > .backend-route-context { margin: 0 0 15px; }
 .backend-upcoming-details > summary {
   display: grid;
   grid-template-columns: auto 1fr auto;
