@@ -28,8 +28,7 @@ jobs:
           const info=JSON.parse(fs.readFileSync('dist/build-info.json','utf8'));
           const manifest=JSON.parse(fs.readFileSync('dist/asset-manifest.json','utf8'));
           const live=info.sourceBranch==='codex/preview-integration'&&info.mode==='live-driver-session';
-          const demo=info.sourceBranch==='codex/play-internal-testing'&&info.mode==='demo';
-          if(info.protocol!==2||(!live&&!demo))throw Error('Required: reviewed shared source and an explicitly supported preview mode');
+          if(info.protocol!==2||!live)throw Error('Required: tested branch integration and authenticated driver-session preview');
           if(!/^[a-f0-9]{40}$/.test(info.sourceCommit)||manifest.sourceCommit!==info.sourceCommit)throw Error('Source identity mismatch');
           const hash=crypto.createHash('sha256').update(JSON.stringify(manifest.files)+'\n').digest('hex');
           if(hash!==info.assetManifestSha256||hash!==manifest.assetManifestSha256)throw Error('Visual assets manifest mismatch');
@@ -40,7 +39,6 @@ jobs:
             if(bytes.length!==file.size||crypto.createHash('sha256').update(bytes).digest('hex')!==file.sha256)throw Error('Changed shared asset '+file.path);
           }
           if(live&&(!fs.existsSync('dist/app.html')||!fs.existsSync('dist/web-backend.js')))throw Error('Missing shared app');
-          if(demo&&!fs.readFileSync('dist/index.html','utf8').includes('name="preview-source-commit" content="'+info.sourceCommit+'"'))throw Error('Demo index source mismatch');
           console.log('Verified '+info.mode+' shared source '+info.sourceCommit);
           JS
       - name: Przygotuj paczkę GitHub Pages
