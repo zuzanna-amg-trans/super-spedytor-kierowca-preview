@@ -863,7 +863,7 @@ function toast(message){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),3800);
 }
-function revoke(record){if(record?.scanId||record?.originalUrl)window.SuperSpedytorScanner?.release(record);else if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
+function revoke(record){if(record?.scanId||record?.originalUrl||record?.sourcePages)window.SuperSpedytorScanner?.release(record);else if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
 
 function openService(panel=(!serviceCompletedToday()?'survey':state.servicePanel||'survey')){

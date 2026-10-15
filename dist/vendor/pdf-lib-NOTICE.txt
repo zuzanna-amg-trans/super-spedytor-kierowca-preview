@@ -1,0 +1,11 @@
+pdf-lib 1.17.1
+License: MIT
+Upstream: https://github.com/Hopding/pdf-lib/tree/v1.17.1
+Package metadata: https://registry.npmjs.org/pdf-lib/1.17.1
+Package tarball: https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz
+Package integrity: sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==
+Vendored file: package/dist/pdf-lib.min.js
+Vendored SHA-256: 0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f
+Package release: 1.17.1
+Retrieved UTC: 2026-10-15
+Unmodified upstream distribution. No CDN is used at runtime.

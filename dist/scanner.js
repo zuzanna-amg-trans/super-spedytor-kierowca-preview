@@ -26,6 +26,7 @@
   const active=()=>session?.pages[session.index];
 
   function release(page){
+    page?.sourcePages?.forEach(release);
     for(const url of new Set([page?.url,page?.originalUrl,page?.thumbnailUrl]))if(url?.startsWith('blob:'))URL.revokeObjectURL(url);
     if(page?.scanId)try{native()?.releaseScanPage(page.scanId,page.scanPage);}catch{}
   }
@@ -35,15 +36,18 @@
   }
   function close(keep=false){
     cancelPending();
+    session?.documentJob?.abort();
+    window.CmrDocumentExport?.cancelAll();
+    window.CmrDocumentProcessing?.stop();
     if(session)session.generation++;
-    if(!keep)session?.pages.forEach(release);
+    if(!keep){session?.pages.forEach(release);release(session?.document);}
     session=null;root().innerHTML='';
     if(previousFocus?.isConnected)previousFocus.focus();
   }
   function open(options){
     if(session)close();
     previousFocus=document.activeElement;
-    session={options,pages:[],index:0,stage:'intro',error:'',replace:null,generation:0};
+    session={options,pages:[],index:0,stage:'intro',error:'',replace:null,generation:0,document:null,exporting:false,exportMessage:''};
     render();
   }
   const checks=[
@@ -56,11 +60,15 @@
     const scroll=preserveScroll?(root().querySelector('.scanner-body')?.scrollTop||0):0;
     const s=session,page=active();
     let content='';
-    if(s.stage==='intro')content=`<div class="scanner-intro-art" aria-hidden="true"><div class="scanner-corners"></div><div class="scanner-paper"><span>CMR</span><i></i><i></i><i></i><div class="scanner-paper-stamp">AMG</div><b>podpis</b></div></div><div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · SKANOWANIE NA ŻYWO</span><h2>Ustaw kartkę.<br>Skan zrobi się sam.</h2><p>Rozłóż dokument i ustaw całą kartkę w kadrze. Zielony obrys i stabilny obraz uruchomią skan automatycznie.</p></div><div class="scanner-features"><span>${icon('doc')} Obrys na żywo</span><span><b class="scanner-color-dot"></b> Kolor pieczątek</span><span>${icon('check')} Automatyczny skan</span></div><div class="scanner-color-tip">${icon('info')}<p><strong>Automatyczny kolor:</strong> wycinamy kartkę, prostujemy perspektywę i wyrównujemy światło. W podglądzie możesz poprawić rogi i porównać oryginał.</p></div>${liveCamera()?'<p class="scanner-platform-note">Skanowanie i poprawa koloru odbywają się na telefonie, również bez internetu.</p>':'<p class="scanner-platform-note">Skaner na żywo jest dostępny w aplikacji Android. Tutaj możesz wybrać i poprawić gotowe zdjęcia.</p>'}<button class="primary-button" data-scan-start>${icon('camera')}${liveCamera()?'Uruchom skaner CMR':'Wybierz zdjęcie CMR'}</button><button class="secondary-button" data-scan-import>${icon('upload')}Wybierz zdjęcia lub PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Dokument dodasz dopiero po sprawdzeniu podglądu.</p>`;
-    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>Wykrywam papier, prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
+    if(s.stage==='intro')content=`<div class="scanner-intro-art" aria-hidden="true"><div class="scanner-corners"></div><div class="scanner-paper"><span>CMR</span><i></i><i></i><i></i><div class="scanner-paper-stamp">AMG</div><b>podpis</b></div></div><div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · SKANOWANIE NA ŻYWO</span><h2>Ustaw kartkę.<br>Skan zrobi się sam.</h2><p>Rozłóż dokument i ustaw całą kartkę w kadrze. Zielony obrys i stabilny obraz uruchomią skan automatycznie.</p></div><div class="scanner-features"><span>${icon('doc')} Obrys na żywo</span><span><b class="scanner-color-dot"></b> Kolor pieczątek</span><span>${icon('check')} Automatyczny skan</span></div><div class="scanner-color-tip">${icon('info')}<p><strong>Kolor dokumentu:</strong> wycinamy kartkę, prostujemy perspektywę, wyrównujemy cienie i wzmacniamy pismo. Wszystkie strony zapiszesz w jednym PDF. W podglądzie możesz poprawić rogi i porównać oryginał.</p></div>${liveCamera()?'<p class="scanner-platform-note">Skanowanie i poprawa koloru odbywają się na telefonie, również bez internetu.</p>':'<p class="scanner-platform-note">Skaner na żywo jest dostępny w aplikacji Android. Tutaj możesz wybrać i poprawić gotowe zdjęcia.</p>'}<button class="primary-button" data-scan-start>${icon('camera')}${liveCamera()?'Uruchom skaner CMR':'Wybierz zdjęcie CMR'}</button><button class="secondary-button" data-scan-import>${icon('upload')}Wybierz zdjęcia lub PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Dokument dodasz dopiero po sprawdzeniu podglądu.</p>`;
+    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>${s.pages.length&&quality.packetReady(s.pages)?'Składam wszystkie sprawdzone strony w jeden dokument PDF.':'Wykrywam papier, prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.'}</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
+    else if(s.stage==='document'&&s.document){
+      const doc=s.document,first=s.pages.find(p=>p.mime!=='application/pdf');
+      content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">DOKUMENT DO ZAPISANIA</span><h2>Dokument PDF gotowy</h2><span class="scanner-review-status checked">${icon('doc')} ${doc.pageCount} ${doc.pageCount===1?'strona':doc.pageCount<5?'strony':'stron'} · PDF w kolorze</span></div><div class="scanner-document scanner-pdf">${androidApp()?`${first?`<img src="${escape(first.url)}" alt="Podgląd pierwszej zeskanowanej strony dokumentu PDF">`:icon('doc')}<p>Plik PDF zawiera ${doc.pageCount} ${doc.pageCount===1?'stronę':doc.pageCount<5?'strony':'stron'} w kolejności skanowania.</p>`:`<iframe title="Gotowy dokument PDF — wszystkie strony" src="${escape(doc.url)}"></iframe>`}</div><div class="scanner-file-meta"><span>${escape(doc.name)}</span><span>${(doc.size/1024/1024).toFixed(1)} MB · PDF</span></div>${s.exportMessage?`<p class="scanner-export-status" role="status">${escape(s.exportMessage)}</p>`:''}<div class="scanner-pdf-actions"><button class="secondary-button" data-document-view ${s.exporting?'disabled':''}>${icon('doc')}Otwórz PDF</button><button class="secondary-button" data-document-save ${s.exporting?'disabled':''}>${icon('upload')}Zapisz PDF</button>${androidApp()?`<button class="secondary-button" data-document-share ${s.exporting?'disabled':''}>Udostępnij PDF</button>`:''}</div><button class="primary-button" data-document-accept ${s.exporting?'disabled':''}>${icon('check')}Dodaj dokument PDF</button><button class="secondary-button" data-document-back ${s.exporting?'disabled':''}>Wróć do stron i popraw</button><p class="scanner-local-note">PDF zachowuje pełną rozdzielczość skanów i kolory. Sam zapis lub udostępnienie nie potwierdza przyjęcia CMR w TMS.</p>`;
+    }
     else if(page){
       const ready=quality.pageReady(page),count=s.pages.filter(quality.pageReady).length;
-      content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">SPRAWDŹ PRZED DODANIEM</span><h2>Strona ${s.index+1} z ${s.pages.length}</h2><span class="scanner-review-status ${ready?'checked':''}">${icon(ready?'check':'doc')}${ready?'Sprawdzona przez kierowcę':page.mime==='application/pdf'?'PDF · sprawdź wszystkie strony':page.needsCrop?'Ustaw rogi przed dodaniem':page.paperProcessing?.mode==='natural'?'Wycięta kartka · naturalny':'Wycięta kartka · kolor'}</span></div><div class="scanner-document ${page.mime==='application/pdf'?'scanner-pdf':''}">${page.mime==='application/pdf'?`<iframe title="Podgląd wszystkich stron PDF" src="${escape(page.url)}"></iframe><a href="${escape(page.url)}" target="_blank" rel="noopener">Otwórz PDF</a><p>Jeśli telefon nie pokazuje PDF, wróć i zeskanuj papierowy CMR.</p>`:`<button class="scanner-image-button" data-scan-zoom aria-label="Powiększ skan"><img src="${escape(page.url)}" alt="Skan CMR, strona ${s.index+1}"><span>${icon('plus')}Powiększ tekst i podpisy</span></button>`}</div><div class="scanner-file-meta"><span>${page.width?`${page.width} × ${page.height} px`:'Oryginalny PDF'}</span><span>${(page.size/1024/1024).toFixed(1)} MB${page.paperProcessing?' · JPEG, jakość 97%':''}</span></div>${page.originalUrl?`<div class="scanner-edit-actions"><button class="secondary-button" data-scan-crop>${page.needsCrop?'Ustaw rogi kartki':'Popraw rogi'}</button><button class="secondary-button" data-scan-original>Porównaj oryginał</button></div>${!page.needsCrop?`<div class="scanner-filter-row"><label for="scan-filter">Wygląd skanu</label><select id="scan-filter" data-scan-filter><option value="color" ${page.paperProcessing?.mode==='color'?'selected':''}>Kolor · automatyczny</option><option value="strong" ${page.paperProcessing?.mode==='strong'?'selected':''}>Kolor · mocniejszy kontrast</option><option value="natural" ${page.paperProcessing?.mode==='natural'?'selected':''}>Naturalny · tylko wycięcie</option></select><button class="secondary-button" data-scan-rotate aria-label="Obróć skan o 90 stopni">↻ Obróć</button></div>`:''}`:''}${page.quality.issues.length?`<div class="scanner-issues ${page.quality.blocked?'blocked':''}" role="status">${icon(page.quality.blocked?'warning':'info')}<div>${page.quality.issues.map(issue=>`<p>${escape(issue)}</p>`).join('')}</div></div>`:''}<div class="scanner-checks">${checks.map(([key,title,help])=>`<label><input type="checkbox" data-scan-check="${key}" ${page.checks[key]?'checked':''} ${page.quality.blocked?'disabled':''}><span><strong>${title}</strong><small>${help}</small></span></label>`).join('')}</div><div class="scanner-page-actions"><button class="secondary-button" data-scan-retake>${icon('camera')}Powtórz tę stronę</button><button class="scanner-delete" data-scan-delete aria-label="Usuń tę stronę">${icon('close')}</button></div><div class="scanner-thumbnails" aria-label="Strony CMR">${s.pages.map((p,i)=>`<button data-scan-page="${i}" class="${i===s.index?'active':''} ${quality.pageReady(p)?'checked':''}" aria-label="Strona ${i+1}${quality.pageReady(p)?', sprawdzona':''}" aria-current="${i===s.index?'page':'false'}">${p.mime==='application/pdf'?icon('doc'):`<img src="${escape(p.thumbnailUrl||p.url)}" alt="">`}<span>${i+1}</span>${quality.pageReady(p)?icon('check'):''}</button>`).join('')}<button data-scan-add aria-label="Dodaj kolejne strony">${icon('plus')}</button></div><div class="scanner-footer-progress"><span>Sprawdzono <strong>${count} z ${s.pages.length}</strong></span><small>Każda strona wymaga sprawdzenia</small></div><button class="primary-button" data-scan-accept ${quality.packetReady(s.pages)?'':'disabled'}>${icon('check')}Dodaj ${s.pages.length===1?'sprawdzony skan':`${s.pages.length} sprawdzone strony`}</button><p class="scanner-local-note">Materiały pozostają w lokalnym teście widoków.</p>`;
+      content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">SPRAWDŹ PRZED DODANIEM</span><h2>Strona ${s.index+1} z ${s.pages.length}</h2><span class="scanner-review-status ${ready?'checked':''}">${icon(ready?'check':'doc')}${ready?'Sprawdzona przez kierowcę':page.mime==='application/pdf'?'PDF · sprawdź wszystkie strony':page.needsCrop?'Ustaw rogi przed dodaniem':page.paperProcessing?.mode==='natural'?'Wycięta kartka · naturalny':'Wycięta kartka · kolor'}</span></div><div class="scanner-document ${page.mime==='application/pdf'?'scanner-pdf':''}">${page.mime==='application/pdf'?`<iframe title="Podgląd wszystkich stron PDF" src="${escape(page.url)}"></iframe><a href="${escape(page.url)}" target="_blank" rel="noopener">Otwórz PDF</a><p>Jeśli telefon nie pokazuje PDF, wróć i zeskanuj papierowy CMR.</p>`:`<button class="scanner-image-button" data-scan-zoom aria-label="Powiększ skan"><img src="${escape(page.url)}" alt="Skan CMR, strona ${s.index+1}"><span>${icon('plus')}Powiększ tekst i podpisy</span></button>`}</div><div class="scanner-file-meta"><span>${page.width?`${page.width} × ${page.height} px`:'Oryginalny PDF'}</span><span>${(page.size/1024/1024).toFixed(1)} MB${page.paperProcessing?' · Strona do PDF · pełna jakość':''}</span></div>${page.originalUrl?`<div class="scanner-edit-actions"><button class="secondary-button" data-scan-crop>${page.needsCrop?'Ustaw rogi kartki':'Popraw rogi'}</button><button class="secondary-button" data-scan-original>Porównaj oryginał</button></div>${!page.needsCrop?`<div class="scanner-filter-row"><label for="scan-filter">Wygląd skanu</label><select id="scan-filter" data-scan-filter><option value="color" ${page.paperProcessing?.mode==='color'?'selected':''}>Dokument · kolor i usuwanie cieni</option><option value="natural" ${page.paperProcessing?.mode==='natural'?'selected':''}>Naturalny · tylko wycięcie</option></select><button class="secondary-button" data-scan-rotate aria-label="Obróć skan o 90 stopni">↻ Obróć</button></div>`:''}`:''}${page.quality.issues.length?`<div class="scanner-issues ${page.quality.blocked?'blocked':''}" role="status">${icon(page.quality.blocked?'warning':'info')}<div>${page.quality.issues.map(issue=>`<p>${escape(issue)}</p>`).join('')}</div></div>`:''}<div class="scanner-checks">${checks.map(([key,title,help])=>`<label><input type="checkbox" data-scan-check="${key}" ${page.checks[key]?'checked':''} ${page.quality.blocked?'disabled':''}><span><strong>${title}</strong><small>${help}</small></span></label>`).join('')}</div><div class="scanner-page-actions"><button class="secondary-button" data-scan-retake>${icon('camera')}Powtórz tę stronę</button><button class="scanner-delete" data-scan-delete aria-label="Usuń tę stronę">${icon('close')}</button></div><div class="scanner-thumbnails" aria-label="Strony CMR">${s.pages.map((p,i)=>`<button data-scan-page="${i}" class="${i===s.index?'active':''} ${quality.pageReady(p)?'checked':''}" aria-label="Strona ${i+1}${quality.pageReady(p)?', sprawdzona':''}" aria-current="${i===s.index?'page':'false'}">${p.mime==='application/pdf'?icon('doc'):`<img src="${escape(p.thumbnailUrl||p.url)}" alt="">`}<span>${i+1}</span>${quality.pageReady(p)?icon('check'):''}</button>`).join('')}<button data-scan-add aria-label="Dodaj kolejne strony">${icon('plus')}</button></div><div class="scanner-footer-progress"><span>Sprawdzono <strong>${count} z ${s.pages.length}</strong></span><small>Każda strona wymaga sprawdzenia</small></div><button class="primary-button" data-scan-accept ${quality.packetReady(s.pages)?'':'disabled'}>${icon('check')}Utwórz dokument PDF</button><p class="scanner-local-note">Materiały pozostają w lokalnym teście widoków.</p>`;
     }
     root().innerHTML=`<div class="scanner-overlay"><section class="scanner-sheet" role="dialog" aria-modal="true" aria-labelledby="scanner-title" tabindex="-1"><header class="scanner-header"><div><span>${icon('doc')}</span><p id="scanner-title">Skan CMR<small>${escape(appVersion())} · skaner CMR</small></p></div><button class="icon-button" data-scan-close aria-label="Zamknij skaner">${icon('close')}</button></header><div class="scanner-body">${s.error?`<p class="scanner-error" role="alert">${escape(s.error)}</p>`:''}${content}</div><input type="file" data-scanner-input accept="image/*,application/pdf" multiple hidden></section></div>`;
     root().querySelector('[data-scan-close]').onclick=()=>close();
@@ -69,19 +77,25 @@
     bind('[data-scan-import]',()=>chooseFiles(false));
     bind('[data-scan-add]',()=>{if(s.pages.length>=quality.MAX_PAGES){s.error='Limit to 20 stron w jednym skanie.';render();return;}capture();});
     bind('[data-scan-retake]',()=>capture(s.index));
-    bind('[data-scan-cancel-wait]',()=>{cancelPending();s.generation++;s.stage=s.pages.length?'review':'intro';s.processing=false;render();});
+    bind('[data-scan-cancel-wait]',()=>{cancelPending();s.documentJob?.abort();window.CmrDocumentProcessing?.stop();s.generation++;s.stage=s.pages.length?'review':'intro';s.processing=false;render();});
     bind('[data-scan-delete]',()=>{release(s.pages.splice(s.index,1)[0]);s.index=Math.max(0,Math.min(s.index,s.pages.length-1));s.stage=s.pages.length?'review':'intro';render();});
     bind('[data-scan-zoom]',()=>zoom(page));
     bind('[data-scan-original]',()=>zoom({...page,url:page.originalUrl},true));
     bind('[data-scan-crop]',()=>editCrop(page));
     bind('[data-scan-rotate]',()=>reprocess(page,{rotation:((page.rotation||0)+1)%4}));
     const filter=root().querySelector('[data-scan-filter]');if(filter)filter.onchange=()=>reprocess(page,{mode:filter.value});
-    bind('[data-scan-accept]',()=>{
-      if(!quality.packetReady(s.pages))return;
-      const pages=s.pages.map(page=>({...page,qualityReview:{version:1,checks:{...page.checks},checkedAt:new Date().toISOString(),width:page.width,height:page.height,issues:[...page.quality.issues]}}));
-      // The caller owns accepted pages; closing/cancelling releases only drafts.
-      if(s.options.onAccept(pages)!==false)close(true);
-      else{s.error='Zlecenie lub plomba się zmieniły. Zamknij skaner i otwórz go ponownie dla właściwego CMR.';render(true);}
+    bind('[data-scan-accept]',()=>createDocument());
+    bind('[data-document-save]',()=>exportDocument('save'));
+    bind('[data-document-share]',()=>exportDocument('share'));
+    bind('[data-document-view]',()=>exportDocument('view'));
+    bind('[data-document-back]',()=>{if(s.exporting)return;release(s.document);s.document=null;s.stage='review';s.exportMessage='';render();});
+    bind('[data-document-accept]',()=>{
+      if(s.exporting||!s.document||!quality.packetReady(s.pages))return;
+      const pages=s.pages.map(page=>({...page,qualityReview:{version:2,checks:{...page.checks},checkedAt:new Date().toISOString(),width:page.width,height:page.height,issues:[...page.quality.issues]}}));
+      const doc={...s.document,sourcePages:pages,qualityReview:{version:2,checkedAt:new Date().toISOString(),pageCount:s.document.pageCount,pages:pages.map(p=>({hash:p.hash,width:p.width,height:p.height,pageCount:p.pageCount||1,paperProcessing:p.paperProcessing,checks:{...p.checks}}))}};
+      // One actual PDF is the evidence item; the caller owns its sources too.
+      try{if(s.options.onAccept([doc])!==false)close(true);else{s.error='Zlecenie lub plomba się zmieniły. Zamknij skaner i otwórz go ponownie dla właściwego CMR.';render(true);}}
+      catch{s.error='Nie udało się dodać dokumentu PDF. Spróbuj ponownie.';render(true);}
     });
     root().querySelectorAll('[data-scan-page]').forEach(button=>button.onclick=()=>{s.index=Number(button.dataset.scanPage);render();});
     root().querySelectorAll('[data-scan-check]').forEach(input=>input.onchange=()=>{
@@ -94,6 +108,40 @@
     root().querySelector('.scanner-body').scrollTop=scroll;
   }
 
+  async function createDocument(){
+    const s=session;if(!s||!quality.packetReady(s.pages))return;
+    const generation=s.generation;
+    s.stage='waiting';s.processing=true;s.error='';render();
+    try{
+      if(!window.CmrDocumentPdf||!window.PDFLib)throw new Error('Brakuje modułu dokumentów PDF. Zaktualizuj aplikację.');
+      s.documentJob=new AbortController();
+      const {bytes,...doc}=await window.CmrDocumentPdf.create(s.pages,{PDFLib:window.PDFLib,signal:s.documentJob.signal});
+      if(session!==s||s.generation!==generation)return;
+      release(s.document);
+      s.document={...doc,url:URL.createObjectURL(doc.blob)};
+      s.stage='document';s.processing=false;render();
+    }catch(error){
+      if(session!==s||s.generation!==generation)return;
+      s.error=error.message||'Nie udało się utworzyć PDF. Strony pozostały w skanerze.';
+      s.stage='review';s.processing=false;render();
+    }
+  }
+  async function exportDocument(action){
+    const s=session;if(!s?.document||s.exporting)return;
+    s.error='';s.exportMessage='';
+    if(!androidApp()){
+      if(action==='view'){window.open(s.document.url,'_blank','noopener');return;}
+      const link=document.createElement('a');link.href=s.document.url;link.download=s.document.name;
+      document.body.append(link);link.click();link.remove();
+      s.exportMessage='Rozpoczęto pobieranie dokumentu PDF.';render(true);return;
+    }
+    s.exporting=true;s.exportMessage='Przygotowuję dokument PDF…';render(true);
+    try{
+      const result=await window.CmrDocumentExport.start(s.document,action,{native:native(),requestId:id()});
+      if(session===s)s.exportMessage=result.message;
+    }catch(error){if(session===s){s.error=error.message||'Nie udało się zapisać PDF.';s.exportMessage='';}}
+    finally{if(session===s){s.exporting=false;render(true);}}
+  }
   function chooseFiles(camera,replace=null){
     session.replace=replace;
     const input=root().querySelector('[data-scanner-input]');
@@ -125,11 +173,24 @@
     return {width:image.naturalWidth,height:image.naturalHeight,metrics:quality.pixels(context.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height)};
   }
   async function prepare(page){
+    const input=page;
+    try{
+    if(page.mime==='application/pdf'){
+      if(!window.CmrDocumentPdf||!window.PDFLib)throw new Error('Brakuje modułu dokumentów PDF. Zaktualizuj aplikację.');
+      const info=await window.CmrDocumentPdf.inspectPdf(await page.blob.arrayBuffer(),{PDFLib:window.PDFLib});
+      page={...page,pageCount:info.pageCount};
+    }
     if(page.mime!=='application/pdf'&&!page.paperProcessing)page=await detectAndProcess(page);
     const info=page.mime==='application/pdf'?{}:await imageInfo(page.url);
     const assessment=quality.assess({...page,...info});
     if(page.needsCrop){assessment.blocked=true;assessment.issues.unshift('Nie wykryłem pewnie kartki. Ustaw jej cztery rogi, aby wyciąć tło i ulepszyć skan.');}
     return {...page,...info,quality:assessment,checks:{edges:false,text:false,color:false}};
+    }catch(error){
+      // append() still owns the incoming original. A failed decode/quality
+      // assessment must also release the newly processed preview and thumbnail.
+      if(page!==input)for(const url of new Set([page.url,page.thumbnailUrl]))if(url&&url!==input.url&&url.startsWith('blob:'))URL.revokeObjectURL(url);
+      throw error;
+    }
   }
   async function append(pages,s,replace,generation=s.generation){
     let prepared=[];
@@ -146,6 +207,8 @@
         prepared.push(await prepare(page));
       }
       const outputBytes=s.pages.reduce((sum,p,i)=>sum+(i===replace?0:p.size),0)+prepared.reduce((sum,p)=>sum+p.size,0);
+      const actualPages=s.pages.reduce((sum,p,i)=>sum+(i===replace?0:(p.pageCount||1)),0)+prepared.reduce((sum,p)=>sum+(p.pageCount||1),0);
+      if(actualPages>quality.MAX_PAGES)throw new Error('Dokument może zawierać maksymalnie 20 stron, także wewnątrz importowanych PDF.');
       if(outputBytes>quality.MAX_BYTES)throw new Error('Przetworzone skany przekraczają 100 MB. Podziel dokument na mniejsze zestawy.');
       if(session!==s||s.generation!==generation){[...pages,...prepared].forEach(release);return;}
       if(replace!==null){release(s.pages[replace]);s.pages.splice(replace,1,...prepared);s.index=replace;}
@@ -180,24 +243,9 @@
     }catch(error){pages.forEach(release);if(session!==s||s.generation!==generation)return;s.error=error.message;s.stage=s.pages.length?'review':'intro';s.processing=false;render();}
   }
 
-  let cvPromise=null;
-  function localCv(){
-    if(cvPromise)return cvPromise;
-    cvPromise=new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src='vendor/opencv-4.13.0.js';
-      const timer=setTimeout(()=>{cvPromise=null;reject(new Error('Nie udało się uruchomić obróbki zdjęcia. Spróbuj ponownie.'));},60000);
-      script.onerror=()=>{clearTimeout(timer);cvPromise=null;script.remove();reject(new Error('Brakuje modułu obróbki zdjęć. Zaktualizuj aplikację.'));};
-      script.onload=()=>{
-        const done=()=>{clearTimeout(timer);resolve({cv:window.cv});};
-        if(window.cv.Mat)done();else window.cv.onRuntimeInitialized=done;
-      };document.head.append(script);
-    });return cvPromise;
-  }
   async function runPaper(action,input){
-    // One local code path for Android assets and the browser preview. Loading the
-    // single-file Wasm engine needs no fetch(), worker origin, or network access.
-    const {cv}=await localCv();await new Promise(resolve=>setTimeout(resolve,30));
-    return action==='detect'?CmrPaperScanner.detect(cv,input.data,input.width,input.height):CmrPaperScanner.process(cv,input.data,input.width,input.height,input.quad,input.mode);
+    if(!window.CmrDocumentProcessing)throw new Error('Brakuje modułu skanera SS. Zaktualizuj aplikację.');
+    return window.CmrDocumentProcessing.run(action,input);
   }
   async function decode(url,maxEdge=4200){
     const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Nie udało się odczytać zdjęcia. Wybierz JPG lub PNG.'));image.crossOrigin='anonymous';image.src=url;});
@@ -212,8 +260,9 @@
     return [...new Uint8Array(hash)].map(v=>v.toString(16).padStart(2,'0')).join('');
   }
   async function outputPage(page,quad,mode='color',rotation=0){
-    const decoded=await decode(page.originalUrl),result=await runPaper('process',{...decoded,quad,mode});
+    const decoded=await decode(page.originalUrl),result=await runPaper('process',{...decoded,quad,mode,refine:!page.manualCrop});
     decoded.data=null;
+    const actualQuad=result.quad||quad;
     const canvas=document.createElement('canvas');
     canvas.width=rotation%2?result.height:result.width;canvas.height=rotation%2?result.width:result.height;
     const ctx=canvas.getContext('2d');
@@ -232,9 +281,9 @@
     canvas.width=canvas.height=thumbnail.width=thumbnail.height=1;
     if(!blob)throw new Error('Brak pamięci na zapis skanu. Zamknij inne aplikacje i spróbuj ponownie.');
     const hash=await digest(blob);
-    return {...page,url:URL.createObjectURL(blob),thumbnailUrl:thumbnailBlob?URL.createObjectURL(thumbnailBlob):null,blob,mime:'image/jpeg',size:blob.size,hash,engine:'opencv-local',needsCrop:false,quad,rotation,
+    return {...page,url:URL.createObjectURL(blob),thumbnailUrl:thumbnailBlob?URL.createObjectURL(thumbnailBlob):null,blob,mime:'image/jpeg',size:blob.size,hash,engine:'ss-driver-local',needsCrop:false,quad:actualQuad,rotation,
       name:(page.originalName||page.name||'CMR').replace(/\.[^.]+$/,'')+'-skan.jpg',
-      paperProcessing:{version:result.version,mode,manual:!!page.manualCrop,quad,rotation,sourceWidth:decoded.sourceWidth,sourceHeight:decoded.sourceHeight,workingWidth:decoded.width,workingHeight:decoded.height}};
+      paperProcessing:{version:result.version,mode,manual:!!page.manualCrop,quad:actualQuad,refined:!!result.refined,rotation,sourceEngine:result.sourceEngine,sourceWidth:decoded.sourceWidth,sourceHeight:decoded.sourceHeight,workingWidth:decoded.width,workingHeight:decoded.height}};
   }
   async function detectAndProcess(page){
     const original={...page,originalUrl:page.url,originalBlob:page.blob,originalHash:page.hash,originalName:page.name};
@@ -337,9 +386,9 @@
     if(event.key==='Escape'){event.preventDefault();if(zoomPanel)zoomPanel.querySelector('[data-crop-cancel],button').click();else close();return;}
     if(event.key!=='Tab')return;
     const items=[...(zoomPanel||root()).querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([hidden]):not([disabled]),a[href],[tabindex="0"]')];
-    const first=items[0],last=items.at(-1);
+    const first=items[0],last=items[items.length-1];
     if(event.shiftKey&&(document.activeElement===first||document.activeElement.classList.contains('scanner-sheet'))){event.preventDefault();last?.focus();}
     else if(!event.shiftKey&&(document.activeElement===last||document.activeElement.classList.contains('scanner-sheet'))){event.preventDefault();first?.focus();}
   });
-  window.SuperSpedytorScanner={open,close,receive,scanQr,available,release};
+  window.SuperSpedytorScanner={open,close,receive,scanQr,available,release,receiveExport:result=>window.CmrDocumentExport?.receive(result)};
 })();
