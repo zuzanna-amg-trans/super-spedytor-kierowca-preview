@@ -24,3 +24,32 @@
 @media(max-width:760px){.studio-header{height:68px;padding:0 20px}.brand{font-size:18px}.brand-icon{height:36px;width:36px}.brand small{font-size:6px}.studio-title{font-size:10px}.version,.header-divider{display:none}.studio-layout{display:block;padding:15px 12px 25px}.studio-sidebar{padding:0;display:flex;align-items:center;gap:10px;margin:0 auto 13px;max-width:430px}.eyebrow,.intro,.operation-label,.screen-list,.sidebar-foot,.studio-sidebar h1{display:none}.operation-switch{flex:1;max-width:none}.operation-switch button{font-size:10px;min-height:32px}.mobile-stage{display:block;width:120px;flex-shrink:0}.mobile-stage>span{font-size:7px;letter-spacing:1px;color:#9aa18f;display:block;margin:0 0 3px 4px}.mobile-stage select{border:0;background:transparent;width:100%;height:26px;font-size:10px;color:#7b876d;padding:0 2px}.preview-topline{max-width:430px;width:100%;font-size:8px;padding:0 5px}.preview-topline span:last-child{display:none}.device{width:100%;max-width:430px;height:850px}.preview-bottomline{font-size:9px}}
 @media(max-width:480px){.studio-header,.preview-topline,.preview-bottomline,.status-bar,.android-home{display:none}.studio-layout{padding:9px 0 0}.studio-sidebar{padding:0 12px;gap:8px;margin-bottom:9px;max-width:none}.operation-switch button{min-height:31px}.mobile-stage{width:112px}.device{width:100%;max-width:none;border:0;border-radius:0;box-shadow:none;height:calc(100dvh - 59px);min-height:560px}.app-header{height:48px;padding:0 16px}.app-brand{font-size:15px}.app-brand-mark{height:26px;width:26px}.app-content{padding:18px 15px 24px}.app-action{padding:10px 15px}.app-scroll{scrollbar-width:none}.bottom-nav{height:54px}.operation-heading h2{font-size:26px}.header-tools{max-width:96px}.tool-button{width:37px;min-height:39px}.place-panel{padding:16px}.place-panel h3{font-size:19px}.contact-info small{font-size:10px}.section-heading{margin-top:22px}.workflow-step{padding:16px}.toast{bottom:138px;left:15px;right:15px}.modal-sheet{padding-bottom:calc(22px + env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Keep the desktop review at phone size instead of enlarging it on wide monitors.
+   The screen is 360 x 800 CSS px; the white frame adds 5 px on each edge.
+   Android owns its viewport and keeps its native shell styles. */
+@media(min-width:761px){
+  html:not(.android-shell) .studio-layout{--preview-screen-width:360px;--preview-screen-height:800px;--preview-frame:5px}
+  html:not(.android-shell) .device{
+    width:calc(var(--preview-screen-width) + 2 * var(--preview-frame));
+    height:calc(var(--preview-screen-height) + 2 * var(--preview-frame));
+    border-width:var(--preview-frame);
+    flex-shrink:0;
+  }
+  html:not(.android-shell) .preview-topline{width:calc(var(--preview-screen-width) + 2 * var(--preview-frame))}
+  html:not(.android-shell) .preview-bottomline{max-width:370px;text-align:center;line-height:1.6}
+  /* Match the core compact spacing and type used by the phone breakpoint. */
+  html:not(.android-shell) .app-header{height:48px;padding:0 16px}
+  html:not(.android-shell) .app-brand{font-size:15px}
+  html:not(.android-shell) .app-brand-mark{height:26px;width:26px}
+  html:not(.android-shell) .app-content{padding:17px 15px 24px}
+  html:not(.android-shell) .app-action{padding:10px 15px}
+  html:not(.android-shell) .bottom-nav{height:54px}
+  html:not(.android-shell) .operation-heading h2{font-size:26px}
+  html:not(.android-shell) .place-panel{padding:16px}
+  html:not(.android-shell) .place-panel h3{font-size:19px}
+  html:not(.android-shell) .workflow-step{padding:16px}
+}
+@media(min-width:1051px){
+  html:not(.android-shell) .studio-layout{grid-template-columns:minmax(230px,1fr) 370px minmax(230px,.85fr)}
+}

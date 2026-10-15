@@ -1,0 +1,394 @@
+.transshipment-stage-header .transshipment-header-icon{
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  border-radius:12px;
+  background:#fff0e6;
+  color:#a44a17;
+}
+.transshipment-header-icon .icon{width:22px;height:22px}
+.transshipment-stage-progress span.current{background:#ff6a1a}
+.transshipment-stage-progress span.done{background:#718864}
+.transshipment-stage-title{margin-top:15px;font-size:29px;line-height:1.2}
+.transshipment-stage-description{font-size:13px;line-height:1.75}
+.transshipment-total-progress{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:15px 0 16px;
+}
+.transshipment-total-progress>span{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:10px 12px;
+  border:1px solid #e3e7df;
+  border-radius:11px;
+  background:#fff;
+  color:#727c6b;
+  font-size:10px;
+  font-weight:750;
+}
+.transshipment-total-progress .icon{width:16px;height:16px;color:#a65322}
+.transshipment-total-progress b{margin-left:auto;color:#35412f;font-size:12px}
+
+.transshipment-driver-card{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) 18px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  padding:16px;
+  border-color:#f0c3a8;
+  background:linear-gradient(135deg,#fffaf6 0%,#fff 68%);
+}
+.transshipment-driver-card>span{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:#ffede1;
+  color:#9d491b;
+}
+.transshipment-driver-card>span .icon{width:22px;height:22px}
+.transshipment-driver-card>b{display:grid;place-items:center;color:#d99a72}
+.transshipment-driver-card>b .icon{width:18px;height:18px}
+.transshipment-driver-card>div{min-width:0}
+.transshipment-driver-card small{display:block;font-size:7px;line-height:1.35;letter-spacing:.6px;color:#a36b49;font-weight:900}
+.transshipment-driver-card h3{margin:4px 0 2px;font-size:12px;line-height:1.35}
+.transshipment-driver-card p{margin:0;font-size:9px;line-height:1.5;color:#7d8778}
+.transshipment-overview{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin:12px 0;
+}
+.transshipment-overview span{
+  padding:10px 6px;
+  border-radius:10px;
+  background:#f0f3ed;
+  color:#7b8675;
+  text-align:center;
+  font-size:9px;
+  font-weight:750;
+}
+.transshipment-overview b{display:block;margin-bottom:2px;color:#3f4d3b;font-size:17px}
+.transshipment-bay{
+  display:grid;
+  grid-template-columns:72px 1fr;
+  gap:7px;
+  margin:13px 0;
+  padding:11px;
+  border:1px solid #dfe4dc;
+  border-radius:15px;
+  background:#fff;
+}
+.transshipment-cab{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  border-radius:10px 4px 4px 10px;
+  background:#30372f;
+  color:#fff;
+}
+.transshipment-cab .icon{width:25px;height:25px}
+.transshipment-cab small{font-size:7px;letter-spacing:.8px;font-weight:900}
+.transshipment-load-space{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  min-height:72px;
+  overflow:hidden;
+  border:2px solid #9ca598;
+  border-left-width:5px;
+  border-right:6px double #9ca598;
+  border-radius:3px 8px 8px 3px;
+  background:#f6f7f4;
+}
+.transshipment-load-space>span{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  border-right:1px dashed #c7cdc3;
+  color:#6f786b;
+}
+.transshipment-load-space>span:last-child{border-right:0}
+.transshipment-load-space b{width:24px;height:24px;display:grid;place-items:center;border-radius:8px;background:#fff;font-size:12px}
+.transshipment-load-space small{font-size:6px;letter-spacing:.45px;font-weight:900}
+.transshipment-load-space .deep{background:#ffe9da;color:#934318}
+.transshipment-load-space .middle{background:#f5f0e7;color:#7a674c}
+.transshipment-load-space .door{background:#edf2e9;color:#5e7653}
+.transshipment-order-rule{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin:13px 0 18px;
+  padding:14px;
+  border-radius:13px;
+  background:#fff0e6;
+  color:#784624;
+}
+.transshipment-order-rule>.icon{width:20px;height:20px;flex-shrink:0;margin-top:1px}
+.transshipment-order-rule p{margin:0;font-size:11px;line-height:1.65}
+.transshipment-order-rule strong{display:block;margin-bottom:2px;font-size:12px}
+.transshipment-plan-heading{align-items:flex-end;margin-top:22px}
+.transshipment-plan-heading span{max-width:150px;text-align:right;line-height:1.35}
+.transshipment-plan-card{
+  position:relative;
+  display:grid;
+  grid-template-columns:54px 1fr;
+  overflow:visible;
+  padding:0;
+}
+.transshipment-plan-card.deep{border:2px solid #efa477;box-shadow:0 10px 28px rgba(130,69,28,.08)}
+.transshipment-plan-card:after{
+  content:"";
+  position:absolute;
+  left:26px;
+  bottom:-15px;
+  width:2px;
+  height:15px;
+  background:#d8ddd4;
+}
+.transshipment-plan-card:last-of-type:after{display:none}
+.transshipment-plan-number{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:5px;
+  padding:17px 5px;
+  border-radius:16px 0 0 16px;
+  background:#f0f3ed;
+  color:#5e6e57;
+}
+.transshipment-plan-card.deep .transshipment-plan-number{background:#ff6a1a;color:#fff}
+.transshipment-plan-card.door .transshipment-plan-number{background:#dfe9d9;color:#506d45}
+.transshipment-plan-number>span{width:30px;height:30px;display:grid;place-items:center;border:1px solid currentColor;border-radius:9px;font-size:16px;font-weight:900}
+.transshipment-plan-number small{font-size:6px;line-height:1.3;letter-spacing:.5px;text-align:center;font-weight:900}
+.transshipment-plan-main{padding:15px}
+.transshipment-plan-flags{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+.transshipment-plan-flags span{font-size:8px;letter-spacing:.6px;color:#9a694a;font-weight:900}
+.transshipment-plan-flags b{font-size:8px;color:#697a61}
+.transshipment-plan-main h3{margin:0 0 6px;font-size:18px}
+.transshipment-destination{margin:0 0 12px;color:#6f796a;font-size:10px;line-height:1.55}
+.transshipment-destination strong{display:block;color:#394438;font-size:12px}
+.transshipment-cargo-summary{display:flex;align-items:center;gap:9px;padding:10px;border-radius:10px;background:#f5f6f2}
+.transshipment-cargo-summary>.icon{width:20px;height:20px;color:#a65322}
+.transshipment-cargo-summary strong,.transshipment-cargo-summary small{display:block}
+.transshipment-cargo-summary strong{font-size:11px}
+.transshipment-cargo-summary small{margin-top:2px;color:#7d8678;font-size:9px}
+.transshipment-seal-preview{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.transshipment-seal-preview>span{min-width:0;padding:8px;border:1px solid #ebece8;border-radius:9px}
+.transshipment-seal-preview small,.transshipment-seal-preview strong{display:block}
+.transshipment-seal-preview small{margin-bottom:3px;color:#90978d;font-size:6px;line-height:1.3;letter-spacing:.45px;font-weight:900}
+.transshipment-seal-preview strong{overflow-wrap:anywhere;color:#565f52;font-size:8px;line-height:1.45}
+
+.transshipment-source-lock{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f1f4ee;
+  color:#66765d;
+}
+.transshipment-source-lock>.icon{width:17px;height:17px}
+.transshipment-source-lock small,.transshipment-source-lock strong{display:block}
+.transshipment-source-lock small{font-size:7px;letter-spacing:.65px;font-weight:900}
+.transshipment-source-lock strong{margin-top:2px;font-size:11px}
+.transshipment-order-ribbon{position:relative;display:grid;grid-template-columns:54px 1fr;gap:12px;padding:15px;border:2px solid #f0ad82;background:#fffaf6}
+.transshipment-order-position{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:#ff6a1a;color:#fff}
+.transshipment-order-position b{font-size:22px;line-height:1}
+.transshipment-order-position small{margin-top:4px;font-size:6px;letter-spacing:.5px;font-weight:900;text-align:center}
+.transshipment-order-ribbon>div:nth-child(2){min-width:0;padding-right:78px}
+.transshipment-order-ribbon>div:nth-child(2)>small{font-size:7px;letter-spacing:.65px;color:#a46540;font-weight:900}
+.transshipment-order-ribbon h3{margin:4px 0 2px;font-size:18px}
+.transshipment-order-ribbon p{margin:0;color:#6f786b;font-size:9px;line-height:1.5}
+.transshipment-order-ribbon>div:nth-child(2)>span{display:flex;align-items:center;gap:5px;margin-top:6px;color:#6c795f;font-size:9px;font-weight:800}
+.transshipment-order-ribbon>div:nth-child(2)>span .icon{width:13px;height:13px}
+.transshipment-order-ribbon>em{position:absolute;right:12px;top:14px;padding:5px 7px;border-radius:7px;background:#ffeadc;color:#964116;font-size:6px;letter-spacing:.45px;font-style:normal;font-weight:900}
+.transshipment-task-label{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.transshipment-task-label>span{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;border-radius:12px;background:#ffede1;color:#a04717}
+.transshipment-task-label>span .icon{width:23px;height:23px}
+.transshipment-task-label small{display:block;color:#a36744;font-size:8px;letter-spacing:.65px;font-weight:900}
+.transshipment-task-label h3{margin:3px 0 0;font-size:18px;line-height:1.35}
+.transshipment-cmr-card,.transshipment-piece-card{padding:17px;border:2px solid #efb18b}
+.transshipment-cmr-card.preview{border-color:#d7e2d1;background:#fbfdf9}
+.transshipment-task-copy{margin:0 0 13px;color:#6e776a;font-size:12px;line-height:1.7}
+.transshipment-expected-seal{position:relative;margin:12px 0;padding:12px 13px;border:1px solid #edb892;border-radius:11px;background:#fff7f1}
+.transshipment-expected-seal small,.transshipment-expected-seal strong{display:block}
+.transshipment-expected-seal small{color:#a56b47;font-size:7px;letter-spacing:.65px;font-weight:900}
+.transshipment-expected-seal strong{margin-top:4px;color:#4e3527;font-size:20px;letter-spacing:.35px}
+.transshipment-expected-seal.matched{padding-right:44px;border-color:#bfd0b7;background:#eff6eb}
+.transshipment-expected-seal.matched>.icon{position:absolute;right:13px;top:50%;width:23px;height:23px;transform:translateY(-50%);color:#588048}
+.transshipment-scan-button{width:100%;min-height:56px;justify-content:center;background:#ff6a1a;color:#fff;font-size:13px;font-weight:900}
+.transshipment-scan-button:hover{background:#e9570d}
+.transshipment-locked-next{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:11px;color:#969d92;font-size:9px;line-height:1.4;text-align:center}
+.transshipment-locked-next .icon{width:14px;height:14px}
+.transshipment-cmr-preview{padding:12px;border:1px solid #dce4d7;border-radius:12px;background:#f1f6ed}
+.transshipment-cmr-preview .demo-document{padding:10px}
+.transshipment-cmr-preview .document-paper{min-height:210px}
+.transshipment-document-meta{display:flex;align-items:center;gap:6px;margin:9px 1px 13px;color:#75806f;font-size:9px}
+.transshipment-document-meta .icon{width:14px;height:14px}
+.transshipment-document-meta b{margin-left:auto;color:#55614f}
+.transshipment-accept-cmr{min-height:59px;justify-content:center;font-size:13px;line-height:1.35;text-align:center}
+.transshipment-report-mismatch{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:46px;margin-top:8px}
+.transshipment-task-complete{display:flex;align-items:center;gap:12px;padding:14px;border-color:#cddbc7;background:#f3f8f0}
+.transshipment-task-complete>span{width:42px;height:42px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;background:#dfeeda;color:#4f7a40}
+.transshipment-task-complete>span .icon{width:20px;height:20px}
+.transshipment-task-complete small,.transshipment-task-complete strong,.transshipment-task-complete p{display:block}
+.transshipment-task-complete small{color:#6b8b61;font-size:7px;letter-spacing:.6px;font-weight:900}
+.transshipment-task-complete strong{margin-top:2px;font-size:13px}
+.transshipment-task-complete p{margin:3px 0 0;color:#708069;font-size:9px}
+.transshipment-piece-photo{position:relative;height:190px;overflow:hidden;border-radius:12px;background:#ecefe9}
+.transshipment-piece-photo img{width:100%;height:100%;display:block;object-fit:cover}
+.transshipment-piece-photo:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 60%,rgba(27,35,25,.72))}
+.transshipment-piece-photo span{position:absolute;z-index:1;left:11px;right:11px;bottom:9px;color:#fff;font-size:7px;letter-spacing:.65px;font-weight:900}
+.transshipment-piece-details{padding:12px 2px 0}
+.transshipment-piece-details h4{margin:0 0 3px;font-size:15px}
+.transshipment-piece-details p{margin:0;color:#717a6c;font-size:10px;line-height:1.55}
+.transshipment-received-list{margin:14px 0 0}
+.transshipment-received-list>small{display:block;margin:0 2px 7px;color:#8b9487;font-size:7px;letter-spacing:.65px;font-weight:900}
+.transshipment-received-list>span{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:7px;margin-bottom:6px;padding:9px 10px;border-radius:9px;background:#eef4ea;color:#527247;font-size:9px}
+.transshipment-received-list .icon{width:15px;height:15px}
+.transshipment-received-list b{font-size:8px}
+.transshipment-order-done{padding:19px;text-align:center;border:2px solid #bed1b5;background:#f3f8f0}
+.transshipment-order-done>span{width:52px;height:52px;display:grid;place-items:center;margin:0 auto 11px;border-radius:50%;background:#dcebd6;color:#4f7a40}
+.transshipment-order-done>span .icon{width:26px;height:26px}
+.transshipment-order-done h3{margin:0 0 6px;font-size:19px}
+.transshipment-order-done>p{margin:0;color:#6f7d69;font-size:11px;line-height:1.7}
+.transshipment-order-done>div{display:grid;gap:5px;margin-top:13px;text-align:left}
+.transshipment-order-done>div span{display:flex;gap:7px;padding:7px 9px;border-radius:8px;background:#fff;color:#6d7868;font-size:8px}
+.transshipment-order-done>div b{margin-left:auto;color:#527247}
+.transshipment-modal-expected{margin:11px 0 13px;padding:11px;border-radius:10px;background:#fff2e9;text-align:center}
+.transshipment-modal-expected small,.transshipment-modal-expected strong{display:block}
+.transshipment-modal-expected small{color:#a5643e;font-size:7px;letter-spacing:.7px;font-weight:900}
+.transshipment-modal-expected strong{margin-top:4px;color:#6e3517;font-size:18px}
+.transshipment-scan-camera{height:185px}
+
+.transshipment-final-stack{display:grid;gap:9px}
+.transshipment-final-order{display:grid;grid-template-columns:38px 1fr 24px;align-items:center;gap:11px;padding:13px}
+.transshipment-final-order>span{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:#ffede1;color:#984316;font-size:16px;font-weight:900}
+.transshipment-final-order>div{min-width:0}
+.transshipment-final-order small{color:#9b6746;font-size:7px;letter-spacing:.5px;font-weight:900}
+.transshipment-final-order h3{margin:3px 0 2px;font-size:14px}
+.transshipment-final-order p{margin:0;color:#778171;font-size:9px;line-height:1.5}
+.transshipment-final-order>div>div{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.transshipment-final-order>div>div b{padding:4px 6px;border-radius:5px;background:#eef3ea;color:#56704e;font-size:7px}
+.transshipment-final-order>.icon{width:21px;height:21px;color:#5f8550}
+.transshipment-order-rule.final{margin-top:14px;background:#edf4e9;color:#52694a}
+.transshipment-completion .summary-line b{font-size:9px}
+
+@media(max-width:480px){
+  .transshipment-stage-title{font-size:27px}
+  .transshipment-plan-main{padding:14px 12px}
+  .transshipment-plan-flags{align-items:flex-start;flex-direction:column;gap:3px}
+  .transshipment-order-ribbon>div:nth-child(2){padding-right:0}
+  .transshipment-order-ribbon>em{position:static;grid-column:2;justify-self:start;margin-top:-8px}
+  .transshipment-piece-photo{height:180px}
+}
+
+@media(max-width:360px){
+  .transshipment-driver-card{grid-template-columns:38px 1fr}
+  .transshipment-driver-card>b{display:none}
+  .transshipment-driver-card>div:last-child{grid-column:2;padding-top:8px;border-top:1px solid #f0ded1}
+  .transshipment-seal-preview{grid-template-columns:1fr}
+  .transshipment-bay{grid-template-columns:56px 1fr}
+  .transshipment-plan-card{grid-template-columns:48px 1fr}
+  .transshipment-order-ribbon{grid-template-columns:48px 1fr}
+}
+
+/* Driver feedback: explicit source roles, readable labels and post-transfer photos. */
+.transshipment-stage-title{font-size:29px;line-height:1.35}.transshipment-stage-description{font-size:16px;line-height:1.65}
+.transshipment-stage-header span{font-size:14px}.transshipment-stage-header b{font-size:12px}
+.transshipment-plan-flags span,.transshipment-plan-flags b{font-size:12px;line-height:1.5}
+.transshipment-plan-number span{font-size:23px}.transshipment-plan-number small{font-size:11px}
+.transshipment-plan-main h3{font-size:21px}.transshipment-plan-main p,.transshipment-task-copy{font-size:15px;line-height:1.65}
+.transshipment-cargo-summary strong{font-size:16px}.transshipment-cargo-summary small{font-size:13px}
+.transshipment-seal-preview small,.transshipment-task-label small,.transshipment-expected-seal small{font-size:12px}
+.transshipment-seal-preview strong{font-size:15px}.transshipment-task-label h3{font-size:21px}
+.transshipment-expected-seal strong{font-size:23px}.transshipment-source-lock small{font-size:12px}.transshipment-source-lock strong{font-size:16px}
+.transshipment-piece-details h4{font-size:20px}.transshipment-piece-details p{font-size:14px}
+.transshipment-driver-card{grid-template-columns:44px 1fr}.transshipment-driver-card>b{display:none}.transshipment-driver-card>div:last-child{grid-column:2}
+.transshipment-driver-card small{font-size:11px}.transshipment-driver-card h3{font-size:19px}.transshipment-driver-card p{font-size:14px}
+.transshipment-order-rule p{font-size:14px;line-height:1.7}.transshipment-order-rule strong{font-size:16px}
+.transshipment-bay small{font-size:10px}.transshipment-overview span{font-size:14px}
+.transshipment-source-name{font-weight:750;color:#635a4c}.transshipment-received-list>span{grid-template-columns:24px 1fr;font-size:15px}
+.transshipment-received-list small{display:block;font-size:12px;font-weight:400}.transshipment-received-list b{grid-column:2;font-size:13px}
+.cmr-linked-piece{display:flex;align-items:center;gap:10px;background:#e7f1e0;padding:13px;border:1px solid #bdd2ae;border-radius:12px;margin:12px 0;color:#416036;font-size:14px}
+.cmr-linked-piece .icon{width:26px;height:26px;flex-shrink:0}.cmr-linked-piece strong{display:block;font-size:15px;margin-top:4px}
+#transshipment-complete-piece{width:100%;justify-content:center;margin-top:15px}
+.transshipment-final-order h3{font-size:20px}.transshipment-final-order small,.transshipment-final-order p{font-size:13px}
+.transshipment-final-order b{font-size:13px}.transshipment-plan-card .icon,.transshipment-task-label .icon{width:26px;height:26px}
+.outgoing-transshipment h2{font-size:29px;line-height:1.35;margin:13px 0}.outgoing-transshipment p{font-size:16px;line-height:1.65}
+.outgoing-transshipment .panel{padding:19px;margin:16px 0;border-color:#d2c7de}.outgoing-transshipment h3{font-size:22px;margin:7px 0}
+.role-badge{display:inline-flex;padding:10px 13px;border-radius:10px;background:#eae2f2;color:#624778;font-size:13px;font-weight:900}
+.outgoing-piece{border-top:1px solid #e4deeb;padding:17px 0}.outgoing-piece strong{font-size:19px}
+.outgoing-transshipment .secondary-button{width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+.outgoing-action{background:#75598c;width:100%;justify-content:center}.outgoing-order small{font-size:12px;font-weight:800}
+
+.app-content [class^="transshipment-"] small{font-size:12px;line-height:1.5}
+.transshipment-task-complete strong{font-size:19px}.transshipment-task-complete p{font-size:14px}
+.transshipment-total-progress{font-size:14px}.transshipment-total-progress .icon{width:23px;height:23px}
+.transshipment-order-ribbon h3{font-size:22px}.transshipment-order-ribbon p{font-size:14px}.transshipment-order-ribbon em{font-size:12px}
+.transshipment-cmr-preview .document-paper{min-height:260px;max-width:230px}.transshipment-document-meta{font-size:13px}
+.transshipment-received-list>small{font-size:12px}.transshipment-order-done>p{font-size:15px}.transshipment-order-done h3{font-size:22px}
+.transshipment-locked-next{font-size:13px;line-height:1.6}.transshipment-task-label>span .icon{width:26px;height:26px}
+
+/* 0.1.20: identify the parties and cargo, colour each order, and enlarge tasks. */
+.order-tone-0{--order-accent:#b35b17;--order-surface:#fff1df;--order-border:#e9b57b}
+.order-tone-1{--order-accent:#225ea3;--order-surface:#e9f3ff;--order-border:#99bfe8}
+.order-tone-2{--order-accent:#765093;--order-surface:#f3eafa;--order-border:#c5a8db}
+.app-content .panel.order-tone-0,.app-content .panel.order-tone-1,.app-content .panel.order-tone-2{background:var(--order-surface);border:2px solid var(--order-border);border-left:8px solid var(--order-accent)}
+.transshipment-plan-number{background:var(--order-accent)!important}.transshipment-plan-number span,.transshipment-plan-number small{color:#fff!important}
+.receiver-vehicle{display:flex;align-items:center;gap:16px;padding:20px;background:#e6f0df;border:2px solid #96b37c;margin:20px 0}
+.receiver-vehicle>span .icon{width:40px;height:40px}.receiver-vehicle small{font-size:14px;font-weight:850;display:block}.receiver-vehicle strong{display:block;font-size:30px;margin-top:5px}
+.receiver-source-card{padding:22px;margin:20px 0}.receiver-source-heading{display:flex;gap:15px;align-items:flex-start}.receiver-source-heading>.icon{width:40px;height:40px;flex-shrink:0;color:var(--order-accent)}
+.receiver-source-heading small{font-size:14px;font-weight:900;display:block;color:var(--order-accent)}.receiver-source-heading h3{font-size:25px;line-height:1.4;margin:5px 0}.receiver-source-heading strong{font-size:19px}
+.receiver-source-cargo{padding-top:18px;margin-top:17px;border-top:1px solid var(--order-border)}.receiver-source-cargo>small{font-size:14px;font-weight:900;color:var(--order-accent)}
+.receiver-source-cargo p{margin:14px 0 0}.receiver-source-cargo p strong{font-size:22px;display:block;line-height:1.45}.receiver-source-cargo p span{display:block;font-size:17px;margin-top:6px}
+.transshipment-stage-title,.outgoing-transshipment h2{font-size:32px!important;line-height:1.35}.transshipment-stage-description,.outgoing-transshipment>p{font-size:18px!important;line-height:1.65;color:#4d5947}
+.transshipment-current-context{position:sticky;top:0;z-index:5;display:flex;gap:12px;padding:15px;margin:16px 0;background:#e7f2ff;border:2px solid #8cb3d9;border-radius:15px;box-shadow:0 5px 14px #25364c18;color:#234a70}
+.transshipment-current-context.issuing{background:#f2e8fb;border-color:#bd99d9;color:#61417b}
+.transshipment-current-context>span .icon{width:32px;height:32px}.transshipment-current-context>div{min-width:0;flex:1}.transshipment-current-context small{display:block;font-size:12px;letter-spacing:.4px;font-weight:900}
+.transshipment-current-context strong{display:block;font-size:18px;line-height:1.4;margin-top:4px}.transshipment-current-context b{display:block;font-size:19px;line-height:1.4;margin-top:6px}.transshipment-current-context em{display:block;font-size:13px;font-style:normal;margin-top:3px}
+.transshipment-source-lock{display:none}.transshipment-total-progress{font-size:17px}.transshipment-total-progress .icon{width:29px;height:29px}
+.app-content .transshipment-piece-card h3,.app-content .transshipment-cmr-card h3,.outgoing-transshipment h3{font-size:25px;line-height:1.4}
+.app-content .transshipment-piece-details h4{font-size:25px}.app-content .transshipment-task-copy,.app-content .transshipment-piece-details p{font-size:18px;line-height:1.65;color:#4d5947}
+.app-content [class^="transshipment-"] small{font-size:14px;line-height:1.5}.transshipment-expected-seal strong{font-size:29px}.transshipment-order-ribbon h3{font-size:25px}.transshipment-order-ribbon p{font-size:17px}
+.transshipment-plan-main h3{font-size:25px}.transshipment-plan-main p{font-size:17px}.transshipment-cargo-summary strong{font-size:20px}.transshipment-cargo-summary small{font-size:16px}
+.transshipment-plan-flags{flex-wrap:wrap}.transshipment-plan-flags span,.transshipment-plan-flags b{font-size:14px}.transshipment-plan-main{min-width:0}.transshipment-seal-preview strong{font-size:17px}
+.app-content .transshipment-task-label>span{width:52px;height:52px}.app-content .transshipment-task-label>span .icon{width:32px;height:32px}.transshipment-cargo-summary .icon{width:32px;height:32px}
+.transfer-photo-step{padding:18px 0;scroll-margin-top:160px}.transfer-photo-step h3{margin:0 0 12px;font-size:25px}.transfer-photo-step .piece-photo-button strong{font-size:18px}.transfer-photo-step .piece-photo-button small{font-size:14px;line-height:1.5}
+.transfer-photo-step .piece-photo-icon .icon{width:36px;height:36px}.transfer-photo-step .piece-photo-button{min-height:175px}
+.transshipment-bay{display:flex;flex-direction:column;padding:16px;gap:10px}.transshipment-cab{width:100%;min-height:60px;display:flex;justify-content:center;gap:14px;align-items:center}
+.transshipment-cab .icon{width:34px;height:34px}.transshipment-cab small{font-size:15px!important}
+.transshipment-load-space{display:flex;flex-direction:column;border:0;width:100%;min-height:0}
+.transshipment-load-space>span{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:6px 12px;border:1px solid var(--order-border);border-left:6px solid var(--order-accent);border-radius:10px;background:var(--order-surface);padding:13px;margin:4px 0}
+.transshipment-load-space>span b{font-size:26px;grid-row:span 2}.transshipment-load-space>span small{font-size:15px!important;text-align:left}.transshipment-load-space>span em{font-size:15px;font-style:normal;text-align:left}
+.outgoing-plan-piece{display:flex;align-items:center;gap:14px;margin-top:17px;border-top:1px solid var(--order-border);padding-top:15px}.outgoing-plan-piece>.icon{width:34px;height:34px;flex-shrink:0;color:var(--order-accent)}
+.outgoing-plan-piece p{margin:0}.outgoing-plan-piece strong{display:block;font-size:21px}.outgoing-plan-piece span{display:block;font-size:16px;margin-top:5px}
+.outgoing-cmr-task,.outgoing-piece.active{padding:22px!important;border:2px solid #bd99d9!important;background:#f7f0fd!important;margin:18px 0!important}
+.outgoing-cmr-task.done,.outgoing-order-done{background:#eaf4e3!important;border-color:#92b47c!important}.outgoing-cmr-preview{padding:12px;margin:18px 0;background:#fff;border-radius:12px}
+.outgoing-cmr-preview .document-paper{max-width:250px;min-height:300px}.outgoing-cmr-task .scan-button,.outgoing-piece.active .scan-button{width:100%;justify-content:center}.outgoing-piece.active>.primary-button{margin-top:14px}
+.outgoing-transshipment h3>.icon{width:32px;height:32px;margin-right:10px;vertical-align:middle}.outgoing-piece.active>strong{font-size:25px}.outgoing-transshipment .outgoing-order>strong{font-size:21px}
+.receiver-plan .primary-button,.outgoing-transshipment .primary-button,.outgoing-transshipment .secondary-button,.outgoing-transshipment .scan-button,.transshipment-piece-card .primary-button,.transshipment-piece-card .scan-button,.transshipment-cmr-card .primary-button,.transshipment-cmr-card .scan-button{font-size:18px!important;min-height:68px!important;line-height:1.4}
+
+.outgoing-transshipment .transshipment-current-context{position:relative;top:auto}
+
+.transshipment-current-context.document-review{position:relative;top:auto}
+@media(max-height:740px){
+.transshipment-current-context.receiving{padding:10px;gap:8px}
+.transshipment-current-context.receiving strong{font-size:16px;line-height:1.3;margin-top:3px}
+.transshipment-current-context.receiving b{font-size:17px;line-height:1.3;margin-top:4px}
+.transshipment-current-context.receiving small{font-size:12px}.transshipment-current-context.receiving em{font-size:12px}
+.transshipment-current-context.receiving>span .icon{width:28px;height:28px}
+}

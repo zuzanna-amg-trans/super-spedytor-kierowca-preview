@@ -5,10 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f3">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="description" content="SuperSpedytor: nawigacja do załadunku, rozładunku, parkingu i tankowania, dokumentacja ładunku oraz wydatki kierowcy.">
+  <meta name="description" content="SuperSpedytor: nawigacja do załadunku, rozładunku, przeładunku, parkingu i tankowania, dokumentacja ładunku, ankieta serwisowa, inwentaryzacja, protokół przekazania auta oraz wydatki kierowcy.">
   <title>Super Spedytor — tryb kierowcy</title>
-  <link rel="stylesheet" href="driver.css">
-  <link rel="stylesheet" href="flow.css">
+  <script>
+    if (new URLSearchParams(window.location.search).get('android') === '1') {
+      document.documentElement.classList.add('android-shell');
+    }
+  </script>
+  <link rel="stylesheet" href="driver.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="flow.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="tacho.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="service.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="transshipment.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="android-shell.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+  <link rel="stylesheet" href="scanner.css?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+<meta name="preview-source-commit" content="95d96441ea9cccded7bdba4f70a69e3614b8dcb4">
+<style>.web-build-info{max-width:1100px;margin:16px auto;padding:0 24px 20px;text-align:center;font:12px/1.5 system-ui,sans-serif;color:#656565}.web-build-info a{color:inherit}.android-shell .web-build-info{display:none}</style>
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -41,11 +53,18 @@
     <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
     <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2ZM9 8h6M9 12h6M9 16h3"/></symbol>
     <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/></symbol>
+    <symbol id="i-service" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5-5l2.5 2.5-3 3-2.5-2.5a4 4 0 0 0 5 5L19 17l-2 2-7.5-7.5a4 4 0 0 0-5 5L7 14l3 3-2.5 2.5a4 4 0 0 0 5-5"/></symbol>
+    <symbol id="i-oil" viewBox="0 0 24 24"><path d="M4 9h11l3 4v6H4ZM7 9V5h7v4M18 10h2l1 3M8 14h5"/><path d="M19 17s2 2.2 2 3.5a2 2 0 0 1-4 0c0-1.3 2-3.5 2-3.5Z"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h12v14H4zM8 5v14M12 5v14M16 9h3l2 3v5h-5M2 8h2M2 12h2M2 16h2"/></symbol>
+    <symbol id="i-envelope" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6M15 16h4M17 14v4"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 9h6M9 13h6M9 17h4"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5M12 17.5h.01"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
   </defs></svg>
 
   <header class="studio-header">
     <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
-    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 07</span></div>
+    <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 08</span></div>
     <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
   </header>
 
@@ -53,10 +72,10 @@
     <aside class="studio-sidebar">
       <div class="eyebrow">SUPERSPEDYTOR / DRIVER</div>
       <h1>Jedno zadanie.<br><span>Jeden ekran.</span></h1>
-      <p class="intro">Ładunek. Parking. Tankowanie.<br>Każdy punkt prowadzi kierowcę krok po kroku.</p>
+      <p class="intro">Ładunek. Dokumenty. Przeładunek. Parking. Tankowanie. Inwentaryzacja. Przekazanie auta.<br>Każde zadanie prowadzi kierowcę krok po kroku.</p>
       <label class="scenario-picker"><span>PRZYKŁAD DANYCH ZLECENIA</span><select id="scenario-select"><option value="basic">Firma + kraj + pinezka</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
       <div class="operation-label">PODGLĄD PUNKTU NA TRASIE</div>
-      <div class="operation-switch route-type-switch" role="group" aria-label="Rodzaj punktu na trasie"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button><button data-route-stop="parking">Parking</button><button data-route-stop="fueling">Tankowanie</button></div>
+      <div class="operation-switch route-type-switch" role="group" aria-label="Rodzaj zadania kierowcy"><button data-operation="load" class="active">Załadunek</button><button data-operation="unload">Rozładunek</button><button data-route-stop="collection">Dokumenty CMR</button><button data-route-stop="transshipment">Przeładunek</button><button data-route-stop="parking">Parking</button><button data-route-stop="fueling">Tankowanie</button><button data-service-preview="inventory">Inwentaryzacja</button><button data-service-preview="handover">Przekazanie auta</button></div>
       <label class="mobile-stage"><span>DANE ZLECENIA</span><select id="mobile-scenario" aria-label="Przykład danych zlecenia"><option value="basic">Podstawowe</option><option value="contact">Kontakt + instrukcje</option><option value="materials">Kontakt + instrukcje + zdjęcia</option></select></label>
       <nav class="screen-list" aria-label="Ekrany prototypu">
         <button data-screen="travel"><span class="screen-num">↗</span><span>Widok w drodze</span><svg class="icon"><use href="#i-arrow"/></svg></button>
@@ -70,27 +89,39 @@
     </aside>
 
     <main class="preview-area">
-      <div class="preview-topline"><span id="preview-label">ZAŁADUNEK / INFORMACJE</span><span>Android <span class="tiny-dot">·</span> Prototyp</span></div>
+      <div class="preview-topline"><span id="preview-label">ZAŁADUNEK / INFORMACJE</span><span>Android <span class="tiny-dot">·</span> 360 × 800 px</span></div>
       <section class="device" aria-label="Prototyp aplikacji kierowcy">
         <div class="status-bar"><span>10:42</span><div class="status-icons"><svg class="icon"><use href="#i-signal"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M1 4c4-4 11-4 15 0M4 7c2-2 7-2 9 0M7 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="battery"></span></div></div>
         <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
+        <div id="driver-workspace-bar" class="driver-workspace-bar" hidden></div>
         <div class="app-scroll" id="app-scroll"><div id="app"></div></div>
         <div id="app-action" class="app-action"></div>
-        <nav class="bottom-nav" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
+        <nav class="bottom-nav five-items" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="tacho"><svg class="icon"><use href="#i-clock"/></svg><span>Tacho</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="service"><svg class="icon"><use href="#i-service"/></svg><span>Serwis</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
         <div class="android-home"><span></span></div>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <div id="modal-root"></div>
+        <div id="scanner-root"></div>
       </section>
-      <div class="preview-bottomline"><span class="live-dot"></span> Wykonaj zadanie i przejdź przyciskiem „Dalej”</div>
+      <div class="preview-bottomline"><span class="live-dot"></span> Podgląd telefonu · dla porównania użyj powiększenia przeglądarki 100%</div>
     </main>
 
     <aside class="design-notes"><div class="note-heading"><span class="note-line"></span> PROSTY PRZEBIEG OPERACJI</div><div id="design-context"></div>
       <div class="design-palette"><div class="swatches"><span style="--swatch:#f5f5f3"></span><span style="--swatch:#ffffff"></span><span style="--swatch:#ff6a1a"></span><span style="--swatch:#202124"></span></div><span>Pomarańcz AMG. Jasne powierzchnie.</span></div>
-      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Na stacji karta oraz demonstracyjny PIN pojawiają się po dotarciu. Zdjęcia dystrybutora i pistoletu powstają przed zakończeniem tankowania, a paragon i wydatek — po nim.</p></div>
+      <div class="proposal-note"><svg class="icon"><use href="#i-info"/></svg><p>Przeładunek korzysta z kolejności rozładunków: towar rozładowywany najpóźniej jest odbierany jako pierwszy. CMR i każda sztuka ładunku wymagają osobnej kontroli plomby.</p></div>
     </aside>
   </div>
   <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
-  <script src="demo-assets.js"></script>
-  <script src="flow.js"></script>
+  <script src="demo-assets.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="break-suggestion.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="operation-timing.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="vehicle-handover.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="transshipment.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="scan-quality.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="paper-scanner.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="scanner.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="flow.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="tacho-day-summary.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+  <script src="tacho.js?v=95d96441ea9cccded7bdba4f70a69e3614b8dcb4"></script>
+<footer class="web-build-info">Podgląd 0.1.24-internal · aktualizacja 15.10.2026, 22:57 · <a href="build-info.json" target="_blank" rel="noopener">wersja 95d9644</a></footer>
 </body>
 </html>

@@ -1,0 +1,8 @@
+OpenCV.js 4.13.0, unmodified official single-file WebAssembly build.
+OpenCV project: https://opencv.org/
+Source: https://github.com/opencv/opencv/tree/4.13.0
+Downloaded 2026-10-15 from https://docs.opencv.org/4.13.0/opencv.js
+SHA-256: 63366510248adf3a7eddf3e793dd825404efb7df3749f4d6f8557c7fa4ca8aa0
+License: Apache License 2.0, included in OpenCV-LICENSE.txt.
+Build reports OpenCV 4.13.0, SINGLE_FILE=1, USE_PTHREADS=0.
+Embedded WebAssembly is bundled with the application. No CDN/runtime download.
