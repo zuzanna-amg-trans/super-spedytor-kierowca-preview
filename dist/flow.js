@@ -1644,6 +1644,16 @@ const inspectionMode=()=>state.servicePanel==='inventory'?'inventory':'handover'
 const inspectionProtocol=(mode=inspectionMode())=>mode==='inventory'?state.inventoryProtocol:state.vehicleHandover;
 const inspectionSnapshot=()=>inspectionMode()==='inventory'?vehicleInventorySnapshot:vehicleHandoverSnapshot;
 const inspectionConfirmationKey=(mode=inspectionMode())=>mode==='inventory'?'authorConfirmed':'receiverConfirmed';
+const inspectionV2Controllers={inventory:null,handover:null};
+const inspectionV2Enabled=()=>appQuery.get('handoverVersion')!=='1'&&Boolean(window.SuperSpedytorHandoverV2);
+function inspectionV2Controller(){
+  const mode=inspectionMode();
+  if(!inspectionV2Controllers[mode])inspectionV2Controllers[mode]=window.SuperSpedytorHandoverV2.create({
+    snapshot:inspectionSnapshot(),mode,icon,esc,demoPhoto,demo:true,
+    onChange:()=>render(),onExit:()=>closeService()
+  });
+  return inspectionV2Controllers[mode];
+}
 function inventoryProtocolView(){return vehicleHandoverView();}
 function inventoryActionView(){return vehicleHandoverActionView();}
 function inventoryDesignNotes(){return vehicleHandoverDesignNotes();}
@@ -1761,6 +1771,7 @@ function handoverZoneView(zone){
   return `<section class="handover-zone" data-handover-zone="${zone.id}"><div class="handover-stage"><span>${zone.number}</span><div><strong>${esc(zone.title)}</strong><small>${esc(zone.description)}</small></div></div>${zone.id==='cabin'?handoverReadingsView():''}${orderedBlocks}</section>`;
 }
 function vehicleHandoverView(){
+  if(inspectionV2Enabled())return inspectionV2Controller().view();
   const protocol=inspectionProtocol(),progress=handoverProgress(),photoProgress=handoverVehiclePhotoProgress(),snapshot=inspectionSnapshot();
   const inventory=inspectionMode()==='inventory',title=inventory?'Protokół inwentaryzacji':'Protokół przekazania auta';
   const badge=protocol.pendingSync?(inventory?'Zapisany lokalnie':'Oczekuje na TMS'):handoverReady()?'Gotowy':'Roboczy';
@@ -1786,12 +1797,14 @@ function vehicleHandoverView(){
   </div>`;
 }
 function vehicleHandoverActionView(){
+  if(inspectionV2Enabled())return inspectionV2Controller().actions();
   const protocol=inspectionProtocol(),progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
   if(protocol.pendingSync)return `<div class="flow-actions"><button class="secondary-button" id="handover-correct">${icon('edit')}Popraw protokół</button><button class="primary-button" id="handover-close">${icon('check')}Zamknij podgląd</button></div><p class="action-caption">${inspectionMode()==='inventory'?'Inwentaryzacja zapisana lokalnie w podglądzie.':'Nie wysłano do TMS · przypisanie pojazdu pozostało bez zmian.'}</p>`;
   const caption=handoverReady()?'Komplet gotowy do idempotentnego zapisu i właścicielskiego readbacku.':`Zdjęcia ${photos.complete}/${photos.total} · pozycje ${progress.complete}/${progress.total} · naciśnij, aby przejść do pierwszego braku.`;
   return `<div class="flow-actions"><button class="primary-button ${handoverReady()?'':'validation-required'}" id="handover-prepare">${icon('check')}${inspectionMode()==='inventory'?'Zapisz inwentaryzację':'Przygotuj przekazanie'}</button></div><p class="action-caption">${caption}</p>`;
 }
 function vehicleHandoverDesignNotes(){
+  if(inspectionV2Enabled())return inspectionV2Controller().notes();
   const progress=handoverProgress(),photos=handoverVehiclePhotoProgress();
   const steps=[['01',inspectionMode()==='inventory'?'Pojazd i sporządzający':'Zadanie i osoby z API',(inspectionMode()==='inventory'?vehicleHandoverModel.validateInventorySnapshot(inspectionSnapshot()):vehicleHandoverModel.validateSnapshot(inspectionSnapshot())).valid],['02',`Zdjęcia pojazdu ${photos.complete}/${photos.total}`,photos.complete===photos.total],['03','Wyposażenie i potwierdzenie',handoverPrerequisitesReady()&&inspectionProtocol()[inspectionConfirmationKey()]],['04',inspectionMode()==='inventory'?'Potwierdzenie zapisu inwentaryzacji':'Readback nowego przypisania',false]];
   return `<h2>Jedno auto.<br>Pełny stan.</h2><p class="note-description">${inspectionMode()==='inventory'?'Pojazd, sporządzający, wymagane ujęcia i wyposażenie należą do jednej inwentaryzacji.':'Pojazd, kierowcy, wymagane ujęcia i wyposażenie pochodzą z jednego wersjonowanego zadania Super Spedytora.'} Kierowca dokumentuje stan w stałej kolejności.</p><div class="design-progress"><div class="design-progress-title">${inspectionMode()==='inventory'?'INWENTARYZACJA POJAZDU':'PRZEKAZANIE POJAZDU'}<span>${progress.complete}/${progress.total}</span></div>${steps.map(([number,label,complete],index)=>`<div class="design-step ${complete?'done':index===0||steps[index-1][2]?'current':''}"><span class="design-step-num">${complete?icon('check'):number}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>${inspectionMode()==='inventory'?'Jedna osoba, pełna kontrola':'Bez lokalnego „przepisania” auta'}</strong><p>${inspectionMode()==='inventory'?'Inwentaryzacja obejmuje te same zdjęcia, wskazania i wyposażenie. Sporządza ją jeden kierowca.':'Aplikacja pokaże zakończenie dopiero, gdy TMS zwróci nowe przypisanie auta do kierowcy przejmującego oraz wyższą wersję rekordu.'}</p></div>`;
@@ -1841,6 +1854,7 @@ function bindVehicleHandoverAction(){
   if($('#handover-close'))$('#handover-close').onclick=()=>closeService();
 }
 function bindVehicleHandoverView(){
+  if(inspectionV2Enabled()){inspectionV2Controller().bind();return;}
   bindVehicleHandoverAction();
   if($('#service-back'))$('#service-back').onclick=()=>closeService();
   $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
@@ -2798,6 +2812,7 @@ function reset(){
   state.serviceSurvey=freshServiceSurvey();
   state.inventoryProtocol=freshInventoryProtocol();
   state.vehicleHandover=freshVehicleHandoverProtocol();
+  Object.values(inspectionV2Controllers).forEach(controller=>controller?.reset());
   clearServiceDailyRecord();
   state.serviceOpen=false;
   state.servicePanel='survey';
