@@ -1,4 +1,5 @@
 /* Guided handover V2. Scoped to this view; the app shell owns scrolling and actions. */
+.hv2-screen:has(.hv2-reading-card) .hv2-section-tabs{display:none}
 .hv2-screen{--hv2-border:#dfe4da;--hv2-muted:#6d7669;--hv2-surface:#fff;--hv2-soft:#f1f4ed;--hv2-error:#b42318;min-width:0;padding-bottom:18px;color:#283026}
 .hv2-screen>*{max-width:100%;min-width:0}
 .hv2-screen button,.hv2-screen input,.hv2-screen textarea,.hv2-actions button{font-family:inherit}
