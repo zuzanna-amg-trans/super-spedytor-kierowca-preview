@@ -1,8 +1,8 @@
 {
-  "sourceCommit": "1e4e278213b1c3dc1bac8de39a52c07cc4e89b02",
+  "sourceCommit": "a12095b2d4d77a1c8fad0df9668a1ee29ac9876d",
   "sourceBranch": "codex/play-internal-testing",
   "androidSourceVersion": "0.1.24-internal",
-  "builtAt": "2026-10-15T21:34:00.118Z",
+  "builtAt": "2026-10-15T21:35:15.913Z",
   "mode": "demo",
   "note": "Wersja źródeł podglądu; publikacja i aktualizacja Androida odbywają się osobno."
 }

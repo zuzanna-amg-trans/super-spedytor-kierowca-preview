@@ -20,6 +20,7 @@ const attachmentLimitBytes=100*1024*1024;
 let transshipmentPreviewRole='receiver';
 let collectionPreviewRole=appQuery.get('cmrView')==='handover'?'transferor':'receiver';
 const operationTimingModel=window.SuperSpedytorOperationTiming;
+const serviceWizardModel=window.SuperSpedytorServiceSurvey;
 const vehicleHandoverModel=window.SuperSpedytorVehicleHandover;
 const transshipmentModel=window.SuperSpedytorTransshipment;
 document.documentElement.classList.toggle('backend-mode',backendMode);
@@ -212,17 +213,9 @@ const outgoingReady=()=>transshipment().orders.length>0&&transshipment().orders.
 const serviceDailyStorageKey='super-spedytor-service-daily-v1';
 const servicePhotoDatabaseName='super-spedytor-service-photos-v1';
 const servicePhotoStoreName='survey-photos';
-const serviceDateKey=(date=new Date())=>{
-  const effective=new Date(date);
-  if(effective.getHours()===0&&effective.getMinutes()<1)effective.setDate(effective.getDate()-1);
-  return `${effective.getFullYear()}-${String(effective.getMonth()+1).padStart(2,'0')}-${String(effective.getDate()).padStart(2,'0')}`;
-};
-const nextServiceExpiry=(date=new Date())=>{
-  const expiry=new Date(date);
-  expiry.setHours(0,1,0,0);
-  if(date>=expiry)expiry.setDate(expiry.getDate()+1);
-  return expiry;
-};
+let serviceDraftSavePromise=Promise.resolve(),serviceDraftTimer=null,serviceReminderTimer=null,servicePersistenceGeneration=0;
+const serviceDateKey=serviceWizardModel.dateKey;
+const nextServiceExpiry=serviceWizardModel.expiry;
 const servicePromptSlot=(date=new Date())=>date.getHours()<15?'morning':'evening';
 function readServiceDailyRecord(){
   try{
@@ -240,8 +233,11 @@ function writeServiceDailyRecord(changes={}){
   }catch{return null;}
 }
 function clearServiceDailyRecord(){
+  servicePersistenceGeneration++;
+  clearTimeout(serviceDraftTimer);
+  clearTimeout(serviceReminderTimer);
   try{localStorage.removeItem(serviceDailyStorageKey);}catch{}
-  clearStoredServicePhotos().catch(()=>{});
+  serviceDraftSavePromise.catch(()=>{}).then(clearStoredServicePhotos).catch(()=>{});
 }
 function openServicePhotoDatabase(){
   return new Promise((resolve,reject)=>{
@@ -316,11 +312,15 @@ function serviceCompletedToday(){
   return Boolean(record?.date===serviceDateKey()&&record.status==='done'&&record.survey);
 }
 async function markServiceDailyDone(time){
-  const date=serviceDateKey(),photoSnapshot=await persistServicePhotos(date,state.serviceSurvey.photos);
+  const date=state.serviceSurvey.date;
+  if(date!==serviceDateKey())throw new Error('Rozpoczął się nowy dzień kontroli.');
+  const photoSnapshot=await persistServicePhotos(date,state.serviceSurvey.photos);
+  if(date!==serviceDateKey())throw new Error('Rozpoczął się nowy dzień kontroli.');
   const record=writeServiceDailyRecord({
     status:'done',completedAt:new Date().toISOString(),submittedAt:time,
-    expiresAt:nextServiceExpiry().toISOString(),snoozeUntil:null,
+    expiresAt:nextServiceExpiry().toISOString(),snoozeUntil:null,draft:null,
     survey:{
+      step:4,messageStatus:state.serviceSurvey.messageStatus,
       oil:state.serviceSurvey.oil,
       adBlue:state.serviceSurvey.adBlue,
       serviceDistance:state.serviceSurvey.serviceDistance,
@@ -336,22 +336,19 @@ function markServiceDailyDue(){
   writeServiceDailyRecord({status:'due',completedAt:null,submittedAt:null,promptSlots:record?.date===serviceDateKey()?record.promptSlots||[]:[]});
 }
 function serviceReminderDue(){
-  const now=new Date(),record=readServiceDailyRecord();
-  if(record?.date===serviceDateKey(now)&&record.status==='done'&&record.survey)return false;
-  if(record?.date!==serviceDateKey(now))return true;
-  if(record.snoozeUntil&&Date.now()<new Date(record.snoozeUntil).getTime())return false;
-  return !(record.promptSlots||[]).includes(servicePromptSlot(now));
+  return serviceWizardModel.reminderDue(readServiceDailyRecord());
 }
 function recordServiceReminderShown(){
   const now=new Date(),record=readServiceDailyRecord();
   const slots=record?.date===serviceDateKey(now)?record.promptSlots||[]:[];
-  writeServiceDailyRecord({status:'due',promptSlots:[...new Set([...slots,servicePromptSlot(now)])],lastPromptedAt:now.toISOString(),snoozeUntil:null});
+  writeServiceDailyRecord({status:record?.draft?'in_progress':'due',promptSlots:[...new Set([...slots,servicePromptSlot(now)])],lastPromptedAt:now.toISOString(),snoozeUntil:null});
 }
 function postponeServiceReminder(){
   const now=new Date(),later=new Date(now),record=readServiceDailyRecord();
   if(now.getHours()<18)later.setHours(18,0,0,0);else later.setTime(now.getTime()+60*60*1000);
   const slots=(record?.date===serviceDateKey(now)?record.promptSlots||[]:[]).filter(slot=>slot!==servicePromptSlot(now));
-  writeServiceDailyRecord({status:'due',promptSlots:slots,snoozeUntil:later.toISOString()});
+  writeServiceDailyRecord({status:record?.draft?'in_progress':'due',promptSlots:slots,snoozeUntil:later.toISOString()});
+  scheduleServiceReminder();
   return now.getHours()<18?'wieczorem po otwarciu aplikacji':'za godzinę po ponownym otwarciu aplikacji';
 }
 function updateServiceNavIndicator(){
@@ -372,12 +369,57 @@ function maybeShowDailyServiceReminder(){
   recordServiceReminderShown();
   openModal('daily-service',{});
 }
-const freshServiceSurvey=()=>({
-  date:serviceDateKey(),
-  oil:'',adBlue:'',serviceDistance:'',afterService:false,note:'',
-  photos:{oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},
-  submitted:false,submittedAt:null,reopened:false,hydrated:false
-});
+function scheduleServiceReminder(){
+  clearTimeout(serviceReminderTimer);
+  if(backendMode||serviceCompletedToday())return;
+  const record=readServiceDailyRecord();
+  const reminderAt=record?.snoozeUntil?new Date(record.snoozeUntil).getTime():Date.now()+15*60*1000;
+  serviceReminderTimer=setTimeout(()=>{
+    maybeShowDailyServiceReminder();
+    if(!state.modal&&!serviceCompletedToday())scheduleServiceReminder();
+    else if(state.modal?.type!=='daily-service')serviceReminderTimer=setTimeout(scheduleServiceReminder,60000);
+  },Math.max(1000,Math.min(reminderAt-Date.now(),2147483647)));
+}
+const freshServiceSurvey=()=>serviceWizardModel.create();
+const servicePhotoFingerprint=photos=>Object.values(photos).map(photo=>photo?(photo.hash||photo.storageId||photo.url):'').join('|');
+function updateServiceDraftLabel(failed=false){
+  const label=$('#service-draft-status');
+  if(label){label.textContent=failed?'Nie udało się zachować postępu. Spróbuj ponownie.':'Postęp zachowany. Możesz dokończyć później.';label.classList.toggle('error',failed);}
+}
+function queueServiceDraftSave(){
+  const survey=state.serviceSurvey;
+  if(survey.submitted||survey.saving||survey.date!==serviceDateKey())return;
+  writeServiceDailyRecord({status:'in_progress',draft:serviceWizardModel.snapshot(survey,survey.photoMetadata||{}),survey:null});
+  clearTimeout(serviceDraftTimer);
+  serviceDraftTimer=setTimeout(()=>flushServiceDraft().catch(()=>{}),180);
+}
+function flushServiceDraft(){
+  clearTimeout(serviceDraftTimer);
+  const survey=state.serviceSurvey,generation=servicePersistenceGeneration;
+  if(survey.submitted||survey.saving||survey.date!==serviceDateKey())return serviceDraftSavePromise;
+  const photos={...survey.photos},snapshot=serviceWizardModel.snapshot(survey),fingerprint=servicePhotoFingerprint(photos);
+  serviceDraftSavePromise=serviceDraftSavePromise.catch(()=>{}).then(async()=>{
+    if(generation!==servicePersistenceGeneration||snapshot.date!==serviceDateKey()||survey.submitted)return;
+    const metadata=fingerprint===survey.photoFingerprint?survey.photoMetadata||{}:await persistServicePhotos(snapshot.date,photos);
+    if(generation!==servicePersistenceGeneration||snapshot.date!==serviceDateKey()||survey.submitted)return;
+    survey.photoMetadata=metadata;
+    survey.photoFingerprint=fingerprint;
+    const record=writeServiceDailyRecord({status:'in_progress',draft:{...snapshot,photos:metadata},survey:null,expiresAt:nextServiceExpiry().toISOString()});
+    if(!record)throw new Error('Brak miejsca na zapis postępu.');
+    updateServiceDraftLabel();
+  }).catch(error=>{updateServiceDraftLabel(true);throw error;});
+  return serviceDraftSavePromise;
+}
+async function pauseServiceSurvey(){
+  if(state.serviceSurvey.submitted||serviceCompletedToday()){closeService();return;}
+  try{await flushServiceDraft();}
+  catch{toast('Nie udało się zachować postępu. Spróbuj ponownie przed wyjściem.');return;}
+  const remindAt=new Date(Date.now()+15*60*1000);
+  writeServiceDailyRecord({status:'in_progress',snoozeUntil:remindAt.toISOString()});
+  closeService();
+  scheduleServiceReminder();
+  toast(`Przypomnimy o dokończeniu. Wrócisz do kroku ${state.serviceSurvey.step+1} z 5.`);
+}
 const serviceHistoryStepMeta={
   oil_level:{label:'Poziom oleju',icon:'oil',unit:'%'},
   adblue_level:{label:'Poziom AdBlue',icon:'drop',unit:'%'},
@@ -631,27 +673,20 @@ async function restoreServiceSurveyForToday(){
     writeServiceDailyRecord({status:'due',completedAt:null,submittedAt:null,promptSlots:[]});
     return false;
   }
-  if(state.serviceSurvey.hydrated||record?.date!==serviceDateKey()||!record.survey)return false;
+  const source=record?.draft||record?.survey;
+  if(state.serviceSurvey.hydrated||record?.date!==serviceDateKey()||!source)return false;
   const hasUnsavedInput=[state.serviceSurvey.oil,state.serviceSurvey.adBlue,state.serviceSurvey.serviceDistance,state.serviceSurvey.note].some(has)
     ||Object.values(state.serviceSurvey.photos).some(Boolean);
   if(hasUnsavedInput)return false;
   let photos={oil:null,adBlue:null,serviceDistance:null,dpf:null,message:null},photosComplete=true;
   try{
-    photos=await restoreServicePhotos(record.survey.photos);
-    photosComplete=Object.keys(record.survey.photos||{}).every(key=>Boolean(photos[key]));
+    photos=await restoreServicePhotos(source.photos);
+    photosComplete=Object.keys(source.photos||{}).every(key=>Boolean(photos[key]));
   }catch{photosComplete=false;}
-  Object.assign(state.serviceSurvey,{
-    oil:record.survey.oil||'',
-    adBlue:record.survey.adBlue||'',
-    serviceDistance:record.survey.serviceDistance||'',
-    afterService:Boolean(record.survey.afterService),
-    note:record.survey.note||'',
-    photos,
-    submitted:false,
-    submittedAt:null,
-    reopened:record.status!=='done'||!photosComplete,
-    hydrated:true
-  });
+  const restored=serviceWizardModel.restore(record,photos);
+  if(!restored)return false;
+  Object.assign(state.serviceSurvey,restored,{photoMetadata:source.photos||{},photoFingerprint:servicePhotoFingerprint(photos),
+    reopened:record.status!=='done'||!photosComplete});
   if(!photosComplete)markServiceDailyDue();
   return true;
 }
@@ -659,10 +694,13 @@ async function expireServiceSurveyDataIfNeeded(){
   const today=serviceDateKey(),record=readServiceDailyRecord();
   const expired=Boolean(record?.date&&record.date!==today)||state.serviceSurvey.date!==today;
   if(!expired)return false;
+  servicePersistenceGeneration++;
+  clearTimeout(serviceDraftTimer);
+  clearTimeout(serviceReminderTimer);
   Object.values(state.serviceSurvey.photos).forEach(revoke);
   state.serviceSurvey=freshServiceSurvey();
   try{localStorage.removeItem(serviceDailyStorageKey);}catch{}
-  try{await clearStoredServicePhotos();}catch{}
+  try{await serviceDraftSavePromise.catch(()=>{});await clearStoredServicePhotos();}catch{}
   return true;
 }
 let serviceExpiryTimer=null;
@@ -673,6 +711,8 @@ function scheduleServiceSurveyExpiry(){
     await expireServiceSurveyDataIfNeeded();
     ensureServiceSurveyToday();
     render();
+    maybeShowDailyServiceReminder();
+    scheduleServiceReminder();
     scheduleServiceSurveyExpiry();
   },Math.min(delay,2147483647));
 }
@@ -682,6 +722,7 @@ async function initializeServiceSurveyStorage(){
   ensureServiceSurveyToday();
   render();
   maybeShowDailyServiceReminder();
+  scheduleServiceReminder();
   scheduleServiceSurveyExpiry();
 }
 const dictionary={pl:{pickup:'ZAŁADUNEK',delivery:'ROZŁADUNEK',flag:'🇵🇱'},en:{pickup:'PICKUP',delivery:'DELIVERY',flag:'🇬🇧'},de:{pickup:'BELADUNG',delivery:'ENTLADUNG',flag:'🇩🇪'},it:{pickup:'CARICO',delivery:'SCARICO',flag:'🇮🇹'}};
@@ -825,7 +866,7 @@ function toast(message){
 function revoke(record){if(record?.scanId||record?.originalUrl)window.SuperSpedytorScanner?.release(record);else if(record?.url?.startsWith('blob:'))URL.revokeObjectURL(record.url);}
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
 
-function openService(panel=state.servicePanel||'survey'){
+function openService(panel=(!serviceCompletedToday()?'survey':state.servicePanel||'survey')){
   if(backendTestWorkspace)backendActiveNav='service';
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&panel!=='history')enterTestingWorkspace('survey',false);
   cancelArrivalCountdown(false);
@@ -1444,7 +1485,7 @@ function serviceValueValid(key){
 }
 function serviceTaskReady(key){return Boolean(state.serviceSurvey.photos[key])&&serviceValueValid(key);}
 function serviceCompletedCount(){return serviceTaskKeys.filter(serviceTaskReady).length;}
-function serviceReady(){return serviceCompletedCount()===serviceTaskKeys.length;}
+function serviceReady(){return serviceWizardModel.ready(state.serviceSurvey);}
 function servicePhotoButton(key,compact=false){
   const record=state.serviceSurvey.photos[key];
   const label=key==='message'?'Zdjęcie komunikatu':serviceTaskMeta[key].title;
@@ -1452,8 +1493,8 @@ function servicePhotoButton(key,compact=false){
 }
 function serviceTaskCard(key,index){
   const meta=serviceTaskMeta[key],done=serviceTaskReady(key),photo=servicePhotoButton(key);
-  const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>Wartość *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
-  return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3>${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
+  const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>${key==='serviceDistance'?'Pozostało do przeglądu':'Wpisz poziom'} *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
+  return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3 id="service-step-title" tabindex="-1">${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
 }
 function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected';}
 function serviceHistoryRecords(){
@@ -1562,68 +1603,94 @@ function bindServiceHistoryView(){
 function serviceModuleSwitch(active){
   return `<div class="service-module-switch" role="tablist" aria-label="Moduły obsługi pojazdu"><button role="tab" data-service-panel="survey" aria-selected="${active==='survey'}" class="${active==='survey'?'active':''}">${icon('service')}<span><strong>Kontrola</strong><small>Ankieta dzienna</small></span></button><button role="tab" data-service-panel="inventory" aria-selected="${active==='inventory'}" class="${active==='inventory'?'active':''}">${icon('clipboard')}<span><strong>Inwentaryzacja</strong><small>Stan wyposażenia</small></span></button><button role="tab" data-service-panel="handover" aria-selected="${active==='handover'}" class="${active==='handover'?'active':''}">${icon('truck')}<span><strong>Przekazanie</strong><small>Auto i wyposażenie</small></span></button></div>`;
 }
+function serviceWizardView(){
+  const survey=state.serviceSurvey,step=serviceWizardModel.stepIndex(survey.step),key=serviceWizardModel.steps[step];
+  const message=key==='message';
+  const progress=serviceWizardModel.steps.map((item,index)=>'<span class="'+(index<step?'done':index===step?'current':'')+'" aria-hidden="true"></span>').join('');
+  const messageBody='<section class="panel service-wizard-message"><span class="service-wizard-symbol">'+icon('warning')+'</span><h3 id="service-step-title" tabindex="-1">Komunikat serwisowy</h3><p>Sprawdź kontrolki i komunikaty na desce rozdzielczej.</p><div class="service-message-choices"><button data-service-message="clear" aria-pressed="'+(survey.messageStatus==='clear')+'" class="'+(survey.messageStatus==='clear'?'selected':'')+'">'+icon('check')+'<span>Brak komunikatów</span></button><button data-service-message="reported" aria-pressed="'+(survey.messageStatus==='reported')+'" class="'+(survey.messageStatus==='reported'?'selected warning':'')+'">'+icon('warning')+'<span>Jest komunikat</span></button></div>'+(survey.messageStatus==='reported'?servicePhotoButton('message')+'<label class="service-wizard-note" for="service-note"><span>Opis komunikatu · opcjonalnie</span><textarea id="service-note" maxlength="300" placeholder="Wpisz lub podyktuj opis">'+esc(survey.note)+'</textarea></label>':'<div class="service-wizard-tip">'+icon('info')+'<span>Jeśli nic się nie wyświetla, wybierz „Brak komunikatów” i przejdź dalej.</span></div>')+'</section>';
+  const afterService=key==='serviceDistance'?'<label class="panel check-row service-after-check"><input id="service-after" type="checkbox" '+(survey.afterService?'checked':'')+'><span><strong>Pojazd jest po przeglądzie</strong><small>Zaznacz, jeśli przegląd właśnie wykonano.</small></span></label>':'';
+  return '<div class="app-content service-screen service-wizard-screen" data-service-step="'+key+'"><div class="service-wizard-header"><div><span>CODZIENNA KONTROLA</span><h2>Ankieta serwisowa</h2></div><button id="service-pause" aria-label="Przerwij ankietę i zachowaj postęp">'+icon('close')+'</button></div><div class="service-wizard-progress" aria-label="Krok '+(step+1)+' z 5"><div><strong>Krok '+(step+1)+' <span>z 5</span></strong><span>'+(step===4?'Ostatni krok':esc(serviceWizardModel.titles[key]))+'</span></div><div class="service-wizard-dots">'+progress+'</div></div>'+(message?messageBody:serviceTaskCard(key,step))+afterService+'<p id="service-step-error" class="service-wizard-error" role="alert"></p><p id="service-draft-status" class="service-wizard-draft" role="status">Postęp zachowuje się automatycznie.</p><button class="service-wizard-pause" id="service-pause-later">'+icon('clock')+'Dokończę później</button></div>';
+}
 function serviceSurveyView(){
-  const done=serviceCompletedCount(),survey=state.serviceSurvey,dailyDone=survey.submitted||serviceCompletedToday(),dailyRecord=readServiceDailyRecord();
-  const status=dailyDone?'Wykonana dzisiaj':done===4?'Gotowa do zapisu':'Do uzupełnienia';
+  const survey=state.serviceSurvey,dailyDone=survey.submitted||serviceCompletedToday(),dailyRecord=readServiceDailyRecord();
+  if(!dailyDone||survey.reopened)return serviceWizardView();
   const savedTime=survey.submittedAt||dailyRecord?.submittedAt||'';
-  if(dailyDone&&!survey.submitted&&!survey.reopened){
-    return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge saved">${status}</b></div>${serviceModuleSwitch('survey')}${serviceHistoryEntryButton()}<section class="service-daily-status done"><span>${icon('check')}</span><div><strong>Dzisiejsza kontrola wykonana</strong><small>Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.</small></div><b>RAZ DZIENNIE</b></section><section class="panel service-completed-card"><span>${icon('check')}</span><h3>Na dzisiaj wszystko gotowe</h3><p>Cały zapis jest ważny do jutra do 00:01. Po tej godzinie wartości, notatka i zdjęcia zostaną usunięte, a pojawi się nowa ankieta.</p><button class="secondary-button" id="service-correct">${icon('edit')}Wprowadź korektę</button></section><p class="service-offline-note">${icon('info')}Potwierdzenie pozostaje na tym urządzeniu. Wersja demonstracyjna nie wysyła danych do backendu Super Spedytora.</p></div>`;
-  }
-  return `<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">${icon('back')}</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta serwisowa</h2></div><b class="service-state-badge ${dailyDone?'saved':done===4?'ready':''}">${status}</b></div>${serviceModuleSwitch('survey')}${serviceHistoryEntryButton()}<p class="service-intro">Zrób zdjęcia komputera pokładowego i uzupełnij cztery pozycje. Dzięki temu serwis widzi stan pojazdu przed trasą.</p><section class="service-daily-status ${dailyDone?'done':''}"><span>${icon(dailyDone?'check':'bell')}</span><div><strong>${dailyDone?'Dzisiejsza kontrola wykonana':'Do wypełnienia dzisiaj'}</strong><small>${dailyDone?`Zapisano na tym urządzeniu${savedTime?` o ${esc(savedTime)}`:''}.`:'Wypełnij rano przed trasą albo wieczorem po zakończeniu jazdy.'}</small></div><b>RAZ DZIENNIE</b></section>${survey.submitted?`<div class="service-saved-banner">${icon('check')}<p><strong>Ankieta jest kompletna</strong>Zapisano cały formularz o ${esc(survey.submittedAt)}. Dane pozostaną ważne do jutra do 00:01.</p></div>`:''}<section class="service-progress-card"><div><span>POSTĘP ANKIETY</span><strong id="service-progress-count">${done}/4</strong></div><div class="service-progress-track"><span id="service-progress-bar" style="width:${done/4*100}%"></span></div><p>Każda pozycja wymaga zdjęcia. Olej, AdBlue i przegląd wymagają również wartości.</p></section><section class="panel service-message-card"><div class="service-message-heading"><span>${icon('camera')}</span><div><h3>Komunikaty serwisowe</h3><p>Kontrolki lub komunikaty z deski rozdzielczej · opcjonalne</p></div><b>Opcjonalne</b></div>${servicePhotoButton('message',true)}<label for="service-note"><span>Opis komunikatu</span><textarea id="service-note" maxlength="300" placeholder="Wpisz lub podyktuj, co pojawiło się na desce rozdzielczej">${esc(survey.note)}</textarea></label></section><div class="service-list-heading"><div><span>WYMAGANE</span><h3>Zdjęcia i wartości</h3></div><b>${done}/4 gotowe</b></div>${serviceTaskKeys.map(serviceTaskCard).join('')}<label class="panel check-row service-after-check"><input id="service-after" type="checkbox" ${survey.afterService?'checked':''}><span><strong>Po przeglądzie</strong><small>Zaznacz, jeśli pojazd właśnie wrócił z przeglądu.</small></span></label><p class="service-offline-note">${icon('info')}Wartości i zdjęcia zostaną utrwalone dopiero po ostatniej akcji „Zapisz ankietę”. Następnego dnia o 00:01 znikną z aplikacji.</p></div>`;
+  return '<div class="app-content service-screen"><div class="service-page-header"><button id="service-back" aria-label="Wróć do poprzedniego widoku">'+icon('back')+'</button><div><span>CODZIENNA KONTROLA POJAZDU</span><h2>Ankieta wykonana</h2></div><b class="service-state-badge saved">Gotowe na dziś</b></div><section class="panel service-completed-card"><span>'+icon('check')+'</span><h3>Dziękujemy. Kontrola zakończona.</h3><p>Zapisano całą ankietę'+(savedTime?' o '+esc(savedTime):'')+'. Następna kontrola pojawi się jutro. Lokalny zapis wygaśnie o 00:01.</p><button class="secondary-button" id="service-correct">'+icon('edit')+'Popraw ankietę</button></section>'+serviceHistoryEntryButton()+'<p class="service-offline-note">'+icon('info')+'Podgląd demonstracyjny zapisuje odpowiedzi wyłącznie na tym urządzeniu.</p></div>';
 }
 function serviceActionView(){
-  const done=serviceCompletedCount(),submitted=state.serviceSurvey.submitted;
-  if(submitted||serviceCompletedToday()&&!state.serviceSurvey.reopened)return `<div class="flow-actions"><button class="primary-button" id="service-close">${icon('check')}Zamknij ankietę</button></div><p class="action-caption">Zapis pozostaje ważny do następnego dnia do 00:01.</p>`;
-  return `<div class="flow-actions"><button class="primary-button" id="service-save" ${serviceReady()?'':'disabled'}>${icon('check')}Zapisz ankietę</button></div><p class="action-caption">${done===4?'Wszystkie wymagane pozycje są kompletne.':`Uzupełnione ${done}/4 · dodaj brakujące zdjęcia i wartości.`}</p>`;
+  const survey=state.serviceSurvey;
+  if(survey.submitted||serviceCompletedToday()&&!survey.reopened)return '<div class="flow-actions"><button class="primary-button" id="service-close">'+icon('check')+'Zakończ</button></div>';
+  const step=serviceWizardModel.stepIndex(survey.step),last=step===4,error=serviceWizardModel.validation(survey);
+  return '<div class="flow-actions service-wizard-actions">'+(step>0?'<button class="flow-back" id="service-previous" aria-label="Poprzedni krok ankiety">'+icon('back')+'</button>':'')+'<button class="primary-button" id="'+(last?'service-save':'service-next')+'">'+icon(last?'check':'arrow')+(last?'Zapisz ankietę':'Dalej')+'</button></div><p class="action-caption">'+(error?esc(error):last?'Zapiszesz całą ankietę i zakończysz kontrolę.':'Następnie: '+esc(serviceWizardModel.titles[serviceWizardModel.steps[step+1]]))+'</p>';
 }
 function serviceDesignNotes(){
-  const done=serviceCompletedCount();
-  return `<h2>Jedna kontrola.<br>Cztery dowody.</h2><p class="note-description">Ekran oddziela obowiązkowe od opcjonalnych danych. Kierowca od razu widzi, czego brakuje, a zapis odblokowuje się dopiero przy komplecie.</p><div class="design-progress"><div class="design-progress-title">ANKIETA SERWISOWA<span>${done}/4</span></div>${serviceTaskKeys.map((key,index)=>`<div class="design-step ${serviceTaskReady(key)?'done':index===done?'current':''}"><span class="design-step-num">${serviceTaskReady(key)?icon('check'):String(index+1).padStart(2,'0')}</span><span>${serviceTaskMeta[key].title}</span></div>`).join('')}</div><div class="design-shared"><strong>Aparat i galeria</strong><p>Każdą fotografię można wykonać aparatem albo wybrać z urządzenia. Komunikaty serwisowe są celowo opcjonalne.</p></div>`;
+  const survey=state.serviceSurvey,step=serviceWizardModel.stepIndex(survey.step);
+  return '<h2>Jedna ankieta.<br>Pięć prostych kroków.</h2><p class="note-description">Kierowca zajmuje się jedną rzeczą naraz. Może przerwać i wrócić do tego samego ekranu, wraz z odpowiedziami i zdjęciami.</p><div class="design-progress"><div class="design-progress-title">ANKIETA SERWISOWA<span>'+(step+1)+'/5</span></div>'+serviceWizardModel.steps.map((key,index)=>'<div class="design-step '+(index<step?'done':index===step?'current':'')+'"><span class="design-step-num">'+(index<step?icon('check'):String(index+1).padStart(2,'0'))+'</span><span>'+serviceWizardModel.titles[key]+'</span></div>').join('')+'</div><div class="design-shared"><strong>Wróć tam, gdzie skończyłeś</strong><p>Przerwana ankieta pozostaje do dokończenia. Po 15 minutach przypomni o sobie w otwartej aplikacji. Ostateczne potwierdzenie następuje dopiero po ostatnim kroku.</p></div>';
 }
 function refreshServiceProgress(){
-  const done=serviceCompletedCount();
-  if($('#service-progress-count'))$('#service-progress-count').textContent=`${done}/4`;
-  if($('#service-progress-bar'))$('#service-progress-bar').style.width=`${done/4*100}%`;
-  const listStatus=$('.service-list-heading b');
-  if(listStatus)listStatus.textContent=`${done}/4 gotowe`;
-  serviceTaskKeys.forEach(key=>{
-    const card=$(`[data-service-task="${key}"]`);
-    if(!card)return;
-    const ready=serviceTaskReady(key);
-    card.classList.toggle('complete',ready);
-    const status=$('.service-task-status',card);
-    if(status)status.textContent=ready?'Gotowe':'Wymagane';
-  });
-  const badge=$('.service-state-badge');
-  if(badge){badge.textContent=done===4?'Gotowa do zapisu':'Do uzupełnienia';badge.classList.toggle('ready',done===4);badge.classList.remove('saved');}
+  const error=$('#service-step-error');if(error)error.textContent='';
   updateServiceNavIndicator();
   $('#app-action').innerHTML=serviceActionView();
   bindServiceAction();
 }
 function markServiceEdited(){
+  state.serviceSurvey.hydrated=true;
   if(state.serviceSurvey.submitted||serviceCompletedToday()){
     state.serviceSurvey.submitted=false;
     state.serviceSurvey.submittedAt=null;
     markServiceDailyDue();
   }
+  queueMicrotask(queueServiceDraftSave);
+}
+function showServiceStepError(message){
+  const error=$('#service-step-error');if(error)error.textContent=message;
+  const key=serviceWizardModel.steps[state.serviceSurvey.step];
+  const target=key==='message'?$('[data-service-message]'):serviceValueValid(key)?$('[data-service-photo="'+key+'"]'):$('#service-'+key);
+  target?.focus({preventScroll:true});
+  target?.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+async function moveServiceStep(direction){
+  const survey=state.serviceSurvey;
+  if(direction>0){
+    const error=serviceWizardModel.validation(survey);
+    if(error){showServiceStepError(error);return;}
+  }
+  survey.step=serviceWizardModel.stepIndex(survey.step+direction);
+  queueServiceDraftSave();
+  try{await flushServiceDraft();}catch{}
+  render();
+  $('#app-scroll').scrollTop=0;
+  $('#service-step-title')?.focus({preventScroll:true});
 }
 function bindServiceAction(){
+  if($('#service-next'))$('#service-next').onclick=()=>moveServiceStep(1);
+  if($('#service-previous'))$('#service-previous').onclick=()=>moveServiceStep(-1);
   if($('#service-save'))$('#service-save').onclick=async event=>{
-    if(!serviceReady())return;
+    const survey=state.serviceSurvey;
+    if(!serviceReady()){
+      survey.step=Math.max(0,serviceWizardModel.firstIncomplete(survey));
+      render();$('#app-scroll').scrollTop=0;
+      showServiceStepError(serviceWizardModel.validation(survey));
+      return;
+    }
     const button=event.currentTarget,time=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     button.disabled=true;
-    button.innerHTML=`${icon('clock')}Zapisywanie ankiety…`;
+    button.innerHTML=icon('clock')+'Zapisywanie ankiety…';
     try{
+      await flushServiceDraft();
+      if(survey.date!==serviceDateKey())throw new Error('Rozpoczął się nowy dzień kontroli.');
+      survey.saving=true;
       await markServiceDailyDone(time);
-      state.serviceSurvey.submitted=true;
-      state.serviceSurvey.submittedAt=time;
-      state.serviceSurvey.reopened=false;
-      state.serviceSurvey.hydrated=true;
+      if(survey!==state.serviceSurvey||survey.date!==serviceDateKey())throw new Error('Rozpoczął się nowy dzień kontroli.');
+      servicePersistenceGeneration++;
+      clearTimeout(serviceDraftTimer);clearTimeout(serviceReminderTimer);
+      survey.submitted=true;survey.submittedAt=time;survey.reopened=false;survey.hydrated=true;survey.saving=false;
       render();
-      toast('Cała ankieta została zapisana na urządzeniu do jutra, do 00:01.');
+      toast('Ankieta zapisana. Kontrola na dzisiaj wykonana.');
     }catch(error){
+      survey.saving=false;
       render();
-      toast('Nie udało się zapisać całej ankiety. Dane nie zostały oznaczone jako gotowe.');
+      toast('Nie udało się zapisać całej ankiety. Postęp pozostaje do dokończenia.');
     }
   };
   if($('#service-close'))$('#service-close').onclick=()=>closeService();
@@ -1631,8 +1698,20 @@ function bindServiceAction(){
 function bindServiceView(){
   bindServiceAction();
   if($('#service-back'))$('#service-back').onclick=()=>closeService();
-  if($('#service-correct'))$('#service-correct').onclick=()=>{state.serviceSurvey.reopened=true;render();};
+  if($('#service-pause'))$('#service-pause').onclick=pauseServiceSurvey;
+  if($('#service-pause-later'))$('#service-pause-later').onclick=pauseServiceSurvey;
+  if($('#service-correct'))$('#service-correct').onclick=()=>{
+    state.serviceSurvey.reopened=true;state.serviceSurvey.step=0;markServiceEdited();render();
+  };
   $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
+  $$('[data-service-message]').forEach(button=>button.onclick=()=>{
+    markServiceEdited();
+    state.serviceSurvey.messageStatus=button.dataset.serviceMessage;
+    if(state.serviceSurvey.messageStatus==='clear'){
+      revoke(state.serviceSurvey.photos.message);state.serviceSurvey.photos.message=null;state.serviceSurvey.note='';
+    }
+    render();
+  });
   $$('[data-service-photo]').forEach(button=>button.onclick=()=>openModal('service-photo',{key:button.dataset.servicePhoto,service:true,kind:'service-photo'}));
   $$('[data-service-value]').forEach(input=>input.oninput=event=>{markServiceEdited();state.serviceSurvey[event.target.dataset.serviceValue]=event.target.value;refreshServiceProgress();});
   if($('#service-note'))$('#service-note').oninput=event=>{markServiceEdited();state.serviceSurvey.note=event.target.value;refreshServiceProgress();};
@@ -1930,6 +2009,7 @@ function updateScreenList(){
 
 function render(){
   updateDriverWorkspaceBar();
+  $('.device')?.classList.toggle('service-survey-focus',state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted&&(!serviceCompletedToday()||state.serviceSurvey.reopened));
   $('.device')?.classList.toggle('document-verification-mode',state.routeStop==='collection'&&Boolean(collectionGroup()?.pendingDocument));
   if(backendTestWorkspace&&backendActiveNav==='tacho'){window.SuperSpedytorTacho?.open?.();return;}
   const scroll=$('#app-scroll').scrollTop;
@@ -2496,9 +2576,10 @@ function openModal(type,target){
     body=`<p>Postępuj w kolejności z Super Spedytora: dane i karty paliwowe, komplet zdjęć auta, wyposażenie po miejscach, potwierdzenie odbiorcy. Każde uszkodzenie wymaga ujęcia ogólnego, zbliżenia i opisu.</p><div class="help-options"><button id="help-handover-chat">${icon('chat')}Otwórz czat ze spedytorem</button></div><p class="small-note">Nie fotografuj kodów PIN. Sam lokalny zapis nie zmienia przypisania — zakończenie wymaga readbacku TMS z nowym kierowcą pojazdu.</p>`;
   }
   if(type==='daily-service'){
-    const evening=new Date().getHours()>=15;
-    title='Dzisiejsza ankieta serwisowa';
-    body=`<div class="service-reminder"><span class="service-reminder-icon">${icon('bell')}</span><strong>Jedna krótka kontrola pojazdu dziennie</strong><p>Zrób zdjęcia wskazań, wpisz poziom oleju, AdBlue i dystans do przeglądu. Możesz zrobić to rano przed trasą albo wieczorem po zakończeniu jazdy.</p><div class="service-reminder-time">${icon('clock')}<span><b>${evening?'Dobry moment: po trasie':'Dobry moment: przed trasą'}</b><small>Po zapisaniu przypomnienie zniknie do następnego dnia.</small></span></div><button class="primary-button service-reminder-primary" id="service-reminder-now">${icon('service')}Wypełnij teraz</button><button class="secondary-button service-reminder-secondary" id="service-reminder-later">${icon('clock')}${evening?'Przypomnij za godzinę':'Przypomnij wieczorem'}</button><button class="service-reminder-skip" id="service-reminder-close">Później — zostaw oznaczenie przy „Serwis”</button><p class="small-note">Wersja offline przypomina po otwarciu aplikacji. Powiadomienie systemowe wymaga integracji natywnej i API.</p></div>`;
+    const evening=new Date().getHours()>=15,draft=readServiceDailyRecord()?.draft;
+    const step=serviceWizardModel.stepIndex(draft?.step);
+    title=draft?'Dokończ ankietę serwisową':'Dzisiejsza ankieta serwisowa';
+    body='<div class="service-reminder"><span class="service-reminder-icon">'+icon('bell')+'</span><strong>'+(draft?'Wróć dokładnie tam, gdzie skończyłeś':'Pięć kroków. Jedna kontrola.')+'</strong><p>'+(draft?'Twoje odpowiedzi i zdjęcia są zachowane. Do dokończenia: <b>krok '+(step+1)+' z 5 — '+esc(serviceWizardModel.titles[serviceWizardModel.steps[step]])+'</b>.':'Sprawdź komunikaty, poziom oleju, AdBlue, dystans do przeglądu i DPF. Poprowadzimy Cię ekran po ekranie.')+'</p><div class="service-reminder-time">'+icon('clock')+'<span><b>'+(draft?'Postęp czeka na Ciebie':evening?'Dobry moment: po trasie':'Dobry moment: przed trasą')+'</b><small>'+(draft?'Ankieta pozostanie do dokończenia aż do ostatniego zapisu.':'Możesz przerwać i wrócić do tego samego kroku.')+'</small></span></div><button class="primary-button service-reminder-primary" id="service-reminder-now">'+icon('service')+(draft?'Wznów ankietę · '+(step+1)+'/5':'Wypełnij teraz')+'</button><button class="secondary-button service-reminder-secondary" id="service-reminder-later">'+icon('clock')+(evening?'Przypomnij za godzinę':'Przypomnij wieczorem')+'</button><button class="service-reminder-skip" id="service-reminder-close">Dokończę później</button></div>';
   }
   if(type==='finish'){
     title=`Zakończyć ${isLoad()?'załadunek':'rozładunek'}?`;
@@ -2633,7 +2714,10 @@ function openModal(type,target){
   if($('#help-handover-chat'))$('#help-handover-chat').onclick=()=>{closeModal(false);state.serviceOpen=false;state.routeStop?goStop('chat'):go('chat');};
   if($('#service-reminder-now'))$('#service-reminder-now').onclick=()=>openService('survey');
   if($('#service-reminder-later'))$('#service-reminder-later').onclick=()=>{const when=postponeServiceReminder();closeModal(false);updateServiceNavIndicator();toast(`Przypomnimy ${when}.`);};
-  if($('#service-reminder-close'))$('#service-reminder-close').onclick=()=>{closeModal();updateServiceNavIndicator();};
+  if($('#service-reminder-close'))$('#service-reminder-close').onclick=()=>{
+    if(readServiceDailyRecord()?.draft)writeServiceDailyRecord({snoozeUntil:new Date(Date.now()+15*60*1000).toISOString()});
+    closeModal();updateServiceNavIndicator();scheduleServiceReminder();
+  };
   if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!finishReady())return;finishOperationTimer();current().finished=true;go('success');};
   if($('#confirm-reset'))$('#confirm-reset').onclick=()=>reset();
   $('.modal-sheet').focus();
@@ -3419,6 +3503,7 @@ if(androidShell){
 render();
 initializeBackendPanel();
 if(!backendMode){
+  window.addEventListener('pagehide',()=>{if(state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted)flushServiceDraft().catch(()=>{});});
   const operationTimerTicker=setInterval(updateOperationTimerDom,1000);
   window.addEventListener('beforeunload',()=>clearInterval(operationTimerTicker),{once:true});
   initializeServiceSurveyStorage().catch(()=>{
@@ -3426,13 +3511,14 @@ if(!backendMode){
     scheduleServiceSurveyExpiry();
   });
   document.addEventListener('visibilitychange',async()=>{
-    if(document.hidden)return;
+    if(document.hidden){if(state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted)flushServiceDraft().catch(()=>{});return;}
     const expired=await expireServiceSurveyDataIfNeeded();
     const restored=await restoreServiceSurveyForToday();
     ensureServiceSurveyToday();
     if(expired||restored)render();
     updateServiceNavIndicator();
     maybeShowDailyServiceReminder();
+    scheduleServiceReminder();
     scheduleServiceSurveyExpiry();
   });
 }
