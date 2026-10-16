@@ -30,6 +30,10 @@
         ...clone(order.cmr||{}),
         scannedCode:null,
         previewVisible:false,
+        reviewedPages:[],
+        previewPage:0,
+        zoomed:false,
+        viewerOpen:false,
         accepted:false,
         issuedCode:null,handedOver:false,
         acceptedAt:null
@@ -52,6 +56,10 @@
       sourceDriver:clone(payload.sourceDriver||{}),
       receiverVehicle:clone(payload.receiverVehicle||{}),
       ownerVersion:payload.ownerVersion??null,
+      direction:payload.direction||'receive',
+      retainedOrders:clone(payload.retainedOrders||[]),
+      selectedVehicleId:null,
+      overviewTab:'balance',
       screen:'info',
       returnScreen:'info',
       started:false,
@@ -65,6 +73,43 @@
 
   function activeOrder(session){
     return session?.orders?.[session.activeOrderIndex]||null;
+  }
+
+  // This is a suggested placement, not a record of a physical move.
+  function vehicleLoadingPlan(session){
+    return sortForVehicleLoading([
+      ...session.orders.map(order=>({...order,disposition:'incoming'})),
+      ...(session.retainedOrders||[]).map(order=>({...clone(order),disposition:'retained'}))
+    ]).map((order,index,list)=>({...order,vehiclePosition:index+1,placement:list.length===1?'Cała przestrzeń':index===0?'Najgłębiej · przy kabinie':index===list.length-1?'Przy drzwiach':'Między pozostałymi ładunkami'}));
+  }
+
+  function counterpartyId(session,order){
+    return session.direction==='issue'?(order.receiverVehicle||session.receiverVehicle).id:(order.sourceDriver.vehicleId||order.sourceDriver.id);
+  }
+
+  function selectVehicle(session,vehicleId){
+    const current=activeOrder(session),isComplete=session.direction==='issue'?issuedOrderComplete:orderComplete;
+    const inProgress=current&&(current.cmr.scannedCode||current.cmr.issuedCode)&&!isComplete(current);
+    if(inProgress&&counterpartyId(session,current)!==vehicleId)return {ok:false,reason:'ORDER_IN_PROGRESS'};
+    const index=session.orders.findIndex(order=>counterpartyId(session,order)===vehicleId&&!isComplete(order));
+    if(index<0)return {ok:false,reason:'NO_PENDING_VEHICLE'};
+    session.activeOrderIndex=index;
+    session.selectedVehicleId=vehicleId;
+    return {ok:true,order:activeOrder(session)};
+  }
+
+  function reviewCmrPage(session,pageIndex){
+    const order=activeOrder(session),cmr=order?.cmr;
+    if(!cmr?.previewVisible&&!cmr?.issuedCode)return {ok:false,reason:'CMR_NOT_SCANNED'};
+    if(!Number.isInteger(cmr.pages)||cmr.pages<1||cmr.pages>20||!Number.isInteger(pageIndex)||pageIndex<0||pageIndex>=cmr.pages)return {ok:false,reason:'INVALID_CMR_PAGE'};
+    cmr.previewPage=pageIndex;
+    if(!cmr.reviewedPages.includes(pageIndex))cmr.reviewedPages.push(pageIndex);
+    return {ok:true};
+  }
+
+  function cmrReviewComplete(order){
+    const pages=Number(order?.cmr?.pages);
+    return Number.isInteger(pages)&&pages>0&&pages<=20&&Array.from({length:pages},(_,index)=>index).every(index=>order.cmr.reviewedPages.includes(index));
   }
 
   function nextPiece(order){
@@ -101,6 +146,7 @@
     if(code!==String(order.cmr.expectedSeal||'').trim().toUpperCase())return {ok:false,reason:'CMR_SEAL_MISMATCH',expected:order.cmr.expectedSeal};
     order.cmr.scannedCode=code;
     order.cmr.previewVisible=true;
+    order.cmr.previewPage=0;
     order.cmr.scannedAt=now;
     return {ok:true,order};
   }
@@ -108,6 +154,7 @@
   function acceptCmr(session,now=new Date().toISOString()){
     const order=activeOrder(session);
     if(!order?.cmr?.previewVisible||!order.cmr.scannedCode)return {ok:false,reason:'CMR_NOT_SCANNED'};
+    if(!cmrReviewComplete(order))return {ok:false,reason:'CMR_PAGES_NOT_REVIEWED'};
     order.cmr.accepted=true;
     order.cmr.acceptedAt=now;
     return {ok:true,order};
@@ -151,9 +198,12 @@
 
   function advance(session){
     const order=activeOrder(session);
-    if(!orderComplete(order))return {ok:false,reason:'ORDER_INCOMPLETE'};
-    if(session.activeOrderIndex<session.orders.length-1){
-      session.activeOrderIndex+=1;
+    const isComplete=session.direction==='issue'?issuedOrderComplete:orderComplete;
+    if(!isComplete(order))return {ok:false,reason:'ORDER_INCOMPLETE'};
+    const nextIndex=session.orders.findIndex(item=>!isComplete(item));
+    if(nextIndex>=0){
+      session.activeOrderIndex=nextIndex;
+      session.selectedVehicleId=counterpartyId(session,activeOrder(session));
       return {ok:true,finished:false,order:activeOrder(session)};
     }
     return {ok:true,finished:true,order};
@@ -173,6 +223,7 @@
   function confirmIssuedCmr(session,now=new Date().toISOString()){
     const order=activeOrder(session);
     if(!order?.cmr.issuedCode)return {ok:false,reason:'CMR_NOT_SCANNED'};
+    if(!cmrReviewComplete(order))return {ok:false,reason:'CMR_PAGES_NOT_REVIEWED'};
     order.cmr.handedOver=true;order.cmr.handedOverAt=now;
     return {ok:true,order};
   }
@@ -201,6 +252,11 @@
 
   return {
     sortForVehicleLoading,
+    vehicleLoadingPlan,
+    counterpartyId,
+    selectVehicle,
+    reviewCmrPage,
+    cmrReviewComplete,
     createSession,
     activeOrder,
     nextPiece,

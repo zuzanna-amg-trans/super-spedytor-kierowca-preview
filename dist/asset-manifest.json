@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "a517bd120ec7e46f68d5f3b9ac93491f2de97b11",
+  "sourceCommit": "578a2792cbcd943125ef7955a2c38306a1eb9c41",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.26-internal",
-  "assetManifestSha256": "735a2b92961618cc2e6fab70255b9de32091a8763625e3564bc92c7c77a93ca4",
+  "assetManifestSha256": "9da7f21630337f91e0f55e48707a41a45354ae5d3391fa0b37a8c96827c26b10",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -108,8 +108,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "83b46c572150557d0cddbb796b77dcd66442827810ef0acc868b08fa87a83c7f",
-      "size": 349228
+      "sha256": "d7eda8123398e5c2559c696a7679dd76edb3ffc9e0495d44bd24ff31b48433d2",
+      "size": 363700
     },
     {
       "path": "handover-v2.css",
@@ -188,13 +188,13 @@
     },
     {
       "path": "transshipment.css",
-      "sha256": "d56dd7b7dd7eaf51d9fe5bd3720570b9c0c2a856e952bdc20e88d622af8c3885",
-      "size": 27929
+      "sha256": "1250c747066592f3098afa09504e56fe940889d90c3eaeeafa28738e2bbe8cb1",
+      "size": 35925
     },
     {
       "path": "transshipment.js",
-      "sha256": "330bb6cc9d0d4804c160a9c381227f54affad6d50b49bfa811abc76157f824df",
-      "size": 8659
+      "sha256": "115799edc0dd30e083d386c7bc54aa966ecb0177d11b53c74b2e58eb26cd5cd9",
+      "size": 11572
     },
     {
       "path": "vehicle-handover.js",

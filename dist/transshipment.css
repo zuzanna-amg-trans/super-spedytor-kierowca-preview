@@ -287,6 +287,94 @@
 .transshipment-order-rule.final{margin-top:14px;background:#edf4e9;color:#52694a}
 .transshipment-completion .summary-line b{font-size:9px}
 
+/* One exchange: what leaves, arrives and remains, before choosing a vehicle. */
+.transfer-role-switch,.transfer-overview-tabs{display:flex;gap:5px;padding:5px;border-radius:14px;background:#e9ede5;margin:14px 0}
+.transfer-role-switch button,.transfer-overview-tabs button{flex:1;min-width:0;min-height:46px;padding:9px 5px;border:0;border-radius:10px;background:transparent;color:#57624f;font:inherit;font-size:15px;font-weight:800}
+.transfer-role-switch button[aria-pressed=true]{background:#303e2b;color:#fff}
+.transfer-overview-tabs button[aria-pressed=true]{background:#fff;color:#39472f;box-shadow:0 2px 7px #20301812}
+.transfer-balance-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.transfer-balance-counts>span{display:flex;flex-direction:column;gap:4px;padding:13px 5px;border-radius:12px;text-align:center;font-size:12px;font-weight:750}
+.transfer-balance-counts b{font-size:25px;line-height:1.2}
+.transfer-balance-counts .issue{background:#fff0e6;color:#8b451e}
+.transfer-balance-counts .receive{background:#e7eff9;color:#315e89}
+.transfer-balance-counts .retained{background:#e7eee0;color:#506b3d}
+.transfer-balance-group{padding:0;overflow:hidden;margin-bottom:12px}
+.transfer-balance-group header{display:flex;align-items:center;gap:10px;padding:15px 13px;background:#f3f5ef}
+.transfer-balance-group header>span{width:34px;height:34px;display:grid;place-items:center;flex-shrink:0;border-radius:10px;background:#fff}
+.transfer-balance-group header>div{min-width:0;flex:1}
+.transfer-balance-group header h3{margin:0;font-size:19px}
+.transfer-balance-group header p{margin:4px 0 0;font-size:12px;line-height:1.5;color:#677260}
+.transfer-balance-group header>b{font-size:14px;white-space:nowrap}
+.transfer-balance-group.issue header{background:#fff0e6;color:#85401b}
+.transfer-balance-group.receive header{background:#e9f1fa;color:#335b84}
+.transfer-balance-group.retained header{background:#eaf0e2;color:#506a3f}
+.transfer-balance-item{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:14px;border-top:1px solid #e5e8df}
+.transfer-balance-item>div{min-width:0;flex:1 1 180px}
+.transfer-balance-item strong{display:block;font-size:16px;line-height:1.5}
+.transfer-balance-item small{display:block;margin-top:4px;font-size:12px;color:#6b7565;overflow-wrap:anywhere}
+.transfer-balance-item p{margin:7px 0 0;font-size:13px;line-height:1.6;color:#55634b}
+.transfer-item-status{align-self:flex-start;padding:5px 8px;border-radius:7px;background:#f1f3ed;font-size:11px;font-weight:750;color:#69745e}
+.transfer-item-status.done{background:#e4f1df;color:#477138}
+.transfer-empty{padding:14px;font-size:14px}
+.transfer-vehicle-choices{margin-top:24px}
+.transfer-vehicle-choices h3,.transfer-layout h3,.transfer-sequence h3{margin:0 0 7px;font-size:21px;line-height:1.4}
+.transfer-vehicle-choices>p,.transfer-layout>p,.transfer-sequence>p{margin:0 0 14px;font-size:14px;line-height:1.7;color:#65705d}
+.transfer-vehicle-choice{width:100%;display:flex;align-items:center;gap:11px;padding:14px;margin:9px 0;border:2px solid #dfe5d8;border-radius:14px;background:#fff;color:#3d4b34;text-align:left;font:inherit;min-height:88px}
+.transfer-vehicle-choice.selected{border-color:#72835a;background:#f2f6ed}
+.transfer-vehicle-choice>span{width:36px;flex-shrink:0}
+.transfer-vehicle-choice>div{min-width:0;flex:1}
+.transfer-vehicle-choice strong{display:block;font-size:19px;line-height:1.4}
+.transfer-vehicle-choice div>span{display:block;font-size:13px;line-height:1.6}
+.transfer-vehicle-choice small{display:block;margin-top:5px;font-size:12px;font-weight:800;color:#6c794e}
+.transfer-vehicle-choice>.icon{width:20px;flex-shrink:0}
+.transfer-vehicle-choice:disabled{opacity:.5}
+.transfer-layout-legend{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0;font-size:12px}
+.transfer-layout-legend span{padding:7px 9px;border-radius:7px}
+.transfer-layout-legend .receive{background:#e9f1fb;color:#315b85}
+.transfer-layout-legend .retained{background:#eaf0e3;color:#506b3c;border:1px dashed #91a57c}
+.transfer-loading-bay{padding:10px;border:2px solid #8b9680;border-radius:26px 26px 7px 7px;background:#f4f5f0}
+.transfer-bay-cab,.transfer-bay-doors{display:flex;align-items:center;justify-content:center;gap:7px;padding:15px 5px;color:#58634d;font-size:12px;font-weight:900;text-align:center}
+.transfer-bay-cab{border-bottom:4px solid #839075;margin-bottom:10px}
+.transfer-bay-doors{border-top:5px double #8b9680;margin-top:10px}
+.transfer-bay-slot{display:flex;gap:10px;margin:8px 0;padding:12px 10px;border:1px solid #bed1e6;border-radius:10px;background:#eaf1fa;color:#355b7f}
+.transfer-bay-slot.retained{background:#edf2e7;border:2px dashed #97ac81;color:#4e653c}
+.transfer-bay-slot>b{width:25px;height:25px;display:grid;place-items:center;flex-shrink:0;border-radius:7px;background:#fff;font-size:14px}
+.transfer-bay-slot>div{min-width:0}
+.transfer-bay-slot small{display:block;font-size:10px;font-weight:900;line-height:1.5}
+.transfer-bay-slot strong{display:block;margin:5px 0;font-size:16px;line-height:1.4}
+.transfer-bay-slot span,.transfer-bay-slot em{display:block;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+.transfer-bay-slot em{margin-top:7px;font-style:normal;font-weight:750}
+.transfer-sequence ol{padding:0;list-style:none;counter-reset:transfer-step}
+.transfer-sequence li{position:relative;margin-left:16px;padding:0 0 23px 30px;border-left:2px solid #d7dfcd;counter-increment:transfer-step}
+.transfer-sequence li:last-child{border-left-color:transparent}
+.transfer-sequence li:before{content:counter(transfer-step);position:absolute;left:-17px;top:-1px;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#e4ebda;color:#526c40;font-size:15px;font-weight:900}
+.transfer-sequence li.done:before{background:#cce5bd}
+.transfer-sequence li strong{display:block;font-size:17px;line-height:1.6}
+.transfer-sequence li p{margin:6px 0;font-size:14px;line-height:1.65;color:#65705d}
+.transfer-sequence li small{font-size:12px;line-height:1.6;color:#7b876d}
+.transfer-back-plan{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:0 0 16px;min-height:48px;font-size:14px}
+.transshipment-cmr-preview{padding:7px}
+.transfer-cmr-viewer{min-width:0;padding:6px 0}
+.transfer-cmr-heading{display:grid;gap:5px;padding:8px 4px 12px;font-size:14px;overflow-wrap:anywhere}
+.transfer-cmr-heading strong{font-size:19px}
+.transfer-cmr-heading small{font-size:12px;color:#637255}
+.transfer-cmr-controls{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:9px}
+.transfer-cmr-controls button{display:grid;place-items:center;min-height:44px;min-width:36px;padding:7px;border:1px solid #ccd7c0;border-radius:8px;background:#fff;color:#506540;font:inherit;font-size:12px;font-weight:800}
+.transfer-cmr-controls button:disabled{opacity:.35}
+.transfer-cmr-controls b{flex:1;font-size:13px;text-align:center;white-space:nowrap}
+.transfer-cmr-controls [data-cmr-zoom]{min-width:68px}
+.transfer-cmr-image{max-width:100%;overflow:auto;border:1px solid #d5dacf;background:#e3e8dd;border-radius:4px;overscroll-behavior:contain}
+.transfer-cmr-image img{display:block;width:100%;height:auto;max-width:none;object-fit:contain}
+.transfer-cmr-image.zoomed{max-height:560px}
+.transfer-cmr-image.zoomed img{width:220%;max-width:none}
+.transfer-cmr-page-status{font-size:13px;line-height:1.7;color:#66745b}
+.transshipment-accepted-cmr summary,.outgoing-cmr-task summary{padding:14px 0;font-size:14px;color:#526841;cursor:pointer;line-height:1.6}
+.transshipment-accepted-cmr .transshipment-task-complete{padding:0;background:none;border:0}
+.transfer-overview .small-note{font-size:12px;line-height:1.7}
+.transfer-change-vehicle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin:0 0 15px;font-size:14px}
+.transfer-layout .transshipment-order-rule p{font-size:14px;line-height:1.7}
+.transfer-layout .transshipment-order-rule strong{font-size:15px}
+
 @media(max-width:480px){
   .transshipment-stage-title{font-size:27px}
   .transshipment-plan-main{padding:14px 12px}

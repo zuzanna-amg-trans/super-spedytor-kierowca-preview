@@ -1,18 +1,18 @@
 {
   "protocol": 2,
-  "sourceCommit": "a517bd120ec7e46f68d5f3b9ac93491f2de97b11",
+  "sourceCommit": "578a2792cbcd943125ef7955a2c38306a1eb9c41",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.26-internal",
-  "builtAt": "2026-10-16T15:50:12.513Z",
-  "assetManifestSha256": "735a2b92961618cc2e6fab70255b9de32091a8763625e3564bc92c7c77a93ca4",
+  "builtAt": "2026-10-16T16:47:29.844Z",
+  "assetManifestSha256": "9da7f21630337f91e0f55e48707a41a45354ae5d3391fa0b37a8c96827c26b10",
   "mode": "live-driver-session",
   "androidRuntimeVersion": "0.1.26-internal-test",
   "note": "Te same źródła widoków i prawdziwe logowanie bezpośrednio do SS; dane sesji nie są publikowane. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "a517bd120ec7e46f68d5f3b9ac93491f2de97b11",
-    "initialIntegrationSha": "5e945b17dc431226041f5aa15e4d950fcb28ef96",
+    "candidateSha": "578a2792cbcd943125ef7955a2c38306a1eb9c41",
+    "initialIntegrationSha": "a517bd120ec7e46f68d5f3b9ac93491f2de97b11",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "5e945b17dc431226041f5aa15e4d950fcb28ef96",
+    "baseSha": "a517bd120ec7e46f68d5f3b9ac93491f2de97b11",
     "branches": [
       {
         "name": "main",
@@ -20,7 +20,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "35a48596d4fb8683d25915de6f7a02cf81c8193f"
+        "sha": "8c5b7f4d22972938d7026fa7f29eb42bd811505d"
       },
       {
         "name": "codex/advanced-document-scanner",
@@ -40,7 +40,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-a517bd120ec7e46f68d5f3b9ac93491f2de97b11/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-578a2792cbcd943125ef7955a2c38306a1eb9c41/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
