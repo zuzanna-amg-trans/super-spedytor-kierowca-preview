@@ -36,7 +36,7 @@
             if(!initialized)throw new Error('Silnik obrazu nie jest gotowy.');
             const result=action==='detect'
               ?self.CmrPaperScanner.detect(self.cv,input.data,input.width,input.height)
-              :self.CmrPaperScanner.process(self.cv,input.data,input.width,input.height,input.quad,input.mode,{refine:input.refine===true});
+              :self.CmrPaperScanner.process(self.cv,input.data,input.width,input.height,input.quad,input.mode,{refine:input.refine===true,aiOutline:input.aiOutline===true});
             self.postMessage({id,result},result.data?[result.data.buffer]:[]);
           }catch(error){self.postMessage({id,error:typeof error?.message==='string'?error.message:'Nie udało się przetworzyć dokumentu.'});}
         };

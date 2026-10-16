@@ -23,11 +23,13 @@
     const scale=Math.min(1,MAX_EDGE/Math.max(w,h),Math.sqrt(MAX_PIXELS/(w*h)));
     return {width:Math.max(2,Math.round(w*scale)),height:Math.max(2,Math.round(h*scale))};
   }
-  function refineQuad(rgba,width,height,quad){
+  function refineQuad(rgba,width,height,quad,aiOutline=false){
     // Only refine an automatic proposal. Work on the original RGB pixels so
     // scaling a 640px outline cannot leave a strip of desk in a 12MP scan.
     // Tiny arrays below contain side samples; no full-image buffer is made.
-    const radius=Math.max(8,.006*Math.max(width,height)),steps=Math.ceil(radius);
+    // A learned 64x64 heatmap is a global proposal, with one source-cell
+    // uncertainty. Refine that interval; old edge proposals keep their radius.
+    const radius=Math.max(8,Math.max(width,height)*(aiOutline?1/64:.006)),steps=Math.ceil(radius);
     const median=values=>{const sorted=values.slice().sort((a,b)=>a-b),m=sorted.length>>1;return sorted.length%2?sorted[m]:(sorted[m-1]+sorted[m])/2;};
     const sample=(x,y)=>{
       if(x<0||x>width-1||y<0||y>height-1)return null;
@@ -94,8 +96,10 @@
       const beta=numerator/denominator,alpha=mo-beta*mt;
       if(Math.max(Math.abs(alpha),Math.abs(alpha+beta))>radius)return {quad:quad.map(p=>({...p})),refined:false};
       const dx=b.x-a.x+nx*beta,dy=b.y-a.y+ny*beta,dl=Math.hypot(dx,dy);
-      // Half a source pixel inside the physical edge avoids Lanczos mixing wood.
-      lines.push({x:a.x+nx*alpha-dy/dl*.5,y:a.y+ny*alpha+dx/dl*.5,dx,dy});
+      // Learned outlines refine to the physical edge without an inward inset:
+      // keep edge annotations. Legacy proposals retain their original half pixel.
+      const inset=aiOutline?0:.5;
+      lines.push({x:a.x+nx*alpha-dy/dl*inset,y:a.y+ny*alpha+dx/dl*inset,dx,dy});
     }
     const refined=[];
     for(let i=0;i<4;i++){
@@ -180,7 +184,7 @@
   function process(cv,rgba,width,height,quad,mode='color',options={refine:false}){
     if(!validQuad(quad,width,height))throw new Error('Ustaw cztery rogi kartki w kolejności. Obrys nie może się przecinać.');
     if(!core)throw new Error('Brakuje silnika dokumentów SS. Zaktualizuj aplikację.');
-    const geometry=options?.refine===true?refineQuad(rgba,width,height,quad):{quad:quad.map(p=>({...p})),refined:false};
+    const geometry=options?.refine===true?refineQuad(rgba,width,height,quad,options.aiOutline===true):{quad:quad.map(p=>({...p})),refined:false};
     const size=dimensions(geometry.quad);
     const result=mode==='natural'?natural(cv,rgba,width,height,geometry.quad):core.finishOpenCvExact(cv,{data:rgba,width,height},geometry.quad,{maxEdge:Math.max(size.width,size.height),neutralize:false});
     return {...result,version:VERSION,mode:mode==='natural'?'natural':'color',quad:geometry.quad,refined:geometry.refined,sourceEngine:core.sourceCommit};

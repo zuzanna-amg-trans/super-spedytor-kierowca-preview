@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "4db891c0706244542434743c4e5fafd1bbffd9ab",
+  "sourceCommit": "5e945b17dc431226041f5aa15e4d950fcb28ef96",
   "sourceBranch": "codex/preview-integration",
-  "androidSourceVersion": "0.1.25-internal",
-  "assetManifestSha256": "1d4296f59570ac32c373265d9052e1221a4fdfe670d522d3072adce738443532",
+  "androidSourceVersion": "0.1.26-internal",
+  "assetManifestSha256": "735a2b92961618cc2e6fab70255b9de32091a8763625e3564bc92c7c77a93ca4",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -57,6 +57,31 @@
       "size": 2195
     },
     {
+      "path": "document-ai-worker.js",
+      "sha256": "c2d180e1dd9bd99493eb4957ee28a8811ad8bd2170d049eb9a57431957e04e53",
+      "size": 2115
+    },
+    {
+      "path": "document-ai.js",
+      "sha256": "74c3cd8494ed5b2151e21e402fab9b730b76db49f12bddcf68e56cf0caa0b8fa",
+      "size": 9842
+    },
+    {
+      "path": "document-ai/LICENSE",
+      "sha256": "e1ee574b63dcde94cbee75a53aefed0a3f3bcf0966464cad85a8968b052ce13a",
+      "size": 11679
+    },
+    {
+      "path": "document-ai/NOTICE",
+      "sha256": "08466151b4104785b5d8e5447701db455ea120f1cdfdebf618050029d456c6a2",
+      "size": 6070
+    },
+    {
+      "path": "document-ai/model.ort",
+      "sha256": "f0f2f52d7d79ff02d346c8f9d0c9e903407366aeea1747cdcff160c401e3e72a",
+      "size": 13404960
+    },
+    {
       "path": "document-export.js",
       "sha256": "b1c38363a032bb17d3814bd4746c82b977b2f5dc3f2ce2902503f99ad0da8c5f",
       "size": 3982
@@ -68,8 +93,8 @@
     },
     {
       "path": "document-processing.js",
-      "sha256": "8e143ffc9abc6331fa0b065afdf36172b6465ff6ea7832a8edc5b80571f95827",
-      "size": 4452
+      "sha256": "1319cedaab28a1452d7426dc696a984bc4b50c736b56b97fcca09105e81009d1",
+      "size": 4485
     },
     {
       "path": "driver.css",
@@ -98,8 +123,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "101e8ff5ba401b852fa8d5d19bbe5bdf03f85d5c86fff6c44e782da376ce2c9b",
-      "size": 13184
+      "sha256": "72a1dd07976a63e4e40567be4458fd32b66bbfbc96e2549108afce23af748fb0",
+      "size": 13243
     },
     {
       "path": "operation-timing.js",
@@ -108,8 +133,8 @@
     },
     {
       "path": "paper-scanner.js",
-      "sha256": "e1de376385b1b7babf6f0cafa011c662eadeea4e686f18b957d0a96f00eb7880",
-      "size": 12537
+      "sha256": "e835b8d7e0838a38beae4b68027dd10e5137f032dcfc42a0af7d19d55bb51176",
+      "size": 12869
     },
     {
       "path": "robots.txt",
@@ -118,8 +143,8 @@
     },
     {
       "path": "scan-quality.js",
-      "sha256": "ee0eb508d0de7f20c358265263241cf73757b59445308ce6655f03598f6b82fa",
-      "size": 3391
+      "sha256": "5543a21003ef3c87c090cbaf43739630b45f6a9c1697d82ffd205e33fa6e75bd",
+      "size": 3408
     },
     {
       "path": "scanner.css",
@@ -128,8 +153,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "3ab19206aee762427de93cc87ec412c76187118715c2f3a4b0fb21fbbe4d071c",
-      "size": 36439
+      "sha256": "32676b87016a152ca8532a1662993d60ee17e26d1f82464e8e4bdfd2e34ab7a3",
+      "size": 37776
     },
     {
       "path": "service-survey.js",
@@ -190,6 +215,31 @@
       "path": "vendor/OpenCV-NOTICE.txt",
       "sha256": "bca6efdc15e7dac49ec88f9dfb331dd7692473e724251639e9137994edcc1a70",
       "size": 500
+    },
+    {
+      "path": "vendor/onnxruntime/LICENSE.txt",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+      "size": 1073
+    },
+    {
+      "path": "vendor/onnxruntime/ThirdPartyNotices.txt",
+      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+      "size": 325054
+    },
+    {
+      "path": "vendor/onnxruntime/ort-wasm-simd-threaded.mjs",
+      "sha256": "3101568d9c131ea89d4c693fbff3e0d0c3dcbcf1baa09fd871b86662a071bd1a",
+      "size": 24274
+    },
+    {
+      "path": "vendor/onnxruntime/ort-wasm-simd-threaded.wasm",
+      "sha256": "fd078a39438a65660fc6c9df8d42fc886b5bf2931d6dbdd8dc51a17b1221499f",
+      "size": 12297086
+    },
+    {
+      "path": "vendor/onnxruntime/ort.wasm.min.js",
+      "sha256": "4b53e4a66d2861c74aa3fafb35f2a809989f0fd8136fd7d2efa9edad5f9504f3",
+      "size": 50042
     },
     {
       "path": "vendor/opencv-4.13.0.js",

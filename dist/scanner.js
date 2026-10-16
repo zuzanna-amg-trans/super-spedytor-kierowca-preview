@@ -39,6 +39,7 @@
     session?.documentJob?.abort();
     window.CmrDocumentExport?.cancelAll();
     window.CmrDocumentProcessing?.stop();
+    window.CmrDocumentAi?.stop();
     if(session)session.generation++;
     if(!keep){session?.pages.forEach(release);release(session?.document);}
     session=null;root().innerHTML='';
@@ -61,7 +62,7 @@
     const s=session,page=active();
     let content='';
     if(s.stage==='intro')content=`<div class="scanner-intro-art" aria-hidden="true"><div class="scanner-corners"></div><div class="scanner-paper"><span>CMR</span><i></i><i></i><i></i><div class="scanner-paper-stamp">AMG</div><b>podpis</b></div></div><div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · SKANOWANIE NA ŻYWO</span><h2>Ustaw kartkę.<br>Skan zrobi się sam.</h2><p>Rozłóż dokument i ustaw całą kartkę w kadrze. Zielony obrys i stabilny obraz uruchomią skan automatycznie.</p></div><div class="scanner-features"><span>${icon('doc')} Obrys na żywo</span><span><b class="scanner-color-dot"></b> Kolor pieczątek</span><span>${icon('check')} Automatyczny skan</span></div><div class="scanner-color-tip">${icon('info')}<p><strong>Kolor dokumentu:</strong> wycinamy kartkę, prostujemy perspektywę, wyrównujemy cienie i wzmacniamy pismo. Wszystkie strony zapiszesz w jednym PDF. W podglądzie możesz poprawić rogi i porównać oryginał.</p></div>${liveCamera()?'<p class="scanner-platform-note">Skanowanie i poprawa koloru odbywają się na telefonie, również bez internetu.</p>':'<p class="scanner-platform-note">Skaner na żywo jest dostępny w aplikacji Android. Tutaj możesz wybrać i poprawić gotowe zdjęcia.</p>'}<button class="primary-button" data-scan-start>${icon('camera')}${liveCamera()?'Uruchom skaner CMR':'Wybierz zdjęcie CMR'}</button><button class="secondary-button" data-scan-import>${icon('upload')}Wybierz zdjęcia lub PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Dokument dodasz dopiero po sprawdzeniu podglądu.</p>`;
-    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>${s.pages.length&&quality.packetReady(s.pages)?'Składam wszystkie sprawdzone strony w jeden dokument PDF.':'Wykrywam papier, prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.'}</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
+    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>${s.pages.length&&quality.packetReady(s.pages)?'Składam wszystkie sprawdzone strony w jeden dokument PDF.':'AI wykrywa obszar kartki i jej cztery rogi. Prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.'}</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
     else if(s.stage==='document'&&s.document){
       const doc=s.document,first=s.pages.find(p=>p.mime!=='application/pdf');
       content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">DOKUMENT DO ZAPISANIA</span><h2>Dokument PDF gotowy</h2><span class="scanner-review-status checked">${icon('doc')} ${doc.pageCount} ${doc.pageCount===1?'strona':doc.pageCount<5?'strony':'stron'} · PDF w kolorze</span></div><div class="scanner-document scanner-pdf">${androidApp()?`${first?`<img src="${escape(first.url)}" alt="Podgląd pierwszej zeskanowanej strony dokumentu PDF">`:icon('doc')}<p>Plik PDF zawiera ${doc.pageCount} ${doc.pageCount===1?'stronę':doc.pageCount<5?'strony':'stron'} w kolejności skanowania.</p>`:`<iframe title="Gotowy dokument PDF — wszystkie strony" src="${escape(doc.url)}"></iframe>`}</div><div class="scanner-file-meta"><span>${escape(doc.name)}</span><span>${(doc.size/1024/1024).toFixed(1)} MB · PDF</span></div>${s.exportMessage?`<p class="scanner-export-status" role="status">${escape(s.exportMessage)}</p>`:''}<div class="scanner-pdf-actions"><button class="secondary-button" data-document-view ${s.exporting?'disabled':''}>${icon('doc')}Otwórz PDF</button><button class="secondary-button" data-document-save ${s.exporting?'disabled':''}>${icon('upload')}Zapisz PDF</button>${androidApp()?`<button class="secondary-button" data-document-share ${s.exporting?'disabled':''}>Udostępnij PDF</button>`:''}</div><button class="primary-button" data-document-accept ${s.exporting?'disabled':''}>${icon('check')}Dodaj dokument PDF</button><button class="secondary-button" data-document-back ${s.exporting?'disabled':''}>Wróć do stron i popraw</button><p class="scanner-local-note">PDF zachowuje pełną rozdzielczość skanów i kolory. Sam zapis lub udostępnienie nie potwierdza przyjęcia CMR w TMS.</p>`;
@@ -77,7 +78,7 @@
     bind('[data-scan-import]',()=>chooseFiles(false));
     bind('[data-scan-add]',()=>{if(s.pages.length>=quality.MAX_PAGES){s.error='Limit to 20 stron w jednym skanie.';render();return;}capture();});
     bind('[data-scan-retake]',()=>capture(s.index));
-    bind('[data-scan-cancel-wait]',()=>{cancelPending();s.documentJob?.abort();window.CmrDocumentProcessing?.stop();s.generation++;s.stage=s.pages.length?'review':'intro';s.processing=false;render();});
+    bind('[data-scan-cancel-wait]',()=>{cancelPending();s.documentJob?.abort();window.CmrDocumentProcessing?.stop();window.CmrDocumentAi?.stop();s.generation++;s.stage=s.pages.length?'review':'intro';s.processing=false;render();});
     bind('[data-scan-delete]',()=>{release(s.pages.splice(s.index,1)[0]);s.index=Math.max(0,Math.min(s.index,s.pages.length-1));s.stage=s.pages.length?'review':'intro';render();});
     bind('[data-scan-zoom]',()=>zoom(page));
     bind('[data-scan-original]',()=>zoom({...page,url:page.originalUrl},true));
@@ -172,6 +173,11 @@
     const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0,canvas.width,canvas.height);
     return {width:image.naturalWidth,height:image.naturalHeight,metrics:quality.pixels(context.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height)};
   }
+  function assessPage(page,info={}){
+    const assessment=quality.assess({...page,...info});
+    if(page.needsCrop){assessment.blocked=true;assessment.issues.unshift('Nie wykryłem pewnie granic kartki. Ustaw jej cztery rogi, aby zachować całą stronę.');}
+    return assessment;
+  }
   async function prepare(page){
     const input=page;
     try{
@@ -182,8 +188,7 @@
     }
     if(page.mime!=='application/pdf'&&!page.paperProcessing)page=await detectAndProcess(page);
     const info=page.mime==='application/pdf'?{}:await imageInfo(page.url);
-    const assessment=quality.assess({...page,...info});
-    if(page.needsCrop){assessment.blocked=true;assessment.issues.unshift('Nie wykryłem pewnie kartki. Ustaw jej cztery rogi, aby wyciąć tło i ulepszyć skan.');}
+    const assessment=assessPage(page,info);
     return {...page,...info,quality:assessment,checks:{edges:false,text:false,color:false}};
     }catch(error){
       // append() still owns the incoming original. A failed decode/quality
@@ -245,6 +250,21 @@
 
   async function runPaper(action,input){
     if(!window.CmrDocumentProcessing)throw new Error('Brakuje modułu skanera SS. Zaktualizuj aplikację.');
+    if(action==='detect'){
+      let detection;
+      try{
+        if(!window.CmrDocumentAi)throw new Error('Brakuje modelu granic dokumentu.');
+        detection=await window.CmrDocumentAi.detect(input);
+        if(detection.confident)return detection;
+      }catch(error){
+        if(error?.name==='AbortError')throw error;
+        detection={quad:null,confident:false,engine:'docquad-review',reason:'ai-unavailable'};
+      }
+      // A classical edge may be printed inside the page. Without a confident
+      // global document mask it is only an editable suggestion, never success.
+      const suggestion=await window.CmrDocumentProcessing.run(action,input);
+      return {...suggestion,...detection,quad:detection.quad||suggestion.quad,confident:false};
+    }
     return window.CmrDocumentProcessing.run(action,input);
   }
   async function decode(url,maxEdge=4200){
@@ -260,7 +280,8 @@
     return [...new Uint8Array(hash)].map(v=>v.toString(16).padStart(2,'0')).join('');
   }
   async function outputPage(page,quad,mode='color',rotation=0){
-    const decoded=await decode(page.originalUrl),result=await runPaper('process',{...decoded,quad,mode,refine:!page.manualCrop});
+    const decoded=await decode(page.originalUrl),aiOutline=page.outlineDetection?.engine?.startsWith('docquadnet')===true,
+      result=await runPaper('process',{...decoded,quad,mode,refine:!page.manualCrop,aiOutline});
     decoded.data=null;
     const actualQuad=result.quad||quad;
     const canvas=document.createElement('canvas');
@@ -281,9 +302,9 @@
     canvas.width=canvas.height=thumbnail.width=thumbnail.height=1;
     if(!blob)throw new Error('Brak pamięci na zapis skanu. Zamknij inne aplikacje i spróbuj ponownie.');
     const hash=await digest(blob);
-    return {...page,url:URL.createObjectURL(blob),thumbnailUrl:thumbnailBlob?URL.createObjectURL(thumbnailBlob):null,blob,mime:'image/jpeg',size:blob.size,hash,engine:'ss-driver-local',needsCrop:false,quad:actualQuad,rotation,
+    return {...page,url:URL.createObjectURL(blob),thumbnailUrl:thumbnailBlob?URL.createObjectURL(thumbnailBlob):null,blob,mime:'image/jpeg',size:blob.size,hash,engine:'ss-driver-local',needsCrop:aiOutline&&!page.manualCrop&&!result.refined,quad:actualQuad,rotation,
       name:(page.originalName||page.name||'CMR').replace(/\.[^.]+$/,'')+'-skan.jpg',
-      paperProcessing:{version:result.version,mode,manual:!!page.manualCrop,quad:actualQuad,refined:!!result.refined,rotation,sourceEngine:result.sourceEngine,sourceWidth:decoded.sourceWidth,sourceHeight:decoded.sourceHeight,workingWidth:decoded.width,workingHeight:decoded.height}};
+      paperProcessing:{outlineDetection:page.outlineDetection,version:result.version,mode,manual:!!page.manualCrop,quad:actualQuad,refined:!!result.refined,rotation,sourceEngine:result.sourceEngine,sourceWidth:decoded.sourceWidth,sourceHeight:decoded.sourceHeight,workingWidth:decoded.width,workingHeight:decoded.height}};
   }
   async function detectAndProcess(page){
     const original={...page,originalUrl:page.url,originalBlob:page.blob,originalHash:page.hash,originalName:page.name};
@@ -292,6 +313,7 @@
     const working={width:Math.round(sample.sourceWidth*scale),height:Math.round(sample.sourceHeight*scale)},sx=working.width/sample.width,sy=working.height/sample.height;
     const quad=detection.quad?.map(p=>({x:p.x*sx,y:p.y*sy}))||[{x:0,y:0},{x:working.width-1,y:0},{x:working.width-1,y:working.height-1},{x:0,y:working.height-1}];
     original.quad=quad;original.workingWidth=working.width;original.workingHeight=working.height;
+    original.outlineDetection={engine:detection.engine,score:detection.score,maskIou:detection.maskIou,minPeakProbability:detection.minPeakProbability,reason:detection.reason};
     if(!detection.confident)return {...original,needsCrop:true};
     return outputPage(original,quad);
   }
@@ -302,12 +324,12 @@
     let updated;
     try{
       updated=await outputPage({...page,manualCrop:changes.manual??page.paperProcessing?.manual},changes.quad||page.quad,changes.mode||page.paperProcessing?.mode||'color',changes.rotation??page.rotation??0);
-      const info=await imageInfo(updated.url);updated={...updated,...info,quality:quality.assess({...updated,...info}),checks:{edges:false,text:false,color:false}};
+      const info=await imageInfo(updated.url);updated={...updated,...info,quality:assessPage(updated,info),checks:{edges:false,text:false,color:false}};
       if(session!==s||s.generation!==generation){for(const url of [updated.url,updated.thumbnailUrl])if(url?.startsWith('blob:'))URL.revokeObjectURL(url);return;}
       if(updated.size+s.pages.reduce((sum,p,i)=>sum+(i===index?0:p.size),0)>quality.MAX_BYTES)throw new Error('Skan przekracza limit 100 MB. Podziel dokument na mniejsze zestawy.');
       if(page.url!==page.originalUrl&&page.url.startsWith('blob:'))URL.revokeObjectURL(page.url);
       if(page.thumbnailUrl)URL.revokeObjectURL(page.thumbnailUrl);
-      s.pages[index]=updated;s.index=index;s.stage='review';s.processing=false;render();
+      s.pages[index]=updated;s.index=index;s.stage='review';s.processing=false;render();if(updated.needsCrop)editCrop(updated);
     }catch(error){
       for(const url of [updated?.url,updated?.thumbnailUrl])if(url?.startsWith('blob:'))URL.revokeObjectURL(url);
       if(session!==s||s.generation!==generation)return;

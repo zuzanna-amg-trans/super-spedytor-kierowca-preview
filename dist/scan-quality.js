@@ -48,7 +48,7 @@
     }
     return {blocked,manual:false,issues};
   }
-  function pageReady(page){return !!page&&!page.quality?.blocked&&!!page.quality&&['edges','text','color'].every(key=>page.checks?.[key]===true);}
+  function pageReady(page){return !!page&&!page.needsCrop&&!page.quality?.blocked&&!!page.quality&&['edges','text','color'].every(key=>page.checks?.[key]===true);}
   function packetReady(pages){return pages.length>0&&pages.reduce((sum,page)=>sum+(page.pageCount||1),0)<=MAX_PAGES&&pages.every(pageReady)&&pages.reduce((sum,page)=>sum+(page.size||0),0)<=MAX_BYTES;}
   return {pixels,assess,pageReady,packetReady,MIN_SHORT,MIN_LONG,MAX_PAGES,MAX_BYTES};
 });
