@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#f5f5f3">
-  <title>Super Spedytor — podgląd aplikacji</title>
+  <title>Super Spedytor — DEMO aplikacji</title>
   <style>
     :root{font-family:Arial,Helvetica,sans-serif;color:#252c30;background:#f5f5f3;color-scheme:light;font-synthesis:none}
     *{box-sizing:border-box}
@@ -50,24 +50,26 @@
 <body>
   <main class="preview-page">
     <header class="preview-intro">
-      <h1>Super Spedytor — podgląd aplikacji</h1>
-      <p>Te same widoki i rozmiar tekstu co w aplikacji Android. Na komputerze ekran ma 360 × 800 px; porównuj przy powiększeniu przeglądarki 100%.</p>
+      <h1>Super Spedytor — DEMO aplikacji</h1>
+      <p>Testuj wszystkie 16 widoków na danych przykładowych, bez logowania. Na komputerze ekran ma 360 × 800 px; porównuj z Androidem przy powiększeniu przeglądarki 100%.</p>
       <div class="preview-controls" aria-label="Sterowanie podglądem">
         <button id="choose-views" class="primary" type="button" disabled>Testuj widoki</button>
         <button id="restart-preview" type="button" disabled>Od początku</button>
+        <a id="dev-viewer" href="https://dev.amg-trans.eu/driver-app/" target="_blank" rel="noopener noreferrer">Dane z wersji DEV SS</a>
         <a id="android-download" hidden>Android z tej samej wersji</a>
       </div>
       <div id="preview-status" class="preview-status" role="status" aria-live="polite">Wczytuję widoki aplikacji…</div>
     </header>
     <section class="phone" aria-label="Ekran aplikacji Android">
       <header class="native-header">
-        <strong>Super Spedytor Kierowca</strong>
+        <strong>Super Spedytor Kierowca · DEMO</strong>
         <span id="native-version">Wersja podglądu</span>
       </header>
-      <iframe id="app-frame" class="app-frame" title="Super Spedytor — te same widoki co w aplikacji" src="app.html?android=1&amp;backend=1&amp;web=1" referrerpolicy="no-referrer"></iframe>
+      <iframe id="app-frame" class="app-frame" title="Super Spedytor — widoki demonstracyjne aplikacji" src="app.html?android=1&amp;preview=1" referrerpolicy="no-referrer"></iframe>
     </section>
     <section class="preview-details" aria-label="Wersja i zakres podglądu">
-      <p>Zaloguj się tym samym kontem kierowcy co w aplikacji. Profil, pojazd, trasa i historia ankiet pochodzą bezpośrednio z Super Spedytora. Aparat i skaner na żywo działają na telefonie; w przeglądarce możesz importować gotowe pliki.</p>
+      <p>DEMO pokazuje dane przykładowe. Zdjęcia i szkice pozostają na Twoim urządzeniu. Aparat i skaner na żywo działają na telefonie; w przeglądarce możesz importować gotowe pliki.</p>
+      <p>Przycisk „Dane z wersji DEV SS” otwiera osobny podgląd, w którym zalogujesz się kontem kierowcy i odczytasz własny profil, pojazd, trasę oraz historię ankiet z wersji DEV Super Spedytora.</p>
       <p id="matching-apk-hint" hidden>Do porównania obu urządzeń użyj Androida z przycisku powyżej. Ten podgląd i plik aplikacji pochodzą z tej samej wersji kodu.</p>
       <p id="private-apk-hint" hidden>Pobranie Androida wymaga zalogowania do GitHuba na konto z dostępem do repozytorium AMG-Trans.</p>
       <details>
@@ -82,7 +84,7 @@
       </details>
     </section>
   </main>
-  <script id="build-info" type="application/json">{"protocol":2,"sourceCommit":"578a2792cbcd943125ef7955a2c38306a1eb9c41","sourceBranch":"codex/preview-integration","androidSourceVersion":"0.1.26-internal","builtAt":"2026-10-16T16:47:29.844Z","assetManifestSha256":"9da7f21630337f91e0f55e48707a41a45354ae5d3391fa0b37a8c96827c26b10","mode":"live-driver-session","androidRuntimeVersion":"0.1.26-internal-test","note":"Te same źródła widoków i prawdziwe logowanie bezpośrednio do SS; dane sesji nie są publikowane. Funkcje aparatu pozostają natywne.","integration":{"candidateSha":"578a2792cbcd943125ef7955a2c38306a1eb9c41","initialIntegrationSha":"a517bd120ec7e46f68d5f3b9ac93491f2de97b11","integrationBranch":"codex/preview-integration","baseSha":"a517bd120ec7e46f68d5f3b9ac93491f2de97b11","branches":[{"name":"main","sha":"a39e6db38a638083a2423a739e7ce4dfa68fda00"},{"name":"codex/play-internal-testing","sha":"8c5b7f4d22972938d7026fa7f29eb42bd811505d"},{"name":"codex/advanced-document-scanner","sha":"19950ec82f76b924e0252a1d9c7956ddac439194"},{"name":"codex/shared-preview-parity","sha":"a39e6db38a638083a2423a739e7ce4dfa68fda00"}],"mergedBranches":["codex/play-internal-testing"],"skippedBranches":["main","codex/advanced-document-scanner","codex/shared-preview-parity"]},"androidDownloadUrl":"https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-578a2792cbcd943125ef7955a2c38306a1eb9c41/Super-Spedytor-Test-1to1.apk","androidDownloadLabel":"Pobierz tę samą wersję na Androida","androidDownloadRequiresRepoAccess":true}</script>
+  <script id="build-info" type="application/json">{"protocol":2,"sourceCommit":"84c47f47173d241119aafb32063d156df3302bb3","sourceBranch":"codex/preview-integration","androidSourceVersion":"0.1.27-internal","builtAt":"2026-10-20T19:28:03.352Z","assetManifestSha256":"bfb2dc51e587d5dd2f3cb989076e45030d6018011596a90e74ddc81001e4fa8d","mode":"demo-driver-preview","backend":{"enabled":false,"mode":"demonstration","apiBaseUrl":null},"devViewerUrl":"https://dev.amg-trans.eu/driver-app/","androidRuntimeVersion":"0.1.27-internal-test","note":"Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.","integration":{"candidateSha":"84c47f47173d241119aafb32063d156df3302bb3","initialIntegrationSha":"578a2792cbcd943125ef7955a2c38306a1eb9c41","integrationBranch":"codex/preview-integration","baseSha":"578a2792cbcd943125ef7955a2c38306a1eb9c41","branches":[{"name":"main","sha":"fdbe3f8648a1b846d577ebca131e2da29e875d1a"},{"name":"codex/play-internal-testing","sha":"1c8c90af370588616369da4e7f842e0f751139d1"},{"name":"codex/advanced-document-scanner","sha":"19950ec82f76b924e0252a1d9c7956ddac439194"},{"name":"codex/preview-demo-mode","sha":"c6c3c3611e75fef4ad02341811f89e60cdb5df5e"},{"name":"codex/preview-demo-notes","sha":"0a469f2b9a9819da8f7e63f1e27419d08abae723"},{"name":"codex/shared-preview-parity","sha":"a39e6db38a638083a2423a739e7ce4dfa68fda00"}],"mergedBranches":["main","codex/play-internal-testing"],"skippedBranches":["codex/advanced-document-scanner","codex/preview-demo-mode","codex/preview-demo-notes","codex/shared-preview-parity"]},"androidDownloadUrl":"https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-84c47f47173d241119aafb32063d156df3302bb3/Super-Spedytor-Test-1to1.apk","androidDownloadLabel":"Pobierz tę samą wersję na Androida","androidDownloadRequiresRepoAccess":true}</script>
   <script>
     (function(){
       'use strict';
@@ -138,7 +140,7 @@
       }
       frame.addEventListener('load',connectPreview);
       choose.addEventListener('click',function(){
-        try{const app=frame.contentWindow;if(!app.document.documentElement.classList.contains('backend-connected')){status.textContent='Najpierw zaloguj się w aplikacji poniżej.';app.document.querySelector('#backend-username')?.focus();return;}app.openModal('designed-views',{});}
+        try{frame.contentWindow.openModal('designed-views',{});}
         catch{status.textContent='Lista widoków jest chwilowo niedostępna. Kliknij „Od początku”.';}
       });
       restart.addEventListener('click',function(){

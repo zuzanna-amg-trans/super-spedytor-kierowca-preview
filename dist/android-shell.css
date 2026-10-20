@@ -678,3 +678,23 @@ html.android-shell .backend-panel {
 .backend-readonly-note p { margin: 0; }
 .backend-readonly-note strong { display: block; color: #4f5f49; }
 .backend-logout { margin-top: 16px; background: transparent; color: #7c4c34; border: 1px solid #e3cbbd; }
+
+html.android-shell.backend-connected:not(.backend-testing) .bottom-nav {
+  grid-template-columns: 1fr;
+}
+
+html.android-shell.backend-connected:not(.backend-testing) .bottom-nav button:not([data-nav="now"]) {
+  display: none;
+}
+
+/* AA9: kreator załadunku na realnym API */
+.backend-point-action.wizard { background: #ff6a1a; }
+.live-exit { margin-bottom: 10px; }
+.live-cmr-list .live-cmr-row { align-items: center; margin-top: 10px; }
+.live-cmr-list .live-cmr-row span { display: flex; flex-direction: column; gap: 2px; }
+.live-cmr-list .live-cmr-row small { color: #6b6b6b; }
+
+/* AA10: rozładunek na realnym API */
+.live-loading-gallery { margin-bottom: 14px; }
+.live-loading-gallery .loading-photo-reference-grid { grid-template-columns: repeat(2, 1fr); }
+#live-cmr-missing { margin-top: 10px; }

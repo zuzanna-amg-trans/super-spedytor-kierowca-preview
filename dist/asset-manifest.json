@@ -1,15 +1,15 @@
 {
   "protocol": 2,
-  "sourceCommit": "578a2792cbcd943125ef7955a2c38306a1eb9c41",
+  "sourceCommit": "84c47f47173d241119aafb32063d156df3302bb3",
   "sourceBranch": "codex/preview-integration",
-  "androidSourceVersion": "0.1.26-internal",
-  "assetManifestSha256": "9da7f21630337f91e0f55e48707a41a45354ae5d3391fa0b37a8c96827c26b10",
+  "androidSourceVersion": "0.1.27-internal",
+  "assetManifestSha256": "bfb2dc51e587d5dd2f3cb989076e45030d6018011596a90e74ddc81001e4fa8d",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
       "path": "android-shell.css",
-      "sha256": "e7915ce02cf4f829f902bd58a1b3b0c8d2fa98c2c4cac364696c5cb82b9af6ee",
-      "size": 20658
+      "sha256": "5c851808ef6aa19dcac96064c2ad95b35f4d642133c3a04b43744d0147c43eee",
+      "size": 21458
     },
     {
       "path": "assets/OFL.txt",
@@ -50,6 +50,16 @@
       "path": "cmr-collection.js",
       "sha256": "12b5f41c21061890283aea2e08b44d852a2aeb2f988658df22d26c5b409280fe",
       "size": 3500
+    },
+    {
+      "path": "cmr-inventory.css",
+      "sha256": "8805612d3d69d668778e6fb10f801dc9da676749c51d0a07d6e05e59434d248e",
+      "size": 2893
+    },
+    {
+      "path": "cmr-inventory.js",
+      "sha256": "62e4cc01f4e0abca5e4dfc01f7f961a6336c4046f8e83510f3b18b5f98e994b9",
+      "size": 15894
     },
     {
       "path": "demo-assets.js",
@@ -108,8 +118,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "d7eda8123398e5c2559c696a7679dd76edb3ffc9e0495d44bd24ff31b48433d2",
-      "size": 363700
+      "sha256": "dabe4f240dd0b3f51b0496572ced83cbd959443f99e0199fded1e45351873af4",
+      "size": 388024
     },
     {
       "path": "handover-v2.css",
@@ -123,8 +133,13 @@
     },
     {
       "path": "index.html",
-      "sha256": "72a1dd07976a63e4e40567be4458fd32b66bbfbc96e2549108afce23af748fb0",
-      "size": 13243
+      "sha256": "8258f0584977ea754b147d982a598a80ecd4aebc639d9b887ea9b24aea104e0d",
+      "size": 13393
+    },
+    {
+      "path": "live-operation.js",
+      "sha256": "034b78767fa6b7f1b2d6a97151207080c4824d9029d246f2200db9dc654e248e",
+      "size": 20174
     },
     {
       "path": "operation-timing.js",
@@ -153,8 +168,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "32676b87016a152ca8532a1662993d60ee17e26d1f82464e8e4bdfd2e34ab7a3",
-      "size": 37776
+      "sha256": "149dc6aa4faec3a13938e562575b3433e16fbbaf57a99812e2009a637324e705",
+      "size": 39621
     },
     {
       "path": "service-survey.js",
@@ -183,8 +198,8 @@
     },
     {
       "path": "tacho.js",
-      "sha256": "e62050aad39672abb36d12816de854e4ad7c0177c2ec2a86402453bb53bd8bec",
-      "size": 36471
+      "sha256": "3a456fb8193789f0f03951ec11bfb089df1fe100d6c75f6c5de7c618360fbb7c",
+      "size": 36493
     },
     {
       "path": "transshipment.css",
@@ -263,8 +278,8 @@
     },
     {
       "path": "web-backend.js",
-      "sha256": "848b596602308bf987f9ba8a91d29b4509346f70ed679edf1ca64df1ff5fa0b4",
-      "size": 21960
+      "sha256": "6a5b30ddf5a11ccda1f84ef1095e00293676f9ecbc983a401c8d5d39e499f3f7",
+      "size": 18556
     }
   ]
 }

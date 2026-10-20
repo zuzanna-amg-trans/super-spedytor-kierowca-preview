@@ -4,23 +4,49 @@
   const loopback=['localhost','127.0.0.1','[::1]','::1'].includes(window.location.hostname);
   if(query.get('web')!=='1'||window.SuperSpedytorNative||(window.location.protocol!=='https:'&&!loopback))return;
 
-  const BASE='https://tms.amg.eco/api/';
+  const BACKEND_ORIGIN='https://dev.amg-trans.eu';
+  const BASE=BACKEND_ORIGIN+'/api/';
+  const environmentValid=query.getAll('backendEnv').length===1&&query.get('backendEnv')==='dev';
+  const originValid=window.location.origin===BACKEND_ORIGIN||loopback;
+  const configurationError=!environmentValid
+    ?'Nieprawidłowa konfiguracja podglądu. Wymagane jest jawne środowisko DEV (backendEnv=dev).'
+    :!originValid?'Odczyt danych DEV jest dostępny wyłącznie pod adresem https://dev.amg-trans.eu/driver-app/.':'';
+  const readonlyState=next=>({...next,backend_environment:'dev',backend_origin:BACKEND_ORIGIN,read_only:true,write_capabilities:[]});
+  const authPaths=new Set(['token/','token/refresh/','logout/']);
+  const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/']);
+  const allowedRequest=(method,path)=>method==='POST'?authPaths.has(path):method==='GET'&&(readPaths.has(path)||/^documents\/transport\/[1-9]\d*\/$/.test(path)||/^driver-tasks\/[1-9]\d*\/$/.test(path));
   const MAX_BYTES=2*1024*1024;
-  const REMEMBER_KEY='ss-web-remember';
+  const REMEMBER_KEY='ss-web-dev-remember';
   const TIMEOUT_MS=25000;
   const SESSION_MESSAGE='Nie można odnowić sesji w tej przeglądarce. Zaloguj się ponownie; automatyczne odnawianie wymaga pliku cookie Super Spedytora.';
   let accessToken=null;
   let expectedIdentity=null;
   let generation=0;
-  let testingMode=false;
   let queue=Promise.resolve();
   // Cookie-changing responses must finish in order even across account switches.
   let cookieQueue=Promise.resolve();
-  let current={status:'disconnected',message:'Zaloguj się kontem kierowcy Super Spedytora'};
+  let current=readonlyState({status:'disconnected',message:'Zaloguj się kontem kierowcy Super Spedytora DEV'});
   const controllers=new Set();
-  const pendingActions=new Set();
   let build={};
   try{build=JSON.parse(document.getElementById('ss-web-build')?.textContent||'{}');}catch{}
+
+  if(configurationError){
+    current=readonlyState({status:'error',message:configurationError,can_retry:false,configuration_error:true});
+    const failClosed=()=>{
+      try{window.SuperSpedytorBackend?.receive(JSON.stringify(current));}catch{}
+      return Promise.resolve();
+    };
+    window.SuperSpedytorWeb={
+      backendEnabled:()=>true,
+      backendState:()=>JSON.stringify(current),
+      getAppVersion:()=>String(build.androidRuntimeVersion||build.androidSourceVersion||''),
+      getUiSourceCommit:()=>String(build.sourceCommit||''),
+      getUiAssetsHash:()=>String(build.assetManifestSha256||''),
+      backendLogin:failClosed,backendRefresh:failClosed,backendLogout:failClosed,
+      backendPointAction:failClosed,backendServiceSurvey:failClosed,backendTestingMode(){}
+    };
+    return;
+  }
 
   function wantsRemember(){
     try{return window.localStorage.getItem(REMEMBER_KEY)==='1';}catch{return false;}
@@ -44,6 +70,7 @@
       const write=next.write;
       next={status:'error',message:(write?.status==='uncertain'?write.message+' ':'')+'Sesja wygasła — zaloguj się ponownie',...(write?{write}:{})};
     }
+    next=readonlyState(next);
     current=next;
     try{window.SuperSpedytorBackend?.receive(JSON.stringify(next));}catch{}
   }
@@ -53,8 +80,6 @@
     controllers.clear();
     accessToken=null;
     expectedIdentity=null;
-    testingMode=false;
-    pendingActions.clear();
     queue=Promise.resolve();
     return generation;
   }
@@ -71,7 +96,7 @@
     return result;
   }
   async function request(method,path,body,authenticated,gen){
-    if(method==='POST'&&['token/','token/refresh/','logout/'].includes(path)){
+    if(method==='POST'&&authPaths.has(path)){
       const pending=cookieQueue.catch(()=>{}).then(()=>performRequest(method,path,body,authenticated,gen,true));
       cookieQueue=pending.catch(()=>{});
       return pending;
@@ -81,6 +106,7 @@
   async function performRequest(method,path,body,authenticated,gen,cookieChanging=false){
     alive(gen);
     if(!/^[a-z0-9][a-z0-9/-]*\/$/i.test(path)||path.includes('..'))throw new SessionError('Nieprawidłowy adres żądania');
+    if(!allowedRequest(method,path))throw new SessionError('Podgląd DEV pozwala wyłącznie na odczyt danych kierowcy i obsługę sesji',403);
     const headers={Accept:'application/json'};
     if(authenticated){
       if(!accessToken)throw new SessionError(SESSION_MESSAGE,401);
@@ -163,21 +189,11 @@
     expectedIdentity=identity;
   }
   async function authenticated(method,path,body,gen){
-    const guardWrite=()=>{if(method==='POST'&&path.startsWith('routes/points/')&&testingMode)throw new SessionError('Tryb testowy — operacja nie została wysłana do Super Spedytora',409);};
-    guardWrite();
     let result=await request(method,path,body,true,gen);
     alive(gen);
     if(result.status===401){
       await refreshAccess(gen);
       alive(gen);
-      guardWrite();
-      const mutation=method==='POST'&&path.match(/^routes\/points\/(\d+)\/(start|complete)\/$/);
-      if(mutation){
-        const fresh=await snapshot(gen);alive(gen);guardWrite();
-        const required=mutation[2]==='start'?'pending':'in_progress';
-        if(pointStatuses(fresh,true).get(mutation[1])!==required)throw new SessionError('Punkt trasy zmienił się podczas odnawiania sesji. Odśwież dane przed ponowną akcją.',409);
-      }
-      alive(gen);guardWrite();
       result=await request(method,path,body,true,gen);
       alive(gen);
     }
@@ -228,7 +244,7 @@
       if(!Array.isArray(tasks))throw new SessionError('Backend zwrócił nieprawidłowe dane historii ankiet');
       serviceHistory=tasks.filter(task=>plain(task)&&task.definition_slug==='service-inspection'&&task.status==='completed');
     }catch(error){alive(gen);if(error.status===401)throw error;historyError=error instanceof SessionError?error.message:'Nie udało się pobrać historii ankiet';}
-    const next={status:'connected',message:'Połączono z Super Spedytorem',read_only:false,write_capabilities:['start','complete'],synced_at:new Date().toISOString(),profile,vehicle:vehicleResponse.vehicle??null,route_status:routeStatus,service_history:serviceHistory};
+    const next={status:'connected',message:'Połączono z Super Spedytorem',read_only:true,write_capabilities:[],backend_environment:'dev',backend_origin:BACKEND_ORIGIN,synced_at:new Date().toISOString(),profile,vehicle:vehicleResponse.vehicle??null,route_status:routeStatus,service_history:serviceHistory};
     if(cargoError)next.cargo_error=cargoError;
     if(historyError)next.service_history_error=historyError;
     return next;
@@ -239,65 +255,6 @@
     const number=Number(value);
     if(!Number.isSafeInteger(number)||number<=0)throw new SessionError('Nieprawidłowy identyfikator punktu trasy');
     return String(number);
-  }
-  function pointStatuses(state,onlyActionable){
-    const result=new Map();let firstPending=null,firstInProgress=null;
-    for(const route of state?.route_status?.active_routes||[]){
-      if(!plain(route))continue;
-      const points=Array.isArray(route.operations)?route.operations:[route.current_point,route.next_point];
-      for(const point of points){
-        if(!plain(point)||point.id===null||point.id===undefined)continue;
-        let id;try{id=canonicalId(point.id);}catch{continue;}
-        const status=String(point.status||'').toLowerCase();
-        if(!status)continue;
-        if(!onlyActionable)result.set(id,status);
-        if(!firstInProgress&&status==='in_progress')firstInProgress=[id,status];
-        if(!firstPending&&status==='pending')firstPending=[id,status];
-      }
-      // Native readback also accepts the legacy current/next representations.
-      if(!onlyActionable&&Array.isArray(route.operations))for(const point of [route.current_point,route.next_point]){
-        if(!plain(point)||point.id===null||point.id===undefined)continue;
-        try{const id=canonicalId(point.id),status=String(point.status||'').toLowerCase();if(status)result.set(id,status);}catch{}
-      }
-    }
-    if(onlyActionable){const first=firstInProgress||firstPending;if(first)result.set(first[0],first[1]);}
-    return result;
-  }
-  function withWrite(state,id,status,pointId,action,message){
-    return {...state,write:{id,status,message,...(pointId?{point_id:pointId,action}:{})}};
-  }
-  function writeMessage(action){return action==='start'?'Rozpoczęcie operacji zapisane i potwierdzone przez Super Spedytora':'Zakończenie operacji zapisane i potwierdzone przez Super Spedytora';}
-  async function updatePoint(rawId,rawAction,gen){
-    const writeId=crypto.randomUUID();
-    let latest=null,pointId='',action='',attempted=false;
-    try{
-      if(testingMode)throw new SessionError('Tryb testowy — operacja nie została wysłana do Super Spedytora');
-      pointId=canonicalId(rawId);action=String(rawAction??'').trim().toLowerCase();
-      if(!['start','complete'].includes(action))throw new SessionError('Nieobsługiwana akcja punktu trasy');
-      latest=await snapshot(gen);alive(gen);
-      const expected=action==='start'?'pending':'in_progress';
-      const scoped=pointStatuses(latest,true);
-      if(!scoped.has(pointId))throw new SessionError('Ten punkt nie jest najbliższą operacją aktualnej trasy zalogowanego kierowcy');
-      if(scoped.get(pointId)!==expected)throw new SessionError(action==='start'?'Operację można rozpocząć tylko ze stanu oczekującego':'Operację można zakończyć dopiero po jej rozpoczęciu');
-      publish(withWrite(latest,writeId,'pending',pointId,action,'Sprawdzam i zapisuję operację w Super Spedytorze…'),gen);
-      alive(gen);
-      if(testingMode)throw new SessionError('Tryb testowy — operacja nie została wysłana do Super Spedytora');
-      attempted=true;
-      requireSuccess(await authenticated('POST',`routes/points/${pointId}/${action}/`,{},gen),'Nie udało się zapisać operacji');alive(gen);
-      const readback=await snapshot(gen);alive(gen);
-      const confirmed=pointStatuses(readback,false).get(pointId)===(action==='start'?'in_progress':'completed');
-      publish(withWrite(readback,writeId,confirmed?'confirmed':'uncertain',pointId,action,confirmed?writeMessage(action):'Super Spedytor przyjął żądanie, ale odczyt kontrolny nie potwierdził zmiany. Odśwież dane przed kolejną akcją.'),gen);
-    }catch(error){
-      alive(gen);
-      let recovery=latest||(current.status==='connected'?current:errorState(error)),fresh=false;
-      if(accessToken){try{recovery=await snapshot(gen);alive(gen);fresh=true;}catch{alive(gen);}}
-      if(attempted&&fresh&&pointId&&pointStatuses(recovery,false).get(pointId)===(action==='start'?'in_progress':'completed')){
-        publish(withWrite(recovery,writeId,'confirmed',pointId,action,writeMessage(action)),gen);return;
-      }
-      const uncertain=attempted&&(!error.status||error.status>=500);
-      const message=uncertain?'Nie udało się potwierdzić wyniku zapisu. Nie ponawiaj akcji — najpierw odśwież dane.':error instanceof SessionError?error.message:'Nie udało się zapisać operacji';
-      publish(withWrite(recovery,writeId,uncertain?'uncertain':'error',pointId,action,message),gen);
-    }
   }
 
   window.SuperSpedytorWeb={
@@ -346,13 +303,11 @@
       // revoke the server cookie without exposing it to JavaScript.
       return request('POST','logout/',{},false,gen).catch(()=>{});
     },
-    backendTestingMode(enabled){testingMode=Boolean(enabled);},
-    backendPointAction(rawId,rawAction){
-      const gen=generation,key=String(rawId)+'\n'+String(rawAction);
-      if(pendingActions.has(key))return queue;
-      if(!accessToken){publish({status:'disconnected',message:'Sesja wygasła — zaloguj się ponownie'},gen);return Promise.resolve();}
-      pendingActions.add(key);
-      return enqueue(gen,()=>updatePoint(rawId,rawAction,gen)).finally(()=>{if(gen===generation)pendingActions.delete(key);});
+    backendTestingMode(){},
+    backendPointAction(){
+      const gen=generation;
+      publish({...current,write:{id:crypto.randomUUID(),status:'error',message:'Podgląd DEV jest tylko do odczytu. Operacja nie została wysłana.'}},gen);
+      return Promise.resolve();
     },
     backendServiceSurvey(rawId){
       const gen=generation;

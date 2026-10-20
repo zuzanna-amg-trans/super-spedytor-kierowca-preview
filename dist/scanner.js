@@ -7,6 +7,12 @@
   const available=()=>typeof native()?.scanQr==='function';
   const androidApp=()=>new URLSearchParams(window.location.search).get('android')==='1'&&!window.SuperSpedytorWeb;
   const liveCamera=()=>typeof native()?.scanCmr==='function';
+  // AA8 uses its own ML Kit/token bridge for live operations. The view-only
+  // scanner must not pretend that bridge implements CameraX or local AI.
+  const pdfImportOnly=()=>androidApp()&&(!liveCamera()||typeof native()?.getDocumentProcessingScript!=='function');
+  const pdfExportAvailable=()=>['beginPdfExport','appendPdfExport','finishPdfExport','cancelPdfExport'].every(name=>typeof native()?.[name]==='function');
+  const legacyImportMessage='Ta wersja aplikacji obsługuje tutaj import gotowego PDF. Obróbkę zdjęć i podgląd skanera sprawdzisz w przeglądarce. Skanowanie w aktywnym załadunku i rozładunku korzysta z osobnego skanera aplikacji.';
+  const legacyExportMessage='Ta wersja aplikacji nie obsługuje tutaj otwierania, zapisu ani udostępniania PDF. Możesz sprawdzić dokument i dodać go w tym teście widoków; eksport PDF sprawdzisz w przeglądarce.';
   const appVersion=()=>{try{return (native()||window.SuperSpedytorWeb)?.getAppVersion?.()||'Podgląd';}catch{return 'Podgląd';}};
   const launchIdError='Nie udało się bezpiecznie uruchomić skanera. Zaktualizuj Android System WebView i spróbuj ponownie.';
   const id=()=>{
@@ -61,11 +67,12 @@
     const scroll=preserveScroll?(root().querySelector('.scanner-body')?.scrollTop||0):0;
     const s=session,page=active();
     let content='';
-    if(s.stage==='intro')content=`<div class="scanner-intro-art" aria-hidden="true"><div class="scanner-corners"></div><div class="scanner-paper"><span>CMR</span><i></i><i></i><i></i><div class="scanner-paper-stamp">AMG</div><b>podpis</b></div></div><div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · SKANOWANIE NA ŻYWO</span><h2>Ustaw kartkę.<br>Skan zrobi się sam.</h2><p>Rozłóż dokument i ustaw całą kartkę w kadrze. Zielony obrys i stabilny obraz uruchomią skan automatycznie.</p></div><div class="scanner-features"><span>${icon('doc')} Obrys na żywo</span><span><b class="scanner-color-dot"></b> Kolor pieczątek</span><span>${icon('check')} Automatyczny skan</span></div><div class="scanner-color-tip">${icon('info')}<p><strong>Kolor dokumentu:</strong> wycinamy kartkę, prostujemy perspektywę, wyrównujemy cienie i wzmacniamy pismo. Wszystkie strony zapiszesz w jednym PDF. W podglądzie możesz poprawić rogi i porównać oryginał.</p></div>${liveCamera()?'<p class="scanner-platform-note">Skanowanie i poprawa koloru odbywają się na telefonie, również bez internetu.</p>':'<p class="scanner-platform-note">Skaner na żywo jest dostępny w aplikacji Android. Tutaj możesz wybrać i poprawić gotowe zdjęcia.</p>'}<button class="primary-button" data-scan-start>${icon('camera')}${liveCamera()?'Uruchom skaner CMR':'Wybierz zdjęcie CMR'}</button><button class="secondary-button" data-scan-import>${icon('upload')}Wybierz zdjęcia lub PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Dokument dodasz dopiero po sprawdzeniu podglądu.</p>`;
-    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>${s.pages.length&&quality.packetReady(s.pages)?'Składam wszystkie sprawdzone strony w jeden dokument PDF.':'AI wykrywa obszar kartki i jej cztery rogi. Prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.'}</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
+    if(s.stage==='intro'&&pdfImportOnly())content=`<div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · TEST WIDOKÓW</span><h2>Sprawdź gotowy dokument PDF</h2><p>${legacyImportMessage}</p></div><button class="primary-button" data-scan-start>${icon('upload')}Wybierz gotowy PDF</button><button class="secondary-button" data-scan-import>${icon('upload')}Importuj PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Import i podgląd nie oznaczają wysłania dokumentu do TMS.</p>`;
+    else if(s.stage==='intro')content=`<div class="scanner-intro-art" aria-hidden="true"><div class="scanner-corners"></div><div class="scanner-paper"><span>CMR</span><i></i><i></i><i></i><div class="scanner-paper-stamp">AMG</div><b>podpis</b></div></div><div class="scanner-intro-copy"><span class="scanner-eyebrow">CMR · SKANOWANIE NA ŻYWO</span><h2>Ustaw kartkę.<br>Skan zrobi się sam.</h2><p>Rozłóż dokument i ustaw całą kartkę w kadrze. Zielony obrys i stabilny obraz uruchomią skan automatycznie.</p></div><div class="scanner-features"><span>${icon('doc')} Obrys na żywo</span><span><b class="scanner-color-dot"></b> Kolor pieczątek</span><span>${icon('check')} Automatyczny skan</span></div><div class="scanner-color-tip">${icon('info')}<p><strong>Kolor dokumentu:</strong> wycinamy kartkę, prostujemy perspektywę, wyrównujemy cienie i wzmacniamy pismo. Wszystkie strony zapiszesz w jednym PDF. W podglądzie możesz poprawić rogi i porównać oryginał.</p></div>${liveCamera()?'<p class="scanner-platform-note">Skanowanie i poprawa koloru odbywają się na telefonie, również bez internetu.</p>':'<p class="scanner-platform-note">Skaner na żywo jest dostępny w aplikacji Android. Tutaj możesz wybrać i poprawić gotowe zdjęcia.</p>'}<button class="primary-button" data-scan-start>${icon('camera')}${liveCamera()?'Uruchom skaner CMR':'Wybierz zdjęcie CMR'}</button><button class="secondary-button" data-scan-import>${icon('upload')}Wybierz zdjęcia lub PDF</button><p class="scanner-local-note">Do 20 stron · 100 MB łącznie<br>Dokument dodasz dopiero po sprawdzeniu podglądu.</p>`;
+    else if(s.stage==='waiting')content=`<div class="scanner-loading" role="status"><span></span><h2>${s.processing?'Wycinam i ulepszam…':'Uruchamiam skaner na żywo…'}</h2><p>${s.pages.length&&quality.packetReady(s.pages)?'Składam wszystkie sprawdzone strony w jeden dokument PDF.':pdfImportOnly()?'Sprawdzam gotowy dokument PDF. Plik pozostaje w lokalnym teście widoków.':'AI wykrywa obszar kartki i jej cztery rogi. Prostuję perspektywę i wyrównuję oświetlenie. Zachowuję oryginał zdjęcia.'}</p></div><button class="secondary-button" data-scan-cancel-wait>Wróć</button>`;
     else if(s.stage==='document'&&s.document){
       const doc=s.document,first=s.pages.find(p=>p.mime!=='application/pdf');
-      content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">DOKUMENT DO ZAPISANIA</span><h2>Dokument PDF gotowy</h2><span class="scanner-review-status checked">${icon('doc')} ${doc.pageCount} ${doc.pageCount===1?'strona':doc.pageCount<5?'strony':'stron'} · PDF w kolorze</span></div><div class="scanner-document scanner-pdf">${androidApp()?`${first?`<img src="${escape(first.url)}" alt="Podgląd pierwszej zeskanowanej strony dokumentu PDF">`:icon('doc')}<p>Plik PDF zawiera ${doc.pageCount} ${doc.pageCount===1?'stronę':doc.pageCount<5?'strony':'stron'} w kolejności skanowania.</p>`:`<iframe title="Gotowy dokument PDF — wszystkie strony" src="${escape(doc.url)}"></iframe>`}</div><div class="scanner-file-meta"><span>${escape(doc.name)}</span><span>${(doc.size/1024/1024).toFixed(1)} MB · PDF</span></div>${s.exportMessage?`<p class="scanner-export-status" role="status">${escape(s.exportMessage)}</p>`:''}<div class="scanner-pdf-actions"><button class="secondary-button" data-document-view ${s.exporting?'disabled':''}>${icon('doc')}Otwórz PDF</button><button class="secondary-button" data-document-save ${s.exporting?'disabled':''}>${icon('upload')}Zapisz PDF</button>${androidApp()?`<button class="secondary-button" data-document-share ${s.exporting?'disabled':''}>Udostępnij PDF</button>`:''}</div><button class="primary-button" data-document-accept ${s.exporting?'disabled':''}>${icon('check')}Dodaj dokument PDF</button><button class="secondary-button" data-document-back ${s.exporting?'disabled':''}>Wróć do stron i popraw</button><p class="scanner-local-note">PDF zachowuje pełną rozdzielczość skanów i kolory. Sam zapis lub udostępnienie nie potwierdza przyjęcia CMR w TMS.</p>`;
+      content=`<div class="scanner-review-heading"><span class="scanner-eyebrow">DOKUMENT DO ZAPISANIA</span><h2>Dokument PDF gotowy</h2><span class="scanner-review-status checked">${icon('doc')} ${doc.pageCount} ${doc.pageCount===1?'strona':doc.pageCount<5?'strony':'stron'} · PDF w kolorze</span></div><div class="scanner-document scanner-pdf">${androidApp()?`${first?`<img src="${escape(first.url)}" alt="Podgląd pierwszej zeskanowanej strony dokumentu PDF">`:icon('doc')}<p>Plik PDF zawiera ${doc.pageCount} ${doc.pageCount===1?'stronę':doc.pageCount<5?'strony':'stron'} w kolejności skanowania.</p>`:`<iframe title="Gotowy dokument PDF — wszystkie strony" src="${escape(doc.url)}"></iframe>`}</div><div class="scanner-file-meta"><span>${escape(doc.name)}</span><span>${(doc.size/1024/1024).toFixed(1)} MB · PDF</span></div>${s.exportMessage?`<p class="scanner-export-status" role="status">${escape(s.exportMessage)}</p>`:''}${androidApp()&&!pdfExportAvailable()?`<p class="scanner-platform-note">${legacyExportMessage}</p>`: ''}<div class="scanner-pdf-actions"><button class="secondary-button" data-document-view ${s.exporting||androidApp()&&!pdfExportAvailable()?'disabled':''}>${icon('doc')}Otwórz PDF</button><button class="secondary-button" data-document-save ${s.exporting||androidApp()&&!pdfExportAvailable()?'disabled':''}>${icon('upload')}Zapisz PDF</button>${androidApp()?`<button class="secondary-button" data-document-share ${s.exporting||!pdfExportAvailable()?'disabled':''}>Udostępnij PDF</button>`:''}</div><button class="primary-button" data-document-accept ${s.exporting?'disabled':''}>${icon('check')}Dodaj dokument PDF</button><button class="secondary-button" data-document-back ${s.exporting?'disabled':''}>Wróć do stron i popraw</button><p class="scanner-local-note">PDF zachowuje pełną rozdzielczość skanów i kolory. Sam zapis lub udostępnienie nie potwierdza przyjęcia CMR w TMS.</p>`;
     }
     else if(page){
       const ready=quality.pageReady(page),count=s.pages.filter(quality.pageReady).length;
@@ -130,6 +137,7 @@
   async function exportDocument(action){
     const s=session;if(!s?.document||s.exporting)return;
     s.error='';s.exportMessage='';
+    if(androidApp()&&!pdfExportAvailable()){s.error=legacyExportMessage;render(true);return;}
     if(!androidApp()){
       if(action==='view'){window.open(s.document.url,'_blank','noopener');return;}
       const link=document.createElement('a');link.href=s.document.url;link.download=s.document.name;
@@ -146,17 +154,17 @@
   function chooseFiles(camera,replace=null){
     session.replace=replace;
     const input=root().querySelector('[data-scanner-input]');
-    input.value='';input.multiple=replace===null;input.accept=camera?'image/*':'image/*,application/pdf';
+    input.value='';input.multiple=replace===null;input.accept=pdfImportOnly()?'application/pdf':camera?'image/*':'image/*,application/pdf';
     if(camera)input.setAttribute('capture','environment');else input.removeAttribute('capture');
     input.click();
   }
   function capture(replace=null){
     if(!session)return;
+    if(pdfImportOnly()){
+      session.error=legacyImportMessage;
+      render();chooseFiles(false,replace);return;
+    }
     if(!liveCamera()){
-      if(androidApp()){
-        session.error='Skaner CMR jest niedostępny w tej instalacji. Zaktualizuj aplikację Super Spedytor Kierowca i otwórz ją ponownie.';
-        render();return;
-      }
       chooseFiles(false,replace);return;
     }
     const s=session;let requestId;
@@ -181,6 +189,7 @@
   async function prepare(page){
     const input=page;
     try{
+    if(page.mime!=='application/pdf'&&pdfImportOnly())throw new Error(legacyImportMessage);
     if(page.mime==='application/pdf'){
       if(!window.CmrDocumentPdf||!window.PDFLib)throw new Error('Brakuje modułu dokumentów PDF. Zaktualizuj aplikację.');
       const info=await window.CmrDocumentPdf.inspectPdf(await page.blob.arrayBuffer(),{PDFLib:window.PDFLib});

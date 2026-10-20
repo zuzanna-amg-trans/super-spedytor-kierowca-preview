@@ -453,7 +453,7 @@
     const type=activeType();
     if(!type)return;
     tachoState.lastClosed={title:type.title,elapsed:activeElapsed(),endedAt:Date.now()};
-    const historyItem=tachoState.history.at(-1);
+    const historyItem=tachoState.history[tachoState.history.length-1];
     if(historyItem&&historyItem.typeId===type.id&&!historyItem.endedAt){historyItem.endedAt=tachoState.lastClosed.endedAt;historyItem.elapsed=tachoState.lastClosed.elapsed;}
     tachoState.active=null;
     syncTimer();

@@ -5,6 +5,7 @@ const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const has=value=>value!==null&&value!==undefined&&String(value).trim()!=='';
+const hasOwn=(object,key)=>Object.prototype.hasOwnProperty.call(object,key);
 const materialWord=value=>value===1?'materiał':(value%10>=2&&value%10<=4&&(value%100<12||value%100>14)?'materiały':'materiałów');
 const dispatcher={name:'Spedytor testowy',phone:'+48 000 000 000',demo:true};
 const mapTarget=place=>has(place.latitude)&&has(place.longitude)?`${place.latitude},${place.longitude}`:(place.address||`${place.company}, ${place.countryName}`);
@@ -25,6 +26,7 @@ const operationTimingModel=window.SuperSpedytorOperationTiming;
 const serviceWizardModel=window.SuperSpedytorServiceSurvey;
 const vehicleHandoverModel=window.SuperSpedytorVehicleHandover;
 const transshipmentModel=window.SuperSpedytorTransshipment;
+const liveOperationModel=window.SuperSpedytorLiveOperation;
 document.documentElement.classList.toggle('backend-mode',backendMode);
 const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',transshipment:'demo-transshipment-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
 const nativeHasArrival=stopId=>{
@@ -42,7 +44,7 @@ const nativeOpenExternal=url=>{
 
 const pickup={company:'Magazyn demonstracyjny Alfa',address:'Punkt demonstracyjny A · Warszawa',country:'PL',countryName:'Polska',latitude:52.22970,longitude:21.01220};
 const delivery={company:'Centrum demonstracyjne Beta',address:'Punkt demonstracyjny B · Poznań',country:'PL',countryName:'Polska',latitude:52.40640,longitude:16.92520};
-const assignment={
+let assignment={
   id:'DEMO/0001',
   pickup,
   delivery,
@@ -218,7 +220,7 @@ const freshHandoverGroup=source=>({
 });
 const freshDocumentCollection=()=>({
   type:'collection',role:collectionPreviewRole,transferorSourceId:collectionSources[0].id,activeSourceId:null,
-  scenario:Object.hasOwn(collectionScenarios,appQuery.get('cmrScenario'))?appQuery.get('cmrScenario'):'complete',
+  scenario:hasOwn(collectionScenarios,appQuery.get('cmrScenario'))?appQuery.get('cmrScenario'):'complete',
   screen:'info',returnScreen:'info',started:false,finished:false,messages:[],groups:collectionSources.map(freshHandoverGroup),syncState:'LOCAL_ONLY'
 });
 const freshTransshipment=()=>transshipmentModel.createSession(transshipmentPlan);
@@ -756,10 +758,10 @@ const count=()=>current().items.length;
 const photoRecords=operation=>operation.items.flatMap(item=>(operation.mode==='load'?[item.photos.near,item.photos.far]:[item.photos.unload]).filter(Boolean));
 const pieceReady=(item,operation=current())=>operation.mode==='load'?Boolean(item.label&&item.seal&&item.photos.near&&item.photos.far):Boolean(item.seal&&item.photos.unload);
 const cargoReady=()=>count()>0&&current().items.every(item=>pieceReady(item));
-const cmrSealReady=()=>Boolean(current().cmrSeal&&(isLoad()?current().cmrLabel:true));
+const cmrSealReady=()=>Boolean(current().cmrSeal&&(isLoad()?current().cmrLabel:true))||Boolean(current().cmrSealSkipped);
 const documentReady=()=>current().documents.length>0&&current().documentsComplete;
 const allReady=()=>current().started&&current().physicalConfirmed&&cargoReady()&&cmrSealReady()&&documentReady();
-const finishReady=()=>allReady()&&(isLoad()||Boolean(current().cmrReturnCode===current().cmrSeal&&current().cmrRetained));
+const finishReady=()=>allReady()&&(liveMode()||isLoad()||Boolean(current().cmrReturnCode===current().cmrSeal&&current().cmrRetained));
 const documentationSteps=()=>isLoad()?['photos','seals','documents']:['seals','photos','documents'];
 const operationFlow=()=>isLoad()?['info',...documentationSteps(),'review']:['seals','info','photos','documents','review'];
 const progress=()=>isLoad()?[cargoReady(),cmrSealReady(),documentReady()]:[cmrSealReady(),cargoReady(),documentReady()];
@@ -885,7 +887,7 @@ function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);r
 
 function openService(panel=(!serviceCompletedToday()?'survey':state.servicePanel||'survey')){
   if(backendTestWorkspace)backendActiveNav='service';
-  if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&panel!=='history')enterTestingWorkspace('survey',false);
+  if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&panel!=='history'&&!enterTestingWorkspace('survey',false))return;
   cancelArrivalCountdown(false);
   closeModal(false);
   if(panel!=='history')state.serviceHistorySelectedId=null;
@@ -1118,14 +1120,15 @@ function pieceSummary(piece,index,editable=true){
   return `<div class="cargo-piece-summary"><span class="piece-index">${index+1}</span><div><strong>${esc(piece.name)}</strong><small>${details.map(esc).join(' · ')}</small></div>${editable?`<div class="piece-summary-actions"><button data-edit-piece="${index}" aria-label="Edytuj szczegóły sztuki ${index+1}">${icon('edit')}</button><button data-remove-piece="${index}" aria-label="Usuń sztukę ${index+1}" ${count()===1?'disabled':''}>${icon('close')}</button></div>`:''}</div>`;
 }
 function piecesManager(){
-  const editable=!current().started;
+  const editable=!current().started&&!liveMode();
   return `<div class="cargo-items-manager"><div class="cargo-items-title"><span>Faktyczne sztuki ładunku</span><b>${count()}</b></div>${current().items.map((piece,index)=>pieceSummary(piece,index,editable)).join('')}${editable?`<div class="cargo-count-actions"><button id="add-cargo-piece">${icon('plus')}<span><strong>Towaru jest więcej?</strong><small>Dodaj sztukę i jej szczegóły</small></span></button><button id="remove-last-piece" ${count()===1?'disabled':''}>${icon('close')}<span><strong>Towaru jest mniej?</strong><small>Usuń ostatnią sztukę</small></span></button></div>`:''}</div>`;
 }
 function infoView(){
   const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie z rozładunku.';
   const quantity=`${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'}`;
   const confirmation=isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Sprawdziłem, że do rozładowania są ${quantity} ładunku zgodne ze zleceniem.`;
-  return `<div class="app-content">${pageHeading()}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
+  const liveExit=liveMode()?`<button class="subpage-back live-exit" id="live-exit">${icon('back')} Najbliższa operacja · ${esc(assignment.id)}</button>`:'';
+  return `<div class="app-content">${liveExit}${pageHeading()}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
 }
 function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
@@ -1152,16 +1155,16 @@ function pieceTaskCard(piece,index){
 function piecesView(){
   const header=isLoad()?stepHeader('photos','Każda sztuka osobno','Dla każdej sztuki zachowaj kolejność: naklej plombę, zeskanuj QR, zrób zdjęcie z bliska i zdjęcie z daleka.'):stepHeader('photos','Plomby i zdjęcia sztuk','Porównaj towar ze zdjęciami z załadunku, zeskanuj istniejącą plombę, a po zdjęciu towaru z pojazdu zrób zdjęcie na rampie albo na ziemi, jeśli rozładunek odbywa się poza rampą.');
   const sequence=isLoad()?'<span>1</span> Naklej plombę <b>→</b><span>2</span> Skan QR <b>→</b><span>3</span> Zdjęcie z bliska <b>→</b><span>4</span> Zdjęcie z daleka':'<span>1</span> Sprawdź zdjęcia z załadunku <b>→</b><span>2</span> Skan plomby <b>→</b><span>3</span> Rozładuj <b>→</b><span>4</span> Zdjęcie z rozładunku';
-  return `<div class="app-content">${header}<div class="piece-sequence-note">${sequence}</div>${current().items.map(pieceTaskCard).join('')}<div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcie z rozładunku każdej sztuki'} od razu ${isLoad()?'pojawią':'pojawi'} się w czacie zlecenia.</span></div></div>`;
+  return `<div class="app-content">${header}<div class="piece-sequence-note">${sequence}</div>${liveLoadingPhotosGallery()}${current().items.map(pieceTaskCard).join('')}<div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcie z rozładunku każdej sztuki'} od razu ${isLoad()?'pojawią':'pojawi'} się w czacie zlecenia.</span></div></div>`;
 }
 function cmrSealView(){
   const load=isLoad();
   const header=load?stepHeader('seals','Plomba CMR','Po udokumentowaniu wszystkich sztuk naklej plombę na pustym tyle ostatniej strony CMR i zeskanuj jej kod QR.'):stepHeader('seals','Przygotuj dokumenty','Dotarłeś na rozładunek. Na tyle dokumentu CMR znajduje się plomba z numerem zapisanym przy załadunku. Przygotuj CMR i zeskanuj tę plombę.');
-  const card=load?`<div class="section-kicker">PUSTY TYŁ OSTATNIEJ STRONY CMR</div><h3>Naklej osobną plombę na pustym tyle strony</h3><p>Ostatnia strona CMR zawiera treść z przodu. Plombę naklej na jej pustym tyle, a następnie zapisz kod QR.</p><label class="check-row"><input id="cmr-label" type="checkbox" ${current().cmrLabel?'checked':''}><span>Plomba jest naklejona na pustym tyle ostatniej strony CMR</span></label>`:`<div class="section-kicker">PLOMBA NA TYLE CMR</div><h3>Zeskanuj plombę CMR</h3><p>Porównaj numer na tyle dokumentu z numerem zapisanym podczas załadunku. Nie naklejaj nowej plomby.</p><div class="expected-seal"><span>Numer plomby CMR z załadunku</span><strong>${esc(current().expectedCmrSeal||'Nie zapisano')}</strong></div>`;
+  const card=load?`<div class="section-kicker">PUSTY TYŁ OSTATNIEJ STRONY CMR</div><h3>Naklej osobną plombę na pustym tyle strony</h3><p>Ostatnia strona CMR zawiera treść z przodu. Plombę naklej na jej pustym tyle, a następnie zapisz kod QR.</p><label class="check-row"><input id="cmr-label" type="checkbox" ${current().cmrLabel?'checked':''}><span>Plomba jest naklejona na pustym tyle ostatniej strony CMR</span></label>`:`<div class="section-kicker">PLOMBA NA TYLE CMR</div><h3>Zeskanuj plombę CMR</h3><p>Porównaj numer na tyle dokumentu z numerem zapisanym podczas załadunku. Nie naklejaj nowej plomby.</p><div class="expected-seal"><span>Numer plomby CMR z załadunku</span><strong>${esc(current().expectedCmrSeal||(liveMode()?'Super Spedytor sprawdzi zgodność po skanie':'Nie zapisano'))}</strong></div>${liveMode()&&!current().cmrSeal?`<button class="secondary-button" id="live-cmr-missing">${icon('info')}${current().cmrSealSkipped?'Krok pominięty · zeskanuj, jeśli plomba jest':'Na CMR nie ma plomby — pomiń ten krok'}</button>`:''}`;
   const evidence=load?`<div class="evidence-status">${icon('check')} Każda sztuka ładunku ma komplet zdjęć · ${count()}/${count()}</div>`:'';
   const scanLabel=current().cmrSeal?'Skanuj ponownie':load?'Skanuj QR':'Zeskanuj plombę';
-  const afterScan=!load&&current().cmrSeal?`<section class="prior-cmr-section"><div class="section-heading"><h3>CMR z załadunku</h3><span>Pokazany automatycznie</span></div><p class="prior-cmr-intro">Plomba jest zgodna. Poniżej znajduje się skan CMR wykonany podczas pierwszej operacji — załadunku.</p>${current().loadingDocuments.map((record,index)=>loadingDocumentRecordView(record,index)).join('')}</section>`:'';
-  return `<div class="app-content">${header}${evidence}<section class="panel cmr-seal-card"><div class="cmr-seal-illustration"><span>${icon('doc')}</span><span class="cmr-sticker">QR</span></div>${card}<div class="seal-code-row">${current().cmrSeal?`<strong>${esc(current().cmrSeal)}</strong>`:'<span>Kod plomby CMR nieodczytany</span>'}<button class="scan-button ${current().cmrSeal?'scanned':''}" id="scan-cmr-seal" ${load&&!current().cmrLabel?'disabled':''}>${icon(current().cmrSeal?'check':'qr')}${scanLabel}</button></div></section>${afterScan}${load?`<div class="shared-hint">${icon('info')} Po zapisaniu QR przejdziesz do skanu wypełnionego dokumentu CMR.</div>`:''}</div>`;
+  const afterScan=!load&&current().cmrSeal&&current().loadingDocuments.length?`<section class="prior-cmr-section"><div class="section-heading"><h3>CMR z załadunku</h3><span>Pokazany automatycznie</span></div><p class="prior-cmr-intro">Plomba jest zgodna. Poniżej znajduje się skan CMR wykonany podczas pierwszej operacji — załadunku.</p>${current().loadingDocuments.map((record,index)=>loadingDocumentRecordView(record,index)).join('')}</section>`:'';
+  return `<div class="app-content">${header}${evidence}<section class="panel cmr-seal-card"><div class="cmr-seal-illustration"><span>${icon('doc')}</span><span class="cmr-sticker">QR</span></div>${card}<div class="seal-code-row">${current().cmrSeal?`<strong>${esc(current().cmrSeal)}</strong>`:'<span>Kod plomby CMR nieodczytany</span>'}<button class="scan-button ${current().cmrSeal?'scanned':''}" id="scan-cmr-seal" ${load&&!current().cmrLabel?'disabled':''}>${icon(current().cmrSeal?'check':'qr')}${scanLabel}</button></div></section>${liveCmrSealRows()}${afterScan}${load?`<div class="shared-hint">${icon('info')} Po zapisaniu QR przejdziesz do skanu wypełnionego dokumentu CMR.</div>`:''}</div>`;
 }
 function demoDocument(page=1,operation=state.operation,orderId=cargoOrderId()){
   return `<div class="demo-document"><div class="document-paper"><h4>CMR</h4><p>MIĘDZYNARODOWY SAMOCHODOWY LIST PRZEWOZOWY</p><p>Magazyn demonstracyjny Alfa → Centrum demonstracyjne Beta</p><p>Zlecenie ${esc(orderId)}</p><div class="paper-grid"></div><div class="paper-signature">${operation==='load'?'Nadawca':'Odbiorca'} · ${page}</div></div><div class="demo-label">DOKUMENT DEMONSTRACYJNY</div></div>`;
@@ -1179,10 +1182,10 @@ function documentsView(){
   const records=current().documents;
   const title=isLoad()?'Skan dokumentu CMR':'Skan CMR po rozładunku';
   const description=isLoad()?'Plomba dokumentu jest już zapisana. Teraz dołącz pełny, czytelny skan wypełnionego CMR.':'Plomba CMR i sztuki ładunku są już sprawdzone. Po rozładunku dołącz nowy, pełny i czytelny skan dokumentu CMR.';
-  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index)).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>Każda strona CMR lub plik PDF od razu pojawi się w czacie zlecenia.</span></div></div>`;
+  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index,!liveMode())).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>Każda strona CMR lub plik PDF od razu pojawi się w czacie zlecenia.</span></div></div>`;
 }
 function cmrRetentionView(){
-  if(isLoad())return '';
+  if(isLoad()||liveMode())return '';
   const scanned=current().cmrReturnCode===current().cmrSeal&&Boolean(current().cmrSeal);
   return `<section class="panel cmr-retention-panel"><div class="section-kicker">${icon('qr')} PRZED ODJAZDEM</div><h3>CMR z plombą zostaje u Ciebie</h3><p>Po podpisaniu odbierz ten dokument od rozładowcy. Zeskanuj ponownie plombę na jego odwrocie.</p><strong class="retained-seal">${esc(current().cmrSeal)}</strong><button class="scan-button" id="scan-cmr-return">${icon(scanned?'check':'qr')}${scanned?'Plomba sprawdzona · skanuj ponownie':'Skanuj plombę CMR po rozładunku'}</button><label class="check-row"><input id="cmr-retained" type="checkbox" ${current().cmrRetained?'checked':''} ${scanned?'':'disabled'}><span>Mam przy sobie CMR z tą plombą. Dokument zostaje u mnie w aucie.</span></label></section>`;
 }
@@ -1325,7 +1328,7 @@ function collectionSimulationControls(){
   return `<details class="collection-simulation-controls"><summary>Symulacje odbioru dokumentów</summary><p>Fikcyjne osoby i dane. Rozpoczniesz nowy przykład odbioru od Marka Nowaka.</p><button data-collection-scenario="missing">Brakuje CMR · odbiór 5 z 6</button><button data-collection-scenario="foreign">6 dokumentów · jeden innej osoby</button><button data-collection-scenario="complete">Pełny komplet · zacznij od nowa</button></details>`;
 }
 function startCollectionScenario(scenario){
-  if(!Object.hasOwn(collectionScenarios,scenario))return;
+  if(!hasOwn(collectionScenarios,scenario))return;
   clearTimeout(toastTimer);$('#toast').textContent='';$('#toast').classList.remove('visible');
   const record=freshDocumentCollection();record.scenario=scenario;
   state.routeStops.collection=record;
@@ -1659,10 +1662,10 @@ function serviceTaskCard(key,index){
   const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>${key==='serviceDistance'?'Pozostało do przeglądu':'Wpisz poziom'} *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
   return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3 id="service-step-title" tabindex="-1">${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
 }
-function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected';}
+function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&typeof driverBridge?.backendServiceSurvey==='function';}
 function serviceHistoryRecords(){
-  const records=serviceHistoryIsLive()&&Array.isArray(backendState.service_history)
-    ?backendState.service_history
+  const records=serviceHistoryIsLive()
+    ?Array.isArray(backendState.service_history)?backendState.service_history:[]
     :previewServiceHistory();
   return records.filter(record=>record?.definition_slug==='service-inspection'&&record.status==='completed');
 }
@@ -1735,7 +1738,7 @@ function serviceHistoryView(){
     ?detail?serviceHistoryDetailView(detail):`<section class="service-history-loading">${loading?'<span class="backend-loader" aria-hidden="true"></span>':icon('warning')}<h3>${loading?'Pobieramy odpowiedzi…':'Nie udało się otworzyć ankiety'}</h3><p>${esc(error||'Spróbuj ponownie z listy historii.')}</p></section>`
     :records.length?`<section class="service-history-summary"><span>${icon('clipboard')}</span><div><small>WYKONANE ANKIETY SERWISOWE</small><strong>${records.length} ${records.length===1?'zapis':'ostatnich zapisów'}</strong><p>Dotknij daty, aby zobaczyć własne odpowiedzi.</p></div><b>SS</b></section><div class="service-history-list">${records.map(serviceHistoryListCard).join('')}</div>`
       :`<section class="service-history-empty">${icon('clipboard')}<h3>Nie ma jeszcze wykonanych ankiet</h3><p>${esc(error||'Po zapisaniu pierwszej ankiety pojawi się tutaj jej data i odpowiedzi.')}</p></section>`;
-  return `<div class="app-content service-screen service-history-screen"><div class="service-page-header"><button id="service-history-back" aria-label="${selected?'Wróć do historii ankiet':'Wróć do ankiety dziennej'}">${icon('back')}</button><div><span>${live?'DANE Z SUPER SPEDYTORA':'PODGLĄD NA DANYCH DEMONSTRACYJNYCH'}</span><h2>${title}</h2></div><b class="service-state-badge saved">${selected?'ZAPIS':'HISTORIA'}</b></div>${body}</div>`;
+  return `<div class="app-content service-screen service-history-screen"><div class="service-page-header"><button id="service-history-back" aria-label="${selected?'Wróć do historii ankiet':'Wróć do ankiety dziennej'}">${icon('back')}</button><div><span>${live?(backendState?.read_only===true&&backendState?.backend_environment==='dev'?'DANE Z WERSJI DEV SUPER SPEDYTORA':'DANE Z SUPER SPEDYTORA'):'PODGLĄD NA DANYCH DEMONSTRACYJNYCH'}</span><h2>${title}</h2></div><b class="service-state-badge saved">${selected?'ZAPIS':'HISTORIA'}</b></div>${body}</div>`;
 }
 function serviceHistoryActionView(){
   const selected=serviceHistorySelectedRecord();
@@ -1757,7 +1760,7 @@ function bindServiceHistoryView(){
   $$('[data-service-history-id]').forEach(button=>button.onclick=()=>{
     state.serviceHistorySelectedId=button.dataset.serviceHistoryId;
     if(serviceHistoryIsLive()){
-      driverBridge?.backendServiceSurvey(Number(button.dataset.serviceHistoryId));
+      driverBridge?.backendServiceSurvey?.(Number(button.dataset.serviceHistoryId));
       return;
     }
     render();
@@ -2170,14 +2173,192 @@ function updateScreenList(){
   });
 }
 
+// === AA9: kreator załadunku na realnym API (tryb live) ===
+// Rekord operacji ma kształt fresh('load'), ale sztuki i plomby pochodzą z labels/targets,
+// a zdjęcia i CMR z potwierdzonych uploadów. Każdy zapis idzie przez mostek natywny
+// (SuperSpedytorNative.backendRequest/backendUpload), po zapisie ponowny odczyt celów.
+const demoAssignment=assignment;
+let liveOperation=null;
+let liveRequestSeq=0;
+const pendingRequests=new Map();
+const liveMode=()=>Boolean(liveOperation);
+const nativeCall=invoke=>new Promise((resolve,reject)=>{
+  const id=`req-${Date.now()}-${++liveRequestSeq}`;
+  pendingRequests.set(id,{resolve,reject});
+  try{invoke(id);}catch(error){pendingRequests.delete(id);reject(error);}
+});
+const nativeRequest=(method,path,body)=>nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,method,path,body?JSON.stringify(body):''));
+const nativeUpload=(path,token,fields)=>nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,path,token,JSON.stringify(fields||{})));
+const nativeCapturePhoto=()=>nativeCall(id=>window.SuperSpedytorNative.capturePhoto(id));
+const nativeScanDocument=()=>nativeCall(id=>window.SuperSpedytorNative.scanDocument(id));
+const nativeScanCode=()=>nativeCall(id=>window.SuperSpedytorNative.scanCode(id));
+const nativeReleaseFile=token=>{try{if(token)window.SuperSpedytorNative?.releaseFile(token);}catch{}};
+const liveTargetsPath=()=>liveOperationModel.targetsPath(liveOperation.mode,liveOperation.pointId);
+let liveScanManual=false;
+let liveBusy=false;
+function liveFailure(result,fallback){
+  const message=liveOperationModel.errorMessage(result,fallback);
+  toast(message);
+  return message;
+}
+async function enterLiveOperation(point){
+  if(!liveOperationModel||!window.SuperSpedytorNative||liveBusy)return;
+  const mode=liveOperationModel.wizardMode(point);
+  if(!mode){toast('Kreator otwiera się po rozpoczęciu załadunku lub rozładunku ze zleceniem.');return;}
+  liveBusy=true;
+  toast('Pobieram sztuki i plomby ze zlecenia…');
+  try{
+    const result=await nativeRequest('GET',liveOperationModel.targetsPath(mode,point.id));
+    if(!liveOperationModel.isSuccess(result)){liveFailure(result,mode==='unload'?'Nie udało się pobrać sztuk do rozładunku.':'Nie udało się pobrać celów oklejania.');return;}
+    const record=liveOperationModel.buildRecord(mode,point,result.body,null,backendState?.backend_origin);
+    liveOperation={pointId:String(point.id),point,mode,finishing:false};
+    state.operations[mode]=record;
+    assignment=liveOperationModel.buildAssignment(point,record);
+    state.scenario='basic';
+    state.routeStop=null;
+    state.serviceOpen=false;
+    state.operation=mode;
+    state.screen=record.step;
+    beginOperationTimer(record);
+    closeModal(false);
+    render();
+    $('#app-scroll').scrollTop=0;
+  }catch(error){toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');}
+  finally{liveBusy=false;}
+}
+async function refreshLiveTargets(){
+  if(!liveMode())return false;
+  const result=await nativeRequest('GET',liveTargetsPath());
+  if(!liveMode())return false;
+  if(!liveOperationModel.isSuccess(result)){liveFailure(result,'Nie udało się odświeżyć plomb.');return false;}
+  const mode=liveOperation.mode;
+  state.operations[mode]=liveOperationModel.buildRecord(mode,liveOperation.point,result.body,state.operations[mode],backendState?.backend_origin);
+  assignment=liveOperationModel.buildAssignment(liveOperation.point,state.operations[mode]);
+  render();
+  return true;
+}
+function exitLiveOperation(message){
+  if(!liveMode())return;
+  const mode=liveOperation.mode,record=state.operations[mode];
+  [...record.items.flatMap(item=>[item.photos.near,item.photos.far,item.photos.unload]),...record.documents]
+    .filter(Boolean).forEach(item=>nativeReleaseFile(item.token));
+  liveOperation=null;
+  assignment=demoAssignment;
+  state.operations[mode]=fresh(mode);
+  state.operation='load';
+  state.screen='info';
+  backendActiveNav='now';
+  closeModal(false);
+  render();
+  if(message)toast(message);
+}
+async function liveAssign(target,code){
+  const unload=current().mode==='unload';
+  const body=unload?liveOperationModel.scanBody(code,liveScanManual):liveOperationModel.assignBody(current(),target,code);
+  if(!body){$('#qr-error').textContent='Nie ma do czego przypiąć tej plomby. Odśwież ekran.';return;}
+  const button=$('#manual-scan');
+  if(button)button.disabled=true;
+  try{
+    const result=await nativeRequest('POST',unload?`routes/points/${encodeURIComponent(liveOperation.pointId)}/label-scan/`:'documents/labels/assign/',body);
+    if(!liveMode())return;
+    if(!liveOperationModel.isSuccess(result)){
+      const message=liveOperationModel.errorMessage(result,'Super Spedytor odrzucił tę plombę.');
+      if($('#qr-error'))$('#qr-error').textContent=message;else toast(message);
+      return;
+    }
+    let note='';
+    if(unload)note=liveOperationModel.applyScanResult(current(),target,result.body).message;
+    else liveOperationModel.applyAssignResult(current(),target,result.body);
+    closeModal(false);
+    render();
+    toast(note||(unload?(target.kind==='cmr'?'Plomba CMR zgodna ze zleceniem.':'Plomba sztuki potwierdzona w Super Spedytorze.'):(target.kind==='cmr'?'Plomba CMR przypięta w Super Spedytorze.':'Plomba przypięta do tej sztuki w Super Spedytorze.')));
+    await refreshLiveTargets();
+  }catch(error){
+    if($('#qr-error'))$('#qr-error').textContent='Warstwa natywna nie odpowiada. Spróbuj ponownie.';
+  }finally{if(button)button.disabled=false;}
+}
+async function liveAttach(target){
+  if(liveBusy)return;
+  const record=current(),cmr=target.kind==='cmr';
+  liveBusy=true;
+  let file=null;
+  try{
+    file=await (cmr?nativeScanDocument():nativeCapturePhoto());
+    if(!liveMode())return;
+    if(!file||file.status!=='ok'||!file.token){
+      if(file&&file.status==='error')toast(file.message||'Nie udało się zrobić zdjęcia.');
+      return;
+    }
+    closeModal(false);
+    toast(cmr?'Wysyłam skan CMR do zlecenia…':'Wysyłam zdjęcie do zlecenia…');
+    const fields=liveOperationModel.uploadFields(record.mode,target.kind);
+    if(cmr)fields.route_point_id=String(record.live.pointId);
+    const result=await nativeUpload(`documents/transport/${encodeURIComponent(record.live.offerId)}/upload_document/`,file.token,fields);
+    if(!liveMode()){nativeReleaseFile(file.token);return;}
+    if(!liveOperationModel.isSuccess(result)){nativeReleaseFile(file.token);liveFailure(result,'Super Spedytor nie przyjął pliku.');return;}
+    const evidence=liveOperationModel.evidenceRecord(file,target.kind,target.pieceIndex,result.body);
+    if(addEvidence(record.mode,evidence)){
+      record.live.fileTokens.push(file.token);
+      render();
+      toast(cmr?'Skan CMR zapisany w zleceniu.':'Zdjęcie zapisane w zleceniu.');
+    }
+    await refreshLiveTargets();
+  }catch(error){
+    if(file?.token)nativeReleaseFile(file.token);
+    toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');
+  }finally{liveBusy=false;}
+}
+function liveFinish(){
+  if(!liveMode()||liveOperation.finishing)return;
+  if(!liveOperationModel.sealsSatisfyGate(current())){toast(current().mode==='unload'?'Super Spedytor wymaga zeskanowania plomby każdej sztuki, która tu schodzi.':'Super Spedytor wymaga plomby na każdej sztuce i na CMR przed zakończeniem.');return;}
+  liveOperation.finishing=true;
+  closeModal(false);
+  toast(current().mode==='unload'?'Zamykam rozładunek w Super Spedytorze…':'Zamykam załadunek w Super Spedytorze…');
+  window.SuperSpedytorNative?.backendPointAction(liveOperation.pointId,'complete');
+}
+function liveWriteFeedback(write){
+  if(!liveMode()||!write||String(write.point_id||'')!==liveOperation.pointId)return;
+  if(write.status==='pending')return;
+  liveOperation.finishing=false;
+  if(write.status==='confirmed'&&write.action==='complete'){
+    finishOperationTimer();
+    const point=liveOperation.point;
+    exitLiveOperation(liveOperation.mode==='unload'?'Rozładunek zakończony i potwierdzony w Super Spedytorze.':'Załadunek zakończony i potwierdzony w Super Spedytorze.');
+    liveOrderStatus(point,'complete');
+    return;
+  }
+  if(write.message)toast(write.message);
+}
+async function liveOrderStatus(point,action){
+  // Status zlecenia jak w przeglądarce (usePointStatusUpdate): po starcie at_loading/at_unloading,
+  // po zakończeniu załadunku en_route_to_unloading. Błąd nie blokuje — punkt jest już zapisany.
+  const update=liveOperationModel?.orderStatusAfterWrite(point,action);
+  if(!update||!window.SuperSpedytorNative?.backendRequest)return;
+  try{
+    const result=await nativeRequest('POST',update.path,{status:update.status});
+    if(!liveOperationModel.isSuccess(result))toast(`Status zlecenia nie zapisał się: ${liveOperationModel.errorMessage(result,'')}`);
+  }catch{}
+}
+function liveLoadingPhotosGallery(){
+  const record=current();
+  const photos=liveMode()&&record.mode==='unload'?record.live.loadingPhotos:[];
+  if(!photos.length)return liveMode()&&record.mode==='unload'?`<div class="shared-hint">${icon('info')} Brak zdjęć z załadunku w Super Spedytorze dla tego zlecenia.</div>`:'';
+  return `<div class="loading-photo-reference live-loading-gallery"><div class="loading-photo-reference-title">${icon('camera')}<span><strong>Zdjęcia z załadunku</strong><small>${photos.length} ${photos.length===1?'zdjęcie':photos.length<5?'zdjęcia':'zdjęć'} ze zlecenia · do porównania</small></span></div><div class="loading-photo-reference-grid">${photos.map((url,index)=>`<figure><img src="${esc(url)}" alt="Zdjęcie z załadunku ${index+1}" loading="lazy"><figcaption>Załadunek · ${index+1}</figcaption></figure>`).join('')}</div></div>`;
+}
+function liveCmrSealRows(){
+  const record=current();
+  if(!liveMode()||record.cmrItems.length<2)return '';
+  return `<section class="panel live-cmr-list"><div class="section-kicker">PLOMBA NA KAŻDEJ CMR-ce · ${record.cmrItems.length} odbiorców</div>${record.cmrItems.map((cmr,index)=>`<div class="seal-code-row live-cmr-row"><span><strong>${esc(cmr.label||`CMR ${index+1}`)}</strong><small>${cmr.seal?esc(cmr.seal):'Kod plomby nieodczytany'}</small></span><button class="scan-button ${cmr.seal?'scanned':''}" data-cmr-scan="${index}" ${record.cmrLabel?'':'disabled'}>${icon(cmr.seal?'check':'qr')}${cmr.seal?'Zmień':'Skanuj QR'}</button></div>`).join('')}</section>`;
+}
+
 function render(){
   updateDriverWorkspaceBar();
   $('.device')?.classList.toggle('service-survey-focus',state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted&&(!serviceCompletedToday()||state.serviceSurvey.reopened));
   $('.device')?.classList.toggle('document-verification-mode',state.routeStop==='collection'&&Boolean(collectionGroup()?.pendingDocument));
   if(backendTestWorkspace&&backendActiveNav==='tacho'){window.SuperSpedytorTacho?.open?.();return;}
   const scroll=$('#app-scroll').scrollTop;
-  const backendOperationActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='now';
-  const backendServiceActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='service';
+  const backendOperationActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='now'&&!liveMode();
+  const backendServiceActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='service'&&!liveMode();
   $('.device')?.classList.toggle('backend-operation-mode',backendOperationActive);
   if(backendOperationActive){
     renderBackendOperationScreen(0);
@@ -2585,14 +2766,17 @@ function bindView(){
   };
   if($('#scan-cmr-return'))$('#scan-cmr-return').onclick=()=>openModal('scan',{kind:'cmr-return'});
   if($('#cmr-retained'))$('#cmr-retained').onchange=event=>{current().cmrRetained=event.target.checked;$('#app-action').innerHTML=actionView();bindView();};
-  if($('#scan-cmr-seal'))$('#scan-cmr-seal').onclick=()=>openModal('scan',{kind:'cmr'});
+  if($('#scan-cmr-seal'))$('#scan-cmr-seal').onclick=()=>openModal('scan',{kind:'cmr',cmrIndex:0});
+  $$('[data-cmr-scan]').forEach(button=>button.onclick=()=>openModal('scan',{kind:'cmr',cmrIndex:Number(button.dataset.cmrScan)}));
+  if($('#live-exit'))$('#live-exit').onclick=()=>exitLiveOperation();
+  if($('#live-cmr-missing'))$('#live-cmr-missing').onclick=()=>{if(current().cmrSealSkipped)return;current().cmrSealSkipped=true;render();toast('Krok plomby CMR pominięty. Super Spedytor nie wymaga go do zakończenia rozładunku.');};
   if($('#add-document'))$('#add-document').onclick=()=>openModal('attachment',{kind:'cmr',source:'step'});
   if($('#documents-confirm'))$('#documents-confirm').onchange=event=>{current().documentsComplete=event.target.checked;render();};
   $$('[data-remove-document]').forEach(button=>button.onclick=()=>{const record=current().documents.splice(Number(button.dataset.removeDocument),1)[0];revoke(record);current().documentsComplete=false;render();});
   $$('[data-supplied-photo]').forEach(button=>button.onclick=()=>openModal('supplied',Number(button.dataset.suppliedPhoto)));
   $$('[data-open-chat]').forEach(button=>button.onclick=()=>go('chat'));
   $$('[data-back]').forEach(button=>button.onclick=()=>go(button.dataset.back));
-  if($('#stage-back'))$('#stage-back').onclick=()=>{if(!isLoad()&&state.screen==='seals'){go('travel');return;}const flow=operationFlow();go(flow[Math.max(0,flow.indexOf(state.screen)-1)]);};
+  if($('#stage-back'))$('#stage-back').onclick=()=>{if(!isLoad()&&state.screen==='seals'){if(liveMode())exitLiveOperation();else go('travel');return;}const flow=operationFlow();go(flow[Math.max(0,flow.indexOf(state.screen)-1)]);};
   if($('#review-back'))$('#review-back').onclick=()=>go('documents');
   if($('#chat-back'))$('#chat-back').onclick=()=>go(state.returnScreen);
   bindChatComposer(current());
@@ -2690,8 +2874,10 @@ function openModal(type,target){
   if(type==='attachment'){
     const piece=target.kind==='cmr'?null:current().items[target.pieceIndex];
     title=target.kind==='cmr'?'Dodaj skan CMR':target.kind==='photo-near'?`Sztuka ${target.pieceIndex+1} · z bliska`:target.kind==='photo-far'?`Sztuka ${target.pieceIndex+1} · z daleka`:`Sztuka ${target.pieceIndex+1} · zdjęcie z rozładunku`;
-    body=`<p>${esc(attachmentDescription(target.kind,piece))}</p>${target.kind==='cmr'?demoDocument():`<img class="photo-preview" src="${demoPhoto(target.kind==='photo-near'?0:1)}" alt="Przykładowe ujęcie ładunku — ilustracja">`}<button class="primary-button" id="choose-file">${icon('camera')}${target.kind==='cmr'?'Aparat, zdjęcia lub PDF':'Aparat lub zdjęcie z urządzenia'}</button><button class="secondary-button" id="use-demo">${target.kind==='cmr'?'Dodaj przykładową stronę':'Wypróbuj na zdjęciu przykładowym'}</button><p class="small-note">${target.source==='chat'?'Załącznik z czatu uzupełni również ekran operacji. ':''}Do 100 MB na plik. W teście widoków materiały pozostają na telefonie.</p>`;
-    if(target.kind==='cmr')body=`<div class="scanner-color-tip">${icon('doc')}<p><strong>CMR wymaga pełnego skanu.</strong> Zeskanuj wszystkie strony, zachowaj kolor i sprawdź tekst, podpisy oraz pieczątki w powiększeniu.</p></div><button class="primary-button scanner-modal-primary" id="open-cmr-scanner">${icon('camera')}Skanuj CMR i sprawdź jakość</button><button class="secondary-button" id="use-demo">Dodaj przykładową stronę · test</button><p class="small-note">Skaner dokumentu poprawia kadr. Czytnik QR służy osobno do odczytu numeru plomby. Do 20 stron i 100 MB na zestaw. W teście widoków materiały pozostają na telefonie.</p>`;
+    body=liveMode()
+      ?`<p>${esc(attachmentDescription(target.kind,piece))}</p><button class="primary-button" id="choose-file">${icon('camera')}${target.kind==='cmr'?'Skanuj CMR aparatem (PDF)':'Zrób zdjęcie aparatem'}</button><p class="small-note">${target.kind==='cmr'?'Skaner wyprostuje strony i złoży je w jeden PDF. ':''}Plik trafi od razu do zlecenia w Super Spedytorze.</p>`
+      :`<p>${esc(attachmentDescription(target.kind,piece))}</p>${target.kind==='cmr'?demoDocument():`<img class="photo-preview" src="${demoPhoto(target.kind==='photo-near'?0:1)}" alt="Przykładowe ujęcie ładunku — ilustracja">`}<button class="primary-button" id="choose-file">${icon('camera')}${target.kind==='cmr'?'Aparat, zdjęcia lub PDF':'Aparat lub zdjęcie z urządzenia'}</button><button class="secondary-button" id="use-demo">${target.kind==='cmr'?'Dodaj przykładową stronę':'Wypróbuj na zdjęciu przykładowym'}</button><p class="small-note">${target.source==='chat'?'Załącznik z czatu uzupełni również ekran operacji. ':''}Do 100 MB na plik. W teście widoków materiały pozostają na telefonie.</p>`;
+    if(!liveMode()&&target.kind==='cmr')body=`<div class="scanner-color-tip">${icon('doc')}<p><strong>CMR wymaga pełnego skanu.</strong> Zeskanuj wszystkie strony, zachowaj kolor i sprawdź tekst, podpisy oraz pieczątki w powiększeniu.</p></div><button class="primary-button scanner-modal-primary" id="open-cmr-scanner">${icon('camera')}Skanuj CMR i sprawdź jakość</button><button class="secondary-button" id="use-demo">Dodaj przykładową stronę · test</button><p class="small-note">Skaner dokumentu poprawia kadr. Czytnik QR służy osobno do odczytu numeru plomby. Do 20 stron i 100 MB na zestaw. W teście widoków materiały pozostają na telefonie.</p>`;
   }
   if(type==='chat-attach'){
     title='Załącz dokumenty';
@@ -2758,10 +2944,11 @@ function openModal(type,target){
     const collectionEnvelope=target.kind==='collection-envelope',cmr=['cmr','cmr-return'].includes(target.kind),piece=collectionEnvelope||cmr?null:current().items[target.index];
     const expected=collectionEnvelope?null:target.kind==='cmr-return'?current().cmrSeal:cmr?current().expectedCmrSeal:piece.expectedSeal;
     title=collectionEnvelope?'Plomba koperty':cmr?'Plomba CMR':`Plomba · sztuka ${target.index+1}`;
-    const scanInstruction=target.kind==='cmr-return'?`Po rozładunku weź z powrotem CMR z plombą ${esc(current().cmrSeal)}. Dokument z tą plombą zostaje u Ciebie. Zeskanuj ponownie jego QR, zanim odjedziesz.`:collectionEnvelope?`Weź dowolną nieużytą plombę, naklej ją na zamknięcie koperty kierowcy ${esc(collectionSource(collectionGroup().sourceId).name)}, a następnie zeskanuj jej QR. Odczytany numer zostanie teraz przypisany do tej koperty.`:isLoad()?(cmr?'Zeskanuj kod QR z etykiety naklejonej na pustym tyle ostatniej strony CMR.':`Skieruj aparat na etykietę fizycznie przyklejoną do opakowania sztuki „${esc(piece.name)}”.`):(cmr?`Zeskanuj plombę znajdującą się na tyle dokumentu CMR. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`:`Zeskanuj istniejącą plombę sztuki „${esc(piece.name)}”. Oczekiwany numer z załadunku: ${esc(expected||'nie zapisano')}.`);
-    const placeholder=collectionEnvelope?'np. PL-ENV-000123':expected||(cmr?'DEMO-PL-CMR':`DEMO-PL-${String(target.index+1).padStart(2,'0')}`);
-    const scanVisual=collectionEnvelope?`<div class="scan-camera collection-envelope-camera"><div class="collection-envelope-visual" role="img" aria-label="Koperta z plombą QR w wizjerze skanera"><span>${icon('envelope')}</span><i>${icon('qr')}</i></div><span class="scan-guide"></span><span class="demo-watermark">Ustaw QR plomby koperty w ramce</span></div>`:`<div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">Podgląd skanera — odczyt symulowany</span></div>`;
-    body=`<p>${scanInstruction}</p>${scanVisual}${collectionEnvelope?`<div class="collection-scan-owner"><strong>${esc(collectionSource(collectionGroup().sourceId).name)}</strong><span>${collectionGroup().documents.length} CMR · plomba jeszcze nieprzypisana</span></div>`:''}<button class="primary-button" id="simulate-scan">${icon('qr')}${collectionEnvelope?'Symuluj odczyt QR plomby':'Symuluj odczyt QR'}</button><label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(placeholder)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
+    const scanInstruction=target.kind==='cmr-return'?`Po rozładunku weź z powrotem CMR z plombą ${esc(current().cmrSeal)}. Dokument z tą plombą zostaje u Ciebie. Zeskanuj ponownie jego QR, zanim odjedziesz.`:collectionEnvelope?`Weź dowolną nieużytą plombę, naklej ją na zamknięcie koperty kierowcy ${esc(collectionSource(collectionGroup().sourceId).name)}, a następnie zeskanuj jej QR. Odczytany numer zostanie teraz przypisany do tej koperty.`:isLoad()?(cmr?'Zeskanuj kod QR z etykiety naklejonej na pustym tyle ostatniej strony CMR.':`Skieruj aparat na etykietę fizycznie przyklejoną do opakowania sztuki „${esc(piece.name)}”.`):(cmr?`Zeskanuj plombę znajdującą się na tyle dokumentu CMR. ${expected?`Oczekiwany numer z załadunku: ${esc(expected)}.`:liveMode()?'Super Spedytor sprawdzi zgodność po skanie.':'Oczekiwany numer z załadunku: nie zapisano.'}`:`Zeskanuj istniejącą plombę sztuki „${esc(piece.name)}”. ${expected?`Oczekiwany numer z załadunku: ${esc(expected)}.`:liveMode()?'Super Spedytor sprawdzi zgodność po skanie.':'Oczekiwany numer z załadunku: nie zapisano.'}`);
+    const placeholder=liveMode()?'np. AMG-0003963':collectionEnvelope?'np. PL-ENV-000123':expected||(cmr?'DEMO-PL-CMR':`DEMO-PL-${String(target.index+1).padStart(2,'0')}`);
+    const scanVisual=collectionEnvelope?`<div class="scan-camera collection-envelope-camera"><div class="collection-envelope-visual" role="img" aria-label="Koperta z plombą QR w wizjerze skanera"><span>${icon('envelope')}</span><i>${icon('qr')}</i></div><span class="scan-guide"></span><span class="demo-watermark">Ustaw QR plomby koperty w ramce</span></div>`:`<div class="scan-camera"><span class="scan-guide">${icon('qr')}</span><span class="demo-watermark">${liveMode()?'Skaner otworzy się w osobnym oknie':'Podgląd skanera — odczyt symulowany'}</span></div>`;
+    const scanAction=liveMode()&&!collectionEnvelope?`<button class="primary-button" id="live-scan-code">${icon('qr')}Skanuj QR aparatem</button>`:`<button class="primary-button" id="simulate-scan">${icon('qr')}${collectionEnvelope?'Symuluj odczyt QR plomby':'Symuluj odczyt QR'}</button>`;
+    body=`<p>${scanInstruction}</p>${scanVisual}${collectionEnvelope?`<div class="collection-scan-owner"><strong>${esc(collectionSource(collectionGroup().sourceId).name)}</strong><span>${collectionGroup().documents.length} CMR · plomba jeszcze nieprzypisana</span></div>`:''}${scanAction}<label for="qr-code" class="field-label">Lub wpisz kod z etykiety</label><input id="qr-code" class="text-input" autocomplete="off" maxlength="64" placeholder="${esc(placeholder)}"><p id="qr-error" class="field-error" role="alert"></p><button class="secondary-button" id="manual-scan">Zatwierdź kod</button>`;
   }
   if(type==='supplied'){
     const photo=optional().photos[target];
@@ -2857,7 +3044,18 @@ function openModal(type,target){
   if($('#fuel-break-check'))$('#fuel-break-check').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'CHECK_TACHOGRAPH');
   $$('[data-attachment-kind]').forEach(button=>button.onclick=()=>openModal('attachment',{kind:button.dataset.attachmentKind,pieceIndex:button.dataset.attachmentPiece!==undefined?Number(button.dataset.attachmentPiece):undefined,source:'chat'}));
   if($('#save-piece'))$('#save-piece').onclick=()=>savePiece(target.index);
+  if($('#live-scan-code'))$('#live-scan-code').onclick=async()=>{
+    const button=$('#live-scan-code');button.disabled=true;
+    try{
+      const scan=await nativeScanCode();
+      if(!$('#qr-code'))return;
+      if(scan?.status==='ok'&&scan.code){$('#qr-code').value=scan.code;liveScanManual=false;saveQR(target,scan.code);}
+      else if(scan?.status==='error')$('#qr-error').textContent=scan.message||'Skaner nie odczytał kodu.';
+    }catch{if($('#qr-error'))$('#qr-error').textContent='Skaner jest niedostępny. Wpisz numer plomby ręcznie.';}
+    finally{if(button.isConnected)button.disabled=false;}
+  };
   if($('#choose-file'))$('#choose-file').onclick=()=>{
+    if(liveMode()){liveAttach(target);return;}
     uploadTarget=target.routeStop?{...target}:{operation:state.operation,...target};
     const input=$('#file-input');
     input.value='';
@@ -2935,8 +3133,8 @@ function openModal(type,target){
     const expected=collectionEnvelope?null:target.kind==='cmr-return'?current().cmrSeal:target.kind==='cmr'?current().expectedCmrSeal:current().items[target.index]?.expectedSeal;
     saveQR(target,(collectionEnvelope||!isLoad())&&expected||fallback);
   };
-  if($('#manual-scan'))$('#manual-scan').onclick=()=>saveQR(target,$('#qr-code').value);
-  if($('#qr-code'))$('#qr-code').onkeydown=event=>{if(event.key==='Enter')saveQR(target,event.target.value);};
+  if($('#manual-scan'))$('#manual-scan').onclick=()=>{liveScanManual=true;saveQR(target,$('#qr-code').value);};
+  if($('#qr-code'))$('#qr-code').onkeydown=event=>{if(event.key==='Enter'){liveScanManual=true;saveQR(target,event.target.value);}};
   if($('#cwp-chat'))$('#cwp-chat').onclick=()=>go('chat');
   if($('#help-chat'))$('#help-chat').onclick=()=>go('chat');
   if($('#help-stop-chat'))$('#help-stop-chat').onclick=()=>goStop('chat');
@@ -2949,7 +3147,7 @@ function openModal(type,target){
     if(readServiceDailyRecord()?.draft)writeServiceDailyRecord({snoozeUntil:new Date(Date.now()+15*60*1000).toISOString()});
     closeModal();updateServiceNavIndicator();scheduleServiceReminder();
   };
-  if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!finishReady())return;finishOperationTimer();current().finished=true;go('success');};
+  if($('#confirm-finish'))$('#confirm-finish').onclick=()=>{if(!finishReady())return;if(liveMode()){liveFinish();return;}finishOperationTimer();current().finished=true;go('success');};
   if($('#confirm-reset'))$('#confirm-reset').onclick=()=>reset();
   $('.modal-sheet').focus();
 }
@@ -3109,8 +3307,9 @@ function saveQR(target,raw){
   if(used.some((value,index)=>index!==ownIndex&&value===code)){$('#qr-error').textContent='Ten kod przypisano już do innej sztuki lub dokumentu. Każda plomba musi mieć unikalny QR.';return;}
   if(!isLoad()){
     const expected=target.kind==='cmr-return'?current().cmrSeal:target.kind==='cmr'?current().expectedCmrSeal:current().items[target.index]?.expectedSeal;
-    if(expected&&code!==expected){$('#qr-error').textContent=`Kod nie pasuje do tej pozycji. W przykładzie oczekujemy: ${expected}.`;return;}
+    if(expected&&code!==expected){$('#qr-error').textContent=`Kod nie pasuje do tej pozycji. Plomba z załadunku: ${expected}.`;return;}
   }
+  if(liveMode()){liveAssign(target,code);return;}
   if(target.kind==='cmr'){current().cmrSeal=code;current().cmrReturnCode=null;current().cmrRetained=false;}else current().items[target.index].seal=code;
   closeModal(false);
   render();
@@ -3155,16 +3354,28 @@ function reset(){
 
 async function readImage(url){return new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(true);image.onerror=()=>resolve(false);image.src=url;});}
 
+function localUploadOwner(target){
+  if(target.handover)return inspectionProtocol(target.inspectionMode);
+  if(target.service)return state.serviceSurvey;
+  if(target.routeStop==='transshipment')return transshipment();
+  if(target.routeStop)return state.routeStops[target.routeStop];
+  return state.operations[target.operation];
+}
+
 $('#file-input').onchange=async event=>{
   const files=[...event.target.files];
   if(!files.length||!uploadTarget||uploadBusy)return;
+  if(liveMode()){toast('W aktywnej operacji użyj aparatu lub skanera aplikacji.');return;}
   uploadBusy=true;
   const target={...uploadTarget};
+  const owner=localUploadOwner(target),workspace=backendTestWorkspace,liveRecord=liveOperation;
+  const uploadIsCurrent=()=>backendTestWorkspace===workspace&&liveOperation===liveRecord&&localUploadOwner(target)===owner;
   let added=0;
   if(target.routeStop==='transshipment'){
     try{const file=files[0];if(!file.type.startsWith('image/')){toast('Wybierz zdjęcie JPG, PNG lub WebP.');return;}
       if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
       const url=URL.createObjectURL(file);if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać formatu zdjęcia. Wybierz JPG, PNG lub WebP.');return;}
+      if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       saveTransferredPhoto(target,{url,blob:file,mime:file.type,name:file.name,demo:false,source:'transshipment'});
     }catch{toast('Nie udało się dodać zdjęcia. Spróbuj ponownie.');}finally{uploadBusy=false;}return;
   }
@@ -3175,6 +3386,7 @@ $('#file-input').onchange=async event=>{
       if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
       const url=URL.createObjectURL(file);
       if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       const protocol=inspectionProtocol(target.inspectionMode);
       if(target.photoKind==='vehicle'){
         const previous=protocol.vehiclePhotos[target.key];
@@ -3202,6 +3414,7 @@ $('#file-input').onchange=async event=>{
       if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
       const url=URL.createObjectURL(file);
       if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       const previous=state.serviceSurvey.photos[target.key];
       revoke(previous);
       state.serviceSurvey.photos[target.key]={hash:`service-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'service-photo',source:'service-survey'};
@@ -3220,6 +3433,7 @@ $('#file-input').onchange=async event=>{
       if(file.size>attachmentLimitBytes){toast('Wybierz zdjęcie do 100 MB.');return;}
       const url=URL.createObjectURL(file);
       if(!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia.');return;}
+      if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       const previous=state.routeStops.fueling.photos[target.key];
       revoke(previous);
       state.routeStops.fueling.photos[target.key]={hash:`fuel-${target.key}-${Date.now()}`,url,name:file.name,mime:file.type,demo:false,kind:'fuel-photo',source:'fuel-operation'};
@@ -3236,13 +3450,17 @@ $('#file-input').onchange=async event=>{
       if((target.kind!=='cmr'&&pdf)||(!pdf&&!file.type.startsWith('image/'))){toast('Wybierz zdjęcie, a dla CMR także plik PDF.');continue;}
       if(file.size>attachmentLimitBytes){toast('Wybierz plik do 100 MB.');continue;}
       const bytes=await file.arrayBuffer();
+      if(!uploadIsCurrent())return;
       if(pdf&&new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-'){toast('Plik PDF jest nieprawidłowy. Wybierz skan dokumentu.');continue;}
       const digest=await crypto.subtle.digest('SHA-256',bytes),hash=[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+      if(!uploadIsCurrent())return;
       const url=URL.createObjectURL(file);
       if(!pdf&&!await readImage(url)){URL.revokeObjectURL(url);toast('Nie udało się odczytać zdjęcia. Wybierz JPG, PNG lub WebP.');continue;}
+      if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       const record={hash,url,name:file.name,mime:pdf?'application/pdf':file.type,demo:false,kind:target.kind,pieceIndex:target.pieceIndex,source:target.source};
       if(addEvidence(target.operation,record))added++;
     }
+    if(!uploadIsCurrent())return;
     closeModal(false);
     render();
     if(added&&target.kind==='cmr')focusNextAction('.document-page:last-of-type','center');
@@ -3264,6 +3482,7 @@ $$('[data-nav]').forEach(button=>button.onclick=event=>{
     event?.stopImmediatePropagation();
     if(button.dataset.nav==='chat'){showDesignedView('chat');return;}
     if(button.dataset.nav==='help'){openModal('live-help',{});return;}
+    if(button.dataset.nav==='service'&&typeof driverBridge?.backendServiceSurvey!=='function'){showDesignedView('history');return;}
     backendActiveNav=button.dataset.nav==='service'?'service':'now';
     if(backendActiveNav!=='service')state.serviceHistorySelectedId=null;
     state.serviceOpen=false;
@@ -3294,7 +3513,7 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape'){closeModal();return;}
   if(event.key==='Tab'){
     const items=$$('button:not([disabled]),a[href],input:not([disabled]),textarea:not([disabled]),select,[tabindex="0"]',$('.modal-sheet'));
-    const first=items[0],last=items.at(-1),sheet=$('.modal-sheet');
+    const first=items[0],last=items[items.length-1],sheet=$('.modal-sheet');
     if(event.shiftKey&&(document.activeElement===first||document.activeElement===sheet)){event.preventDefault();last?.focus();}
     else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===sheet)){event.preventDefault();first?.focus();}
   }
@@ -3302,9 +3521,13 @@ document.addEventListener('keydown',event=>{
 
 let backendTestWorkspace=false;
 let testingWorkspaceInitialized=false;
-let backendRememberMe=true;
+let backendRememberMe=browserBackend;
 let backendState={status:'disconnected',message:'Zaloguj się kontem kierowcy Super Spedytora'};
+// The native preflight runs before it publishes write.pending. Keep the UI
+// isolated from test data throughout that asynchronous gap as well.
+let backendPointActionPending=null;
 let backendActiveNav='now';
+let backendLastNearest=null;
 const designedDriverViews=[
   {id:'scanner',title:'Skaner CMR',icon:'camera',description:'Obrys kartki na żywo, automatyczny skan i kolor'},
   {id:'load',title:'Załadunek',icon:'box',description:'Mapa, sztuki, plomby, zdjęcia i skan CMR'},
@@ -3328,20 +3551,24 @@ function updateDriverWorkspaceBar(){
   if(!bar)return;
   bar.hidden=!backendMode||backendState?.status!=='connected';
   if(bar.hidden)return;
+  const devConnection=backendState?.read_only===true&&backendState?.backend_environment==='dev';
   updateServiceNavIndicator();
   bar.classList.toggle('testing',backendTestWorkspace);
   bar.innerHTML=backendTestWorkspace
-    ?`<div><strong>Test widoków · dane przykładowe</strong><small>${browserBackend?'Zmiany zostają na tym urządzeniu':'Zmiany zostają na telefonie'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">Wróć do SS</button>`
-    :`<div><strong>Dane Super Spedytora</strong><small>Twoja trasa i historia ankiet${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Testuj widoki</button>`;
+    ?`<div><strong>Test widoków · dane przykładowe</strong><small>${browserBackend?'Zmiany zostają na tym urządzeniu':'Zmiany zostają na telefonie'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">${devConnection?'Wróć do danych DEV':'Wróć do SS'}</button>`
+    :`<div><strong>${devConnection?'DEV · tylko odczyt':'Dane Super Spedytora'}</strong><small>${devConnection?'Profil, pojazd, trasa i historia ankiet':'Twoja trasa i historia ankiet'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Testuj widoki</button>`;
   $('#workspace-choose').onclick=()=>openModal('designed-views',{});
   if($('#workspace-live'))$('#workspace-live').onclick=leaveTestingWorkspace;
   const chip=$('.driver-chip');
-  if(chip)chip.textContent=backendTestWorkspace?'TEST WIDOKÓW':'SUPER SPEDYTOR';
+  if(chip)chip.textContent=backendTestWorkspace?'TEST WIDOKÓW':devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR';
 }
 function enterTestingWorkspace(viewId,renderView=true){
-  if(!backendMode||backendState?.status!=='connected')return;
+  if(!backendMode||backendState?.status!=='connected')return false;
+  if(liveBusy||liveOperation?.finishing||backendPointActionPending||backendState?.write?.status==='pending'||pendingRequests.size>0){toast('Poczekaj na zakończenie bieżącej operacji.');return false;}
+  if(liveMode())exitLiveOperation();
   backendTestWorkspace=true;
-  driverBridge?.backendTestingMode(true);
+  document.documentElement.classList.add('backend-testing');
+  driverBridge?.backendTestingMode?.(true);
   $('.device')?.classList.remove('backend-operation-mode');
   state.manualLanguage=true;
   state.language='pl';
@@ -3356,13 +3583,15 @@ function enterTestingWorkspace(viewId,renderView=true){
     window.addEventListener('beforeunload',()=>clearInterval(ticker),{once:true});
   }
   if(renderView)render();
+  return true;
 }
 function leaveTestingWorkspace(){
   window.SuperSpedytorTacho?.close?.();
   closeModal(false);
   cancelArrivalCountdown(false);
   backendTestWorkspace=false;
-  driverBridge?.backendTestingMode(false);
+  document.documentElement.classList.remove('backend-testing');
+  driverBridge?.backendTestingMode?.(false);
   backendActiveNav='now';
   state.serviceOpen=false;
   state.routeStop=null;
@@ -3372,7 +3601,7 @@ function showDesignedView(viewId){
   if(!designedDriverViews.some(view=>view.id===viewId))return;
   backendActiveNav=viewId==='tacho'?'tacho':'now';
   window.SuperSpedytorTacho?.close?.();
-  enterTestingWorkspace(viewId,false);
+  if(backendMode&&!enterTestingWorkspace(viewId,false))return;
   if(viewId==='scanner'){
     state.routeStop=null;
     state.serviceOpen=false;
@@ -3566,17 +3795,62 @@ const backendPointCard=(point,label,options={})=>{
   const write=backendState?.write||{};
   const writeForPoint=pointId&&String(write.point_id||'')===pointId;
   const writePending=writeForPoint&&write.status==='pending';
-  const capabilities=Array.isArray(backendState?.write_capabilities)?backendState.write_capabilities:[];
+  const capabilities=backendState?.read_only===true?[]:Array.isArray(backendState?.write_capabilities)?backendState.write_capabilities:[];
   const action=statusCode==='pending'?'start':statusCode==='in_progress'?'complete':'';
-  const actionAllowed=Boolean(options.nearest&&pointId&&action&&capabilities.includes(action));
+  const wizardMode=backendState?.read_only!==true&&options.nearest&&window.SuperSpedytorNative?.backendRequest?liveOperationModel?.wizardMode(point):null;
+  const wizard=Boolean(wizardMode);
+  const actionAllowed=Boolean(options.nearest&&pointId&&action&&capabilities.includes(action))&&!wizard;
   const actionLabel=action==='start'?'Dotarłem · rozpocznij operację':'Zakończ operację';
   const actionIcon=action==='start'?'pin':'check';
-  const actionButton=actionAllowed?`<button type="button" class="backend-point-action ${action}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:'';
+  const wizardButton=wizard?`<button type="button" class="backend-point-action wizard" data-backend-open-wizard="${esc(pointId)}" ${writePending?'disabled':''}>${icon('box')} ${writePending?'Zapisywanie w Super Spedytorze…':`Kreator ${wizardMode==='unload'?'rozładunku':'załadunku'} · plomby, zdjęcia, CMR`}</button>`:'';
+  const actionButton=actionAllowed?`<button type="button" class="backend-point-action ${action}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:wizardButton;
   const writeFeedback=writeForPoint&&['error','uncertain'].includes(write.status)?`<div class="backend-write-feedback ${esc(write.status)}" role="alert">${icon('warning')}<span>${esc(write.message||'Nie udało się potwierdzić zapisu.')}</span></div>`:'';
   const mapActions=canShowMap||canNavigate?`<div class="backend-map-actions${canNavigate?'':' pin-only'}">${canShowMap?`<a class="backend-show-map" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')} Pinezka</a>`:''}${canNavigate?`<a class="backend-navigate" href="${navigationUrl(place)}" target="_blank" rel="noopener">${icon('nav')} Nawiguj</a>`:''}</div>`:'';
   if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${actionButton}${writeFeedback}</section>`;
   return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${actionButton}${writeFeedback}</section>`;
 };
+let cmrInventoryTasks=[];
+let cmrInventoryScreen=null;
+let cmrInventoryRefreshAt=0;
+let cmrInventoryLoading=false;
+async function inventoryRequest(method,path,body){
+  const result=await nativeRequest(method,path,body);
+  if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Nie udało się odczytać inwentaryzacji.'));
+  return result.body;
+}
+async function refreshInventoryTasks(force=false){
+  if(!window.SuperSpedytorNative?.backendRequest||!backendMode||backendState?.status!=='connected'||cmrInventoryLoading||(!force&&Date.now()-cmrInventoryRefreshAt<30000))return;
+  cmrInventoryLoading=true;cmrInventoryRefreshAt=Date.now();
+  try{
+    const result=await nativeRequest('GET','documents/cmr-inventory/');
+    if(result?.status===404){cmrInventoryTasks=[];return;}
+    if(liveOperationModel.isSuccess(result)){
+      cmrInventoryTasks=Array.isArray(result.body?.results)?result.body.results:[];
+      const holder=document.getElementById('cmri-tasks');if(holder){holder.innerHTML=inventoryTaskCards();bindInventoryCards();}
+    }
+  }catch(_){/* Preserve last confirmed tasks when the network is unavailable. */}
+  finally{cmrInventoryLoading=false;}
+}
+function inventoryTaskCards(){
+  return cmrInventoryTasks.map(task=>`<button class="cmri-task" data-cmr-inventory-open="${Number(task.id)}"><strong>${task.overdue?'⚠ Zaległe zadanie':'Zinwentaryzuj zamknięte CMR-y'}</strong><span>${esc(task.driver_name)} · ${task.packed} z ${task.expected} koszulek w kopercie${task.issues?' · wymaga CWP: '+task.issues:''}</span></button>`).join('');
+}
+function bindInventoryCards(){
+  document.querySelectorAll('[data-cmr-inventory-open]').forEach(button=>button.onclick=()=>openInventory(Number(button.dataset.cmrInventoryOpen)));
+}
+function openInventory(id){
+  if(!window.SuperSpedytorNative?.backendRequest)return;
+  if(cmrInventoryScreen)cmrInventoryScreen.close();
+  if(!window.SuperSpedytorCmrInventory)return;
+  cmrInventoryScreen=new window.SuperSpedytorCmrInventory.Screen({
+    id,host:document.querySelector('.device'),request:inventoryRequest,
+    upload:async(path,token,fields)=>{const result=await nativeUpload(path,token,fields);if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Zdjęcie nie zostało potwierdzone.'));return result.body;},
+    capture:async()=>{const result=await nativeCapturePhoto();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zrobić zdjęcia.');return result;},
+    scan:async()=>{const result=await nativeScanCode();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zeskanować plomby.');return result.code;},
+    release:nativeReleaseFile,onClose:()=>{cmrInventoryScreen=null;refreshInventoryTasks(true);}
+  });
+  cmrInventoryScreen.start();
+}
+window.SuperSpedytorOpenInventory=id=>{if(backendState?.status==='connected')openInventory(Number(id));};
 function backendOperationView(){
   const profile=backendState.profile||{};
   const vehicle=backendState.vehicle||profile.driver_profile?.current_vehicle||null;
@@ -3584,6 +3858,7 @@ function backendOperationView(){
   const activeRoutes=Array.isArray(routeStatus.active_routes)?routeStatus.active_routes:[];
   const operationsDates=routeStatus.operations_dates||{};
   const operationPlan=backendDriverOperationPlan(activeRoutes);
+  backendLastNearest=operationPlan.nearest||null;
   const route=operationPlan.nearest?.__route||activeRoutes[0]||null;
   const driverName=routeStatus.driver_name||`${profile.first_name||''} ${profile.last_name||''}`.trim()||profile.username||'Kierowca';
   const progress=route?Number(route.progress_percentage||0):0;
@@ -3605,17 +3880,23 @@ function backendOperationView(){
       ?'Część aktywnych tras nie zwróciła pola operations. Widok uzupełnia ich plan danymi current_point i next_point.'
       :'Backend nie zwrócił jeszcze pola operations. Widok awaryjnie korzysta z bieżącego i następnego punktu.';
   const historySection=operationPlan.history.length?`<details class="backend-history-details"><summary><span>Zakończone i pominięte</span><b>${operationPlan.history.length}</b></summary><div>${historyCards}</div></details>`:'';
-  return `<div class="app-content backend-operation-screen"><div class="backend-session-card"><div class="backend-session-top"><div class="backend-session-identity"><small class="backend-readonly">${icon('signal')} POŁĄCZONO · ZAPIS SS</small><strong>${esc(driverName)}</strong><span>${vehicleRegistration?`Pojazd ${esc(vehicleRegistration)}`:'Brak pojazdu przypisanego do aktywnej trasy'}</span></div><button id="backend-refresh" class="backend-session-action" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="backend-session-action logout" aria-label="Wyloguj z aplikacji">×</button></div>
+  const readOnly=backendState.read_only===true;
+  const devConnection=readOnly&&backendState.backend_environment==='dev';
+  const connectionLabel=devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
+  const connectionNote=readOnly
+    ?`<strong>${devConnection?'Dane z wersji dev Super Spedytora.':'Połączenie tylko do odczytu.'}</strong>Pobierasz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet. Ten podgląd nie rozpoczyna ani nie kończy operacji oraz nie wysyła zdjęć, plomb i dokumentów do SS. „Testuj widoki” otwiera osobny test na danych przykładowych.`
+    :'<strong>Operacje zapisują się w Super Spedytorze.</strong>Kreatory załadunku i rozładunku zapisują plomby, zdjęcia, CMR oraz status zlecenia przez główne API i odczyt kontrolny. Historia ankiet z SS jest dostępna, jeśli obsługuje ją używany mostek aplikacji. Wszystkie zaprojektowane procesy otworzysz przez „Testuj widoki”. W trybie testowym używamy danych przykładowych, a zdjęcia, plomby i dokumenty nie są wysyłane do SS.';
+  return `<div class="app-content backend-operation-screen"><div id="cmri-tasks">${inventoryTaskCards()}</div><div class="backend-session-card"><div class="backend-session-top"><div class="backend-session-identity"><small class="backend-readonly">${icon('signal')} ${connectionLabel}</small><strong>${esc(driverName)}</strong><span>${vehicleRegistration?`Pojazd ${esc(vehicleRegistration)}`:'Brak pojazdu przypisanego do aktywnej trasy'}</span></div><button id="backend-refresh" class="backend-session-action" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="backend-session-action logout" aria-label="Wyloguj z aplikacji">×</button></div>
     ${route?`<div class="backend-operations-heading backend-destination-heading"><small>${travelling?'W DRODZE':'TERAZ'}</small><h3>${travelling?'Cel podróży':'Bieżąca operacja'}</h3></div>${nearestCard}
       <details class="backend-upcoming-details"><summary><span class="backend-upcoming-icon">${icon('pin')}</span><span><strong>Podgląd najbliższych operacji</strong><small>${esc(upcomingCaption)}</small></span><b>${upcomingCount}</b></summary><div class="backend-upcoming-body">
         <section class="backend-route-context"><span><small>AKTYWNA TRASA</small><strong>${esc(routeLabel)}</strong><em>${Number(route.completed_points||0)} z ${Number(route.total_points||0)} punktów</em></span><b>${Math.round(progress)}%</b><div class="backend-progress"><span style="width:${Math.max(0,Math.min(100,progress))}%"></span></div></section>
-        ${upcomingCards||`<section class="backend-upcoming-empty"><strong>Brak kolejnych operacji</strong><span>Nie ma następnej niezakończonej operacji na dziś ani jutro.</span></section>`}${historySection}<div class="backend-plan-limit">${icon('info')}<p>${sourceNote}</p></div></div></details>`:`<section class="backend-no-route">${icon('route')}<h3>Brak aktywnej trasy</h3><p>Konto kierowcy jest połączone, ale Super Spedytor nie zwrócił aktywnej trasy.</p></section>`}<div class="backend-prototype-note live-write">${icon('info')}<p><strong>Operacje zapisują się w Super Spedytorze.</strong>Historia wykonanych ankiet serwisowych jest dostępna w zakładce „Serwis” i działa tylko do odczytu. Wszystkie zaprojektowane procesy otworzysz przez „Testuj widoki”. W trybie testowym używamy danych przykładowych, a zdjęcia, plomby i dokumenty nie są wysyłane do SS.</p></div></div></div>`;
+        ${upcomingCards||`<section class="backend-upcoming-empty"><strong>Brak kolejnych operacji</strong><span>Nie ma następnej niezakończonej operacji na dziś ani jutro.</span></section>`}${historySection}<div class="backend-plan-limit">${icon('info')}<p>${sourceNote}</p></div></div></details>`:`<section class="backend-no-route">${icon('route')}<h3>Brak aktywnej trasy</h3><p>Konto kierowcy jest połączone, ale Super Spedytor nie zwrócił aktywnej trasy.</p></section>`}<div class="backend-prototype-note ${readOnly?'read-only':'live-write'}">${icon('info')}<p>${connectionNote}</p></div></div></div>`;
 }
 function renderBackendOperationScreen(scroll=0){
   $('#app').innerHTML=backendOperationView();
   $('#app-action').innerHTML='';
   $('#design-context').innerHTML='';
-  $('#preview-label').textContent='OPERACJA / SUPER SPEDYTOR';
+  $('#preview-label').textContent=backendState?.read_only===true&&backendState?.backend_environment==='dev'?'OPERACJA / DEV · TYLKO ODCZYT':'OPERACJA / SUPER SPEDYTOR';
   $$('[data-operation],[data-route-stop],[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
   $$('.screen-list [data-screen]').forEach(button=>button.classList.remove('active'));
   $('#scenario-select').disabled=true;
@@ -3623,14 +3904,27 @@ function renderBackendOperationScreen(scroll=0){
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='now'));
   $('#backend-refresh').onclick=()=>driverBridge?.backendRefresh();
   $('#backend-logout').onclick=()=>driverBridge?.backendLogout();
+  bindInventoryCards();
+  $$('[data-backend-open-wizard]').forEach(button=>button.onclick=()=>{
+    const point=backendLastNearest;
+    if(point&&String(point.id)===button.dataset.backendOpenWizard)enterLiveOperation(point);
+  });
   $$('[data-backend-point-action]').forEach(button=>button.onclick=()=>{
+    if(backendPointActionPending||backendTestWorkspace||backendState?.read_only===true||backendState?.status!=='connected')return;
     const action=button.dataset.backendPointAction;
     const pointId=button.dataset.pointId;
     const question=action==='start'
       ?'Potwierdzasz, że jesteś na miejscu i rozpoczynasz tę operację?'
       :'Potwierdzasz, że ta operacja została faktycznie zakończona?';
     if(!window.confirm(question))return;
-    driverBridge?.backendPointAction(pointId,action);
+    backendPointActionPending={pointId,action,previousWriteId:String(backendState?.write?.id||'')};
+    button.disabled=true;
+    try{driverBridge?.backendPointAction(pointId,action);}
+    catch{
+      backendPointActionPending=null;
+      button.disabled=false;
+      toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');
+    }
   });
   $('#app-scroll').scrollTop=scroll;
 }
@@ -3638,7 +3932,7 @@ function renderBackendServiceHistoryScreen(scroll=0){
   $('#app').innerHTML=serviceModuleSwitch('history')+serviceHistoryView();
   $('#app-action').innerHTML=serviceHistoryActionView();
   $('#design-context').innerHTML=serviceHistoryDesignNotes();
-  $('#preview-label').textContent='SERWIS / HISTORIA SS';
+  $('#preview-label').textContent=backendState?.read_only===true&&backendState?.backend_environment==='dev'?'SERWIS / HISTORIA DEV':'SERWIS / HISTORIA SS';
   $$('[data-operation],[data-route-stop],[data-service-preview]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
   $$('.screen-list [data-screen]').forEach(button=>button.classList.remove('active'));
   $('#scenario-select').disabled=true;
@@ -3663,6 +3957,10 @@ function renderBackendPanel(){
   if(!panel)return;
   const status=backendState?.status||'disconnected';
   const connected=status==='connected';
+  const devConnection=browserBackend&&backendState?.read_only===true&&backendState?.backend_environment==='dev';
+  const configurationError=backendState?.configuration_error===true;
+  const chip=$('.driver-chip');
+  if(chip&&!backendTestWorkspace)chip.textContent=devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR';
   if(!connected&&status!=='connecting'){
     backendActiveNav='now';
     state.serviceHistorySelectedId=null;
@@ -3671,7 +3969,7 @@ function renderBackendPanel(){
   document.documentElement.classList.toggle('backend-auth-gate',!connected);
   panel.classList.toggle('backend-panel-connected',connected);
   if(status==='connecting'){
-    panel.innerHTML=`<div class="backend-gate"><div class="backend-loader" aria-hidden="true"></div><h2>Łączenie z Super Spedytorem</h2><p>${esc(backendState.message||'Pobieranie danych kierowcy…')}</p></div>`;
+    panel.innerHTML=`<div class="backend-gate"><div class="backend-loader" aria-hidden="true"></div><h2>${devConnection?'Łączenie z wersją dev SS':'Łączenie z Super Spedytorem'}</h2><p>${esc(backendState.message||'Pobieranie danych kierowcy…')}</p></div>`;
     return;
   }
   if(status==='connected'){
@@ -3680,22 +3978,26 @@ function renderBackendPanel(){
     return;
   }
   const error=status==='error'?backendState.message:'';
-  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym urządzeniu</span></label>${backendState.can_retry?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit">${icon('signal')} Połącz z Super Spedytorem</button><div class="backend-security">${icon('check')} ${browserBackend?'Zapamiętanie sesji wymaga pliku cookie Super Spedytora. Jeśli przeglądarka go zablokuje, zalogujesz się ponownie.':'Po zaznaczeniu „Zapamiętaj mnie” aplikacja przywróci logowanie po ponownym otwarciu. Wylogowanie usunie zapamiętaną sesję.'}</div></form>`;
+  const nativeRemember=!browserBackend&&typeof driverBridge?.backendLoginRemembered==='function';
+  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>${devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR KIEROWCA'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>${devConnection?'Połącz z wersją dev SS':'Zaloguj kierowcę'}</h2><p>${devConnection?'Pobierzesz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet z wersji dev Super Spedytora. Ten podgląd służy wyłącznie do odczytu.':'Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.'}</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required ${configurationError?'disabled':''}></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required ${configurationError?'disabled':''}></label>${(browserBackend||nativeRemember)&&!devConnection?`<label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym urządzeniu</span></label>`:''}${backendState.can_retry&&!configurationError?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit" ${configurationError?'disabled':''}>${icon('signal')} ${devConnection?'Połącz z wersją dev SS':'Połącz z Super Spedytorem'}</button><div class="backend-security">${icon('check')} ${devConnection?'Login i hasło nie są zapamiętywane. Sesja dotyczy wyłącznie wersji dev.':browserBackend?'Zapamiętanie sesji wymaga pliku cookie Super Spedytora. Jeśli przeglądarka go zablokuje, zalogujesz się ponownie.':nativeRemember?'Dane logowania i tokeny pozostają w warstwie natywnej. Zapamiętana sesja jest szyfrowana na tym urządzeniu.':'Dane logowania i tokeny pozostają w warstwie natywnej. Po ponownym uruchomieniu aplikacji zalogujesz się ponownie.'}</div></form>`;
   $('#backend-login',panel).onsubmit=event=>{
     event.preventDefault();
+    if(configurationError)return;
     const username=$('#backend-username',panel).value;
     const password=$('#backend-password',panel).value;
-    const rememberMe=$('#backend-remember',panel).checked;
+    const rememberMe=!devConnection&&Boolean($('#backend-remember',panel)?.checked);
     backendRememberMe=rememberMe;
     $('#backend-password',panel).value='';
-    driverBridge?.backendLogin(username,password,rememberMe);
+    if(browserBackend)driverBridge?.backendLogin(username,password,rememberMe);
+    else if(nativeRemember)driverBridge.backendLoginRemembered(username,password,rememberMe);
+    else driverBridge?.backendLogin(username,password);
   };
   const retry=$('#backend-retry',panel);
   if(retry)retry.onclick=()=>driverBridge?.backendRefresh();
 }
 window.SuperSpedytorBackend={
   setActiveNav(nav){
-    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace)enterTestingWorkspace('tacho',false);
+    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return;
     backendActiveNav=nav==='service'?'service':nav==='tacho'?'tacho':'now';
     updateDriverWorkspaceBar();
   },
@@ -3703,11 +4005,38 @@ window.SuperSpedytorBackend={
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    const pointWrite=backendState?.write;
+    if(!['connected','connecting'].includes(backendState?.status))backendPointActionPending=null;
+    else if(backendPointActionPending&&pointWrite?.id
+      &&String(pointWrite.id)!==backendPointActionPending.previousWriteId
+      &&['confirmed','error','uncertain'].includes(pointWrite.status)
+      &&(!pointWrite.point_id||String(pointWrite.point_id)===String(backendPointActionPending.pointId))
+      &&(!pointWrite.action||pointWrite.action===backendPointActionPending.action))backendPointActionPending=null;
+    if(backendState?.status!=='connected'){
+      backendTestWorkspace=false;
+      document.documentElement.classList.remove('backend-testing');
+      driverBridge?.backendTestingMode?.(false);
+      if(liveMode())exitLiveOperation();
+    }
+    if(backendState?.status==='connected')refreshInventoryTasks();
+    else {cmrInventoryTasks=[];if(cmrInventoryScreen)cmrInventoryScreen.close();}
     renderBackendPanel();
-    if(browserBackend&&backendState?.remember_error)toast(backendState.remember_error);
+    if(backendState?.remember_error)toast(backendState.remember_error);
     const write=backendState?.write;
     const writeKey=`${write?.id||''}:${write?.status||''}`;
-    if(write?.id&&writeKey!==previousWriteKey&&write.status!=='pending'&&write.message)toast(write.message);
+    if(liveMode()){if(write?.id&&writeKey!==previousWriteKey)liveWriteFeedback(write);}
+    else if(write?.id&&writeKey!==previousWriteKey&&write.status!=='pending'){
+      if(write.message)toast(write.message);
+      // AA10: po potwierdzonym 'Dotarłem' zlecenie dostaje status at_loading/at_unloading
+      if(!backendTestWorkspace&&write.status==='confirmed'&&write.action==='start'&&backendLastNearest&&String(backendLastNearest.id)===String(write.point_id||''))liveOrderStatus(backendLastNearest,'start');
+    }
+  },
+  // AA9: odpowiedź mostka na backendRequest/backendUpload/capturePhoto/scanDocument/scanCode
+  receiveResult(requestId,result){
+    const pending=pendingRequests.get(requestId);
+    if(!pending)return;
+    pendingRequests.delete(requestId);
+    pending.resolve(result&&typeof result==='object'?result:{status:'error',message:'Nieprawidłowa odpowiedź warstwy natywnej'});
   }
 };
 function initializeBackendPanel(){
@@ -3749,7 +4078,7 @@ if(androidShell&&!browserBackend){
   },true);
 }
 
-if(!backendMode&&Object.hasOwn(collectionScenarios,appQuery.get('cmrScenario')))startCollectionScenario(appQuery.get('cmrScenario'));
+if(!backendMode&&hasOwn(collectionScenarios,appQuery.get('cmrScenario')))startCollectionScenario(appQuery.get('cmrScenario'));
 else render();
 initializeBackendPanel();
 if(browserBackend)window.SuperSpedytorWeb.backendRefresh();
@@ -3772,4 +4101,10 @@ if(!backendMode){
     scheduleServiceReminder();
     scheduleServiceSurveyExpiry();
   });
+}
+
+if(backendMode){
+  const inventoryTicker=setInterval(()=>{if(!document.hidden)refreshInventoryTasks();},30000);
+  window.addEventListener('beforeunload',()=>clearInterval(inventoryTicker),{once:true});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshInventoryTasks(true);});
 }
