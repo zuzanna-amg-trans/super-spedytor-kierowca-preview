@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "eb531f23acac0c32c09adac97f862e6d9204ebc9",
+  "sourceCommit": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.27-internal",
-  "builtAt": "2026-10-20T19:32:25.672Z",
-  "assetManifestSha256": "e47c787dfe16dd6c61ec5354da31965d09b7034de688aea8c6aa00ba3d9918fe",
+  "builtAt": "2026-10-20T19:47:58.489Z",
+  "assetManifestSha256": "0375e3317adcced49c37ee5d18ebcb8e2971634912e64eda3bd6fad3bb4ebdda",
   "mode": "demo-driver-preview",
   "backend": {
     "enabled": false,
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.27-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "eb531f23acac0c32c09adac97f862e6d9204ebc9",
-    "initialIntegrationSha": "84c47f47173d241119aafb32063d156df3302bb3",
+    "candidateSha": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
+    "initialIntegrationSha": "eb531f23acac0c32c09adac97f862e6d9204ebc9",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "84c47f47173d241119aafb32063d156df3302bb3",
+    "baseSha": "eb531f23acac0c32c09adac97f862e6d9204ebc9",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "e7b90f106df2a0b8c7702047ba385689a93a4db4"
+        "sha": "75b3d55b477ccd32d636a34e01fc9bd94e15048a"
       },
       {
         "name": "codex/advanced-document-scanner",
@@ -56,7 +56,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-eb531f23acac0c32c09adac97f862e6d9204ebc9/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }

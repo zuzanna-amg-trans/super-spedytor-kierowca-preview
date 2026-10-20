@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "eb531f23acac0c32c09adac97f862e6d9204ebc9",
+  "sourceCommit": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.27-internal",
-  "assetManifestSha256": "e47c787dfe16dd6c61ec5354da31965d09b7034de688aea8c6aa00ba3d9918fe",
+  "assetManifestSha256": "0375e3317adcced49c37ee5d18ebcb8e2971634912e64eda3bd6fad3bb4ebdda",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -118,23 +118,23 @@
     },
     {
       "path": "flow.js",
-      "sha256": "3d60b140814ad2669ab0e7a5f30893d4ce0d151384cb2bda4abb6ecbef173137",
-      "size": 390238
+      "sha256": "7762848549a789c27f83c9c6d84e57bcd1875143c328c562a45065bf0fdb4ebc",
+      "size": 393137
     },
     {
       "path": "handover-v2.css",
-      "sha256": "53f8e538e7e129430c53937cded43ce934f1faeb7b882ede4030cd4a873370b0",
-      "size": 20339
+      "sha256": "b59775f0a7735a6bac98d70eae7caff50a6323e60a608fc7b19ab12ea3e6840b",
+      "size": 25022
     },
     {
       "path": "handover-v2.js",
-      "sha256": "104e2b67792418d212f293200ac4da44ff7b352a81064fb1a269d5af104f4276",
-      "size": 23676
+      "sha256": "b40ee115294313fdc7d871309057db36e405864a1046319b03179c8359134914",
+      "size": 28388
     },
     {
       "path": "index.html",
-      "sha256": "8258f0584977ea754b147d982a598a80ecd4aebc639d9b887ea9b24aea104e0d",
-      "size": 13393
+      "sha256": "686ae25481431f3b90b097bc3a5e570c225d95fb9b3308bb290fbf2f9d27f3e3",
+      "size": 13532
     },
     {
       "path": "live-operation.js",
@@ -210,6 +210,21 @@
       "path": "transshipment.js",
       "sha256": "115799edc0dd30e083d386c7bc54aa966ecb0177d11b53c74b2e58eb26cd5cd9",
       "size": 11572
+    },
+    {
+      "path": "vehicle-custody-ui.js",
+      "sha256": "623dd50b9d4d19263a61400e30a2e44e2598d969a95bef8e6d9e8fc211e15919",
+      "size": 15448
+    },
+    {
+      "path": "vehicle-custody.js",
+      "sha256": "894eb7d29ab949d9e9e9b45ca293c3cb4236dc0b0ed62b884e2e67f2e6d75260",
+      "size": 7812
+    },
+    {
+      "path": "vehicle-exchange.js",
+      "sha256": "a05e7bfead65747086e13a83e2af11778869a823d9a07c927cfb4a755960c4af",
+      "size": 4845
     },
     {
       "path": "vehicle-handover.js",

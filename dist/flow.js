@@ -625,6 +625,7 @@ const vehicleHandoverSnapshot={
     icon:item.icon
   })))
 };
+vehicleHandoverSnapshot.contents={vehicleId:vehicleHandoverSnapshot.vehicle.id,ownerVersion:7,orders:JSON.parse(JSON.stringify(transshipmentPlan.orders.filter(order=>['DEMO/TS/310','DEMO/TS/530'].includes(order.id))))};
 const vehicleInventorySnapshot={
   source:vehicleHandoverSnapshot.source,
   inventoryId:'INV/DEMO/2026/001',
@@ -1475,7 +1476,7 @@ function transshipmentVehicleChoices(){
 }
 function transshipmentOverviewView(){
   const record=transshipment(),tab=record.overviewTab,outgoing=transshipmentPreviewRole==='transferor';
-  return `<div class="app-content transfer-overview">${transshipmentHeader('info','Bilans przeładunku',`Twoje auto ${transshipmentPlan.receiverVehicle.registration}. Widzisz całą wymianę i towar, z którym jedziesz dalej.`)}<div class="transfer-role-switch" role="group" aria-label="Tryb przeładunku"><button data-transshipment-role="transferor" aria-pressed="${outgoing}">Wydaję</button><button data-transshipment-role="receiver" aria-pressed="${!outgoing}">Odbieram</button></div><button class="secondary-button transfer-change-vehicle" data-transshipment-choose>${icon('truck')}${outgoing?'Wybierz auto do wydania':'Wybierz auto do odbioru'}</button><div class="transfer-balance-counts">${transshipmentBalanceGroups().map(group=>`<span class="${group.key}"><b>${group.orders.reduce((sum,order)=>sum+order.pieces.length,0)}</b>${group.title}</span>`).join('')}</div><nav class="transfer-overview-tabs" aria-label="Plan przeładunku">${[['balance','Lista'],['layout','Ułożenie'],['sequence','Kolejność']].map(([key,title])=>`<button data-transshipment-tab="${key}" aria-pressed="${tab===key}">${title}</button>`).join('')}</nav>${tab==='layout'?transshipmentLoadingView():tab==='sequence'?transshipmentSequenceView():transshipmentBalanceView()}${transshipmentVehicleChoices()}<p class="small-note">Test widoków · przykładowe ładunki i skany. Każdy kierowca, CMR i sztuka zachowują własne przypisanie.</p></div>`;
+  return `<div class="app-content transfer-overview">${transshipmentHeader('info','Bilans przeładunku',`Twoje auto ${transshipmentPlan.receiverVehicle.registration}. Widzisz całą wymianę i towar, z którym jedziesz dalej.`)}<button class="secondary-button transfer-change-vehicle" data-vehicle-exchange>${icon('truck')}Zamieniamy się całymi autami</button><div class="transfer-role-switch" role="group" aria-label="Tryb przeładunku"><button data-transshipment-role="transferor" aria-pressed="${outgoing}">Wydaję</button><button data-transshipment-role="receiver" aria-pressed="${!outgoing}">Odbieram</button></div><button class="secondary-button transfer-change-vehicle" data-transshipment-choose>${icon('truck')}${outgoing?'Wybierz auto do wydania':'Wybierz auto do odbioru'}</button><div class="transfer-balance-counts">${transshipmentBalanceGroups().map(group=>`<span class="${group.key}"><b>${group.orders.reduce((sum,order)=>sum+order.pieces.length,0)}</b>${group.title}</span>`).join('')}</div><nav class="transfer-overview-tabs" aria-label="Plan przeładunku">${[['balance','Lista'],['layout','Ułożenie'],['sequence','Kolejność']].map(([key,title])=>`<button data-transshipment-tab="${key}" aria-pressed="${tab===key}">${title}</button>`).join('')}</nav>${tab==='layout'?transshipmentLoadingView():tab==='sequence'?transshipmentSequenceView():transshipmentBalanceView()}${transshipmentVehicleChoices()}<p class="small-note">Test widoków · przykładowe ładunki i skany. Każdy kierowca, CMR i sztuka zachowują własne przypisanie.</p></div>`;
 }
 
 function transshipmentTransferorView(){
@@ -1911,15 +1912,35 @@ const inspectionMode=()=>state.servicePanel==='inventory'?'inventory':'handover'
 const inspectionProtocol=(mode=inspectionMode())=>mode==='inventory'?state.inventoryProtocol:state.vehicleHandover;
 const inspectionSnapshot=()=>inspectionMode()==='inventory'?vehicleInventorySnapshot:vehicleHandoverSnapshot;
 const inspectionConfirmationKey=(mode=inspectionMode())=>mode==='inventory'?'authorConfirmed':'receiverConfirmed';
-const inspectionV2Controllers={inventory:null,handover:null};
-const inspectionV2Enabled=()=>appQuery.get('handoverVersion')!=='1'&&Boolean(window.SuperSpedytorHandoverV2);
+const inspectionV2Controllers={inventory:null,handover:null,'handover-receive':null};
+let normalHandoverRole='issue',vehicleExchangeActive=false,vehicleExchangeController=null;
+// Every handover uses the contents-aware protocol. Inventory retains its comparison view.
+const inspectionV2Enabled=()=>(inspectionMode()==='handover'||appQuery.get('handoverVersion')!=='1')&&Boolean(window.SuperSpedytorHandoverV2);
+function openVehicleExchange(){vehicleExchangeActive=true;openService('handover');}
+function exchangeController(){
+  if(!vehicleExchangeController){
+    const first=JSON.parse(JSON.stringify(vehicleHandoverSnapshot));
+    const second={...JSON.parse(JSON.stringify(vehicleHandoverSnapshot)),handoverId:'VH/DEMO/2026/002',ownerVersion:8,
+      vehicle:{id:'vehicle-demo-02',registration:'DEMO 02',name:'Drugi pojazd demonstracyjny',makeModel:'Sprinter demonstracyjny'},
+      transferor:{...first.receiver},receiver:{...first.transferor},
+      equipment:first.equipment.map(item=>({...item,id:`vehicle-02-${item.localKey}`})),
+      contents:{vehicleId:'vehicle-demo-02',ownerVersion:8,orders:JSON.parse(JSON.stringify(transshipmentPlan.orders.filter(order=>order.id==='DEMO/TS/420')))}};
+    vehicleExchangeController=window.SuperSpedytorVehicleExchange.create({first,second,icon,esc,onChange:()=>render(),onExit:()=>{vehicleExchangeActive=false;render();},
+      createReport:(snapshot,role,onExit)=>window.SuperSpedytorHandoverV2.create({snapshot,role,mode:'handover',icon,esc,demoPhoto,demo:true,nativeQr:typeof driverBridge?.scanQr==='function',cmrPageUrl:(order,page)=>order.cmr.scanPages?.[page]?.url||transshipmentDemoCmrPage(order,page),onChange:()=>render(),onExit})});
+  }
+  return vehicleExchangeController;
+}
 function inspectionV2Controller(){
   const mode=inspectionMode();
-  if(!inspectionV2Controllers[mode])inspectionV2Controllers[mode]=window.SuperSpedytorHandoverV2.create({
-    snapshot:inspectionSnapshot(),mode,icon,esc,demoPhoto,demo:true,
+  if(mode==='handover'&&vehicleExchangeActive)return exchangeController();
+  const key=mode==='handover'&&normalHandoverRole==='receive'?'handover-receive':mode;
+  if(!inspectionV2Controllers[key])inspectionV2Controllers[key]=window.SuperSpedytorHandoverV2.create({
+    snapshot:{...inspectionSnapshot(),protocolId:`${inspectionSnapshot().handoverId||inspectionSnapshot().inventoryId}:${normalHandoverRole}`},mode,role:normalHandoverRole,icon,esc,demoPhoto,demo:true,nativeQr:typeof driverBridge?.scanQr==='function',
+    cmrPageUrl:(order,page)=>order.cmr.scanPages?.[page]?.url||transshipmentDemoCmrPage(order,page),
+    onRole:role=>{normalHandoverRole=role;render();$('#app-scroll').scrollTop=0;},onSwap:openVehicleExchange,
     onChange:()=>render(),onExit:()=>closeService()
   });
-  return inspectionV2Controllers[mode];
+  return inspectionV2Controllers[key];
 }
 function inventoryProtocolView(){return vehicleHandoverView();}
 function inventoryActionView(){return vehicleHandoverActionView();}
@@ -2573,6 +2594,7 @@ function refreshStopAction(){
 }
 
 function bindStopView(){
+  $$('[data-vehicle-exchange]').forEach(button=>button.onclick=openVehicleExchange);
   bindStopAction();
   if(state.routeStop==='transshipment'){
     $$('[data-transshipment-choose]').forEach(button=>button.onclick=()=>focusNextAction('.transfer-vehicle-choices'));
@@ -3357,6 +3379,7 @@ function reset(){
   state.inventoryProtocol=freshInventoryProtocol();
   state.vehicleHandover=freshVehicleHandoverProtocol();
   Object.values(inspectionV2Controllers).forEach(controller=>controller?.reset());
+  vehicleExchangeController?.reset();vehicleExchangeActive=false;normalHandoverRole='issue';
   clearServiceDailyRecord();
   state.serviceOpen=false;
   state.servicePanel='survey';
@@ -3560,6 +3583,7 @@ const designedDriverViews=[
   {id:'cmr-transferor',title:'Przygotowanie własnych CMR',icon:'doc',description:'Dokumenty kierowcy przekazującego'},
   {id:'transshipment',title:'Przeładunek · odbieram',icon:'truck',description:'CMR, plomby i nowe zdjęcia od kilku kierowców'},
   {id:'transshipment-out',title:'Przeładunek · wydaję',icon:'truck',description:'Wydanie własnego ładunku i CMR innemu kierowcy'},
+  {id:'vehicle-swap',title:'Zamiana aut między kierowcami',icon:'truck',description:'Każdy wydaje i odbiera auto · ładunki oraz CMR-y'},
   {id:'parking',title:'Parking',icon:'parking',description:'Dojazd, miejsce i wybór przerwy'},
   {id:'fueling',title:'Tankowanie',icon:'fuel',description:'Karta, zdjęcia, paragon i wydatek'},
   {id:'tacho',title:'Tacho',icon:'clock',description:'Czas jazdy, przerwy i odpoczynki'},
@@ -3634,7 +3658,8 @@ function showDesignedView(viewId){
     return;
   }
   if(viewId==='tacho'){window.SuperSpedytorTacho?.open?.();return;}
-  if(['survey','history','inventory','handover'].includes(viewId)){openService(viewId);return;}
+  if(viewId==='vehicle-swap'){openVehicleExchange();return;}
+  if(['survey','history','inventory','handover'].includes(viewId)){if(viewId==='handover')vehicleExchangeActive=false;openService(viewId);return;}
   if(['collection','cmr-transferor'].includes(viewId)){
     collectionPreviewRole=viewId==='cmr-transferor'?'transferor':'receiver';
     collection().role=collectionPreviewRole;

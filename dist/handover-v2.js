@@ -7,10 +7,17 @@
     const {snapshot,icon,esc,onChange,onExit,demoPhoto}=options;
     const protocol=model.createState();
     const mode=options.mode||'handover';
+    const role=options.role||'issue';
+    const actor=snapshot.actor||(role==='receive'?snapshot.receiver:snapshot.transferor);
+    let viewingSignedVehicle=false;
+    const custody=mode==='handover'?root.SuperSpedytorVehicleCustodyUI.create({
+      ...options,role,snapshot,onChange,onExit,onVehicleReview:()=>{viewingSignedVehicle=true;redraw(true);}
+    }):null;
     const steps=model.buildSteps(snapshot,{mode});
     const sections=[['cabin','Kabina'],['cargo','Paka i winda'],['exterior','Na zewnątrz']];
     let capturePage=null;
     let captureTarget=null;
+    let photoGeneration=0;
     const current=()=>steps[protocol.stepIndex];
     const photoRecord=photo=>protocol.photos[photo.id];
     const pct=()=>model.progress(steps,protocol);
@@ -19,7 +26,7 @@
       onChange();
       if(scroll)document.querySelector('#app-scroll').scrollTop=0;
     }
-    function edited(){protocol.confirmed=false;protocol.submitted=false;protocol.error=null;}
+    function edited(){if(custody?.state.signature)root.SuperSpedytorVehicleCustody.reopen(custody.state);protocol.confirmed=false;protocol.submitted=false;protocol.error=null;}
     function go(index){
       protocol.error=null;
       protocol.stepIndex=Math.max(0,Math.min(index,steps.length-1));
@@ -46,7 +53,13 @@
     }
     function intro(){
       const count=type=>steps.filter(step=>step.type===type).length;
-      return `<span class="hv2-eyebrow">${mode==='handover'?'PRZYGOTUJ AUTO DO PRZEKAZANIA':'SPORZĄDŹ INWENTARYZACJĘ'}</span><h2 class="hv2-title">Jedna sekcja.<br>Jeden krok na raz.</h2><p class="hv2-description">Sprawdź wyposażenie, a potem zrób zdjęcia. Przeprowadzimy Cię przez auto w wygodnej kolejności.</p><section class="hv2-identity"><span>${icon('truck')}</span><div><small>${mode==='handover'?'PRZEKAZUJESZ':'INWENTARYZOWANY POJAZD'}</small><strong>${esc(snapshot.vehicle.registration)}</strong><p>${esc(snapshot.vehicle.makeModel)}</p></div></section>${mode==='handover'?`<section class="hv2-intro-card"><span class="hv2-eyebrow">DLA KOGO PRZYGOTOWUJESZ AUTO</span><strong>${esc(snapshot.receiver.displayName)}</strong><p>Przekazuje: ${esc(snapshot.transferor.displayName)}</p></section>`:`<section class="hv2-intro-card" data-inventory-author><span class="hv2-eyebrow">KIEROWCA SPORZĄDZAJĄCY INWENTARYZACJĘ</span><strong>${esc(snapshot.author.displayName)}</strong><p>${esc(snapshot.author.code)}</p></section>`}<div class="hv2-plan">${[['signal','Kabina i wskazania','Przebieg, paliwo, DPF, AdBlue → wyposażenie → zdjęcia kabiny'],['box','Paka i winda','Lista wyposażenia → kolejne zdjęcia paki i windy'],['route','Wyposażenie dodatkowe i obchód','Lista → przód → prawa strona → tył → lewa strona']].map(([glyph,title,desc],i)=>`<div class="hv2-plan-item"><span>${icon(glyph)}</span><div><strong>${i+1}. ${title}</strong><small>${desc}</small></div></div>`).join('')}</div><p class="hv2-photo-tip">${icon('camera')}Każde zdjęcie na osobnym ekranie. Możesz wrócić i poprawić dowolny krok.</p><p class="small-note">Podgląd V2 · dane demonstracyjne · ${count('checklist')} krótkie listy. Materiały pozostają w tej przeglądarce.</p>`;
+      const receiving=mode==='handover'&&role==='receive';
+      return `<span class="hv2-eyebrow">${mode==='handover'?(receiving?'ODBIERZ I SPRAWDŹ AUTO':'PRZYGOTUJ AUTO DO PRZEKAZANIA'):'SPORZĄDŹ INWENTARYZACJĘ'}</span><h2 class="hv2-title">Jedna sekcja.<br>Jeden krok na raz.</h2><p class="hv2-description">Sprawdź wyposażenie, a potem zrób zdjęcia. Przeprowadzimy Cię przez auto w wygodnej kolejności.</p><section class="hv2-identity"><span>${icon('truck')}</span><div><small>${mode==='handover'?(receiving?'ODBIERASZ':'PRZEKAZUJESZ'):'INWENTARYZOWANY POJAZD'}</small><strong>${esc(snapshot.vehicle.registration)}</strong><p>${esc(snapshot.vehicle.makeModel)}</p></div></section>${mode==='handover'?`<section class="hv2-intro-card"><span class="hv2-eyebrow">${receiving?'OD KOGO ODBIERASZ AUTO':'DLA KOGO PRZYGOTOWUJESZ AUTO'}</span><strong>${esc(receiving?snapshot.transferor.displayName:snapshot.receiver.displayName)}</strong><p>Przekazuje: ${esc(snapshot.transferor.displayName)} · odbiera: ${esc(snapshot.receiver.displayName)}</p></section>`:`<section class="hv2-intro-card" data-inventory-author><span class="hv2-eyebrow">KIEROWCA SPORZĄDZAJĄCY INWENTARYZACJĘ</span><strong>${esc(snapshot.author.displayName)}</strong><p>${esc(snapshot.author.code)}</p></section>`}<div class="hv2-plan">${[['signal','Kabina i wskazania','Przebieg, paliwo, DPF, AdBlue → wyposażenie → zdjęcia kabiny'],['box','Paka i winda','Lista wyposażenia → kolejne zdjęcia paki i windy'],['route','Wyposażenie dodatkowe i obchód','Lista → przód → prawa strona → tył → lewa strona']].map(([glyph,title,desc],i)=>`<div class="hv2-plan-item"><span>${icon(glyph)}</span><div><strong>${i+1}. ${title}</strong><small>${desc}</small></div></div>`).join('')}</div><p class="hv2-photo-tip">${icon('camera')}Każde zdjęcie na osobnym ekranie. Możesz wrócić i poprawić dowolny krok.</p><p class="small-note">Podgląd V2 · dane demonstracyjne · ${count('checklist')} krótkie listy. Materiały pozostają w tej przeglądarce.</p>`;
+    }
+    function contentIntro(){
+      if(!custody)return '';
+      const counts=root.SuperSpedytorVehicleCustody.progress(custody.state);
+      return `${options.onRole?`<div class="vc-role-switch" role="group" aria-label="Twoja rola w przekazaniu"><button data-hv2-role="issue" aria-pressed="${role==='issue'}">Wydaję auto</button><button data-hv2-role="receive" aria-pressed="${role==='receive'}">Odbieram auto</button></div>`:''}<section class="hv2-intro-card"><span class="hv2-eyebrow">${role==='issue'?'TWÓJ PROTOKÓŁ WYDANIA':'TWÓJ PROTOKÓŁ ODBIORU'}</span><strong>${esc(actor.displayName)} · ${esc(snapshot.vehicle.registration)}</strong><p>1. Stan auta i wyposażenia → 2. Podpis → 3. Sprawdzenie ${counts.cargo.total} szt. ładunku i ${counts.cmr.total} CMR-ów.</p><p>Ładunek może już znajdować się w aucie. Sprawdzisz go po podpisaniu części pojazdu.</p></section>${options.onSwap?'<button class="hv2-capture" data-hv2-swap>Zamieniamy się autami</button>':''}`;
     }
     function photoPanel(photo,record=photoRecord(photo)){
       return `<section class="hv2-photo-stage${fieldAttributes(['photo'],photo.id)}><div class="hv2-photo-frame">${record?`<img src="${esc(record.url)}" alt="${esc(photo.name)}">${record.demo?'<span class="hv2-demo-mark">Zdjęcie demonstracyjne</span>':''}`:`<div class="hv2-camera-visual">${icon(photo.icon||'camera')}<span>${esc(photo.name)}</span><small>Ustaw cały element w kadrze</small></div>`}</div><button class="hv2-capture ${record?'done':''}" data-hv2-capture="${esc(photo.id)}">${icon(record?'camera':'plus')}${record?'Powtórz zdjęcie':'Zrób zdjęcie'}</button>${options.demo?`<button class="hv2-demo-button" data-hv2-demo="${esc(photo.id)}">${record?'Podmień na zdjęcie demo':'Wstaw zdjęcie demo'}</button>`:''}</section>`;
@@ -97,15 +110,21 @@
       }).join('')}</div><label class="hv2-confirm${fieldAttributes(['confirmation'],'confirmed')}><input id="hv2-confirm" type="checkbox" ${protocol.confirmed?'checked':''}><span>Potwierdzam stan auta i wyposażenia<small>${mode==='handover'?`Przygotowuję raport przekazania dla ${esc(snapshot.receiver.displayName)}.`:`Sporządzam inwentaryzację jako ${esc(snapshot.author.displayName)}.`}</small></span></label>${errorText()}<p class="small-note">Podgląd demonstracyjny · raport i zdjęcia pozostają lokalnie.</p>`;
     }
     function submittedView(){
+      if(custody)return `<section class="hv2-saved"><span>${icon('check')}</span><h2>Część pojazdu podpisana</h2><p>${esc(snapshot.vehicle.registration)} · ${esc(actor.displayName)}</p><p>Stan auta i wyposażenia jest zapisany w podpisanej części. Ładunki oraz dokumenty CMR sprawdzasz w kolejnym etapie.</p><p class="small-note">Poprawa auta wycofa podpis i wymaga ponownej kontroli zawartości.</p></section>`;
       return `<section class="hv2-saved"><span>${icon('check')}</span><p class="hv2-eyebrow">KONTROLA ZAKOŃCZONA</p><h2 class="hv2-title">Raport przygotowany</h2><p>${esc(snapshot.vehicle.registration)}${mode==='handover'?`<br>Dla: ${esc(snapshot.receiver.displayName)}`:`<br>Sporządził: ${esc(snapshot.author.displayName)}`}</p><div class="hv2-summary"><div><span>Sprawdzone etapy</span><b>${pct().completed}/${pct().total}</b></div><div><span>Zdjęcia</span><b>${Object.keys(protocol.photos).length}</b></div></div><p class="small-note">${mode==='handover'?'Zapisano w podglądzie. Przekazanie pojazdu czeka na potwierdzenie w Super Spedytorze.':'Inwentaryzacja zapisana w podglądzie. Zapis w Super Spedytorze wymaga potwierdzenia przez system.'}</p></section>`;
     }
     function view(){
       const step=current();
-      return `<div class="app-content service-screen hv2-screen" data-handover-v2 data-inspection-mode="${mode}" data-hv2-step="${capturePage?'issue-photo':esc(step.id)}">${header()}${capturePage?issueView():protocol.submitted?submittedView():step.type==='intro'?intro():step.type==='reading'?readingView(step):step.type==='checklist'?checklistView(step):step.type==='photo'?photoView(step):reviewView()}<input type="file" id="hv2-photo-input" accept="image/*" capture="environment" hidden></div>`;
+      if(custody?.state.signature&&!viewingSignedVehicle)return `<div class="app-content service-screen hv2-screen" data-handover-v2 data-inspection-mode="handover" data-hv2-step="contents">${custody.view()}</div>`;
+      return `<div class="app-content service-screen hv2-screen" data-handover-v2 data-protocol-report="${esc(snapshot.protocolId||snapshot.handoverId||snapshot.inventoryId)}" data-inspection-mode="${mode}" data-hv2-step="${capturePage?'issue-photo':esc(step.id)}">${header()}${capturePage?issueView():protocol.submitted?submittedView():step.type==='intro'?`${contentIntro()}${intro()}`:step.type==='reading'?readingView(step):step.type==='checklist'?checklistView(step):step.type==='photo'?photoView(step):`${reviewView()}${custody?`<div class="vc-signature-note"><strong>Podpisuje: ${esc(actor.displayName)}</strong><p>Podpis dotyczy stanu auta i wyposażenia. Następnie osobno sprawdzisz ładunki i CMR-y.</p></div>`:''}`}<input type="file" id="hv2-photo-input" accept="image/*" capture="environment" hidden></div>`;
     }
     function actions(){
+      if(custody?.state.signature){
+        if(viewingSignedVehicle)return '<div class="hv2-actions"><button class="hv2-secondary" data-hv2-reopen-signed>Popraw auto</button><button class="hv2-primary" data-hv2-return-contents>Wróć do ładunków i CMR</button></div>';
+        return custody.actions();
+      }
       if(protocol.submitted)return `<div class="hv2-actions"><button class="hv2-secondary" data-hv2-correct>Popraw</button><button class="hv2-primary primary-button" data-hv2-close>${icon('check')}Zamknij raport</button></div>`;
-      const step=current(),label=capturePage?'Zapisz zdjęcie i wróć':step.type==='intro'?'Zaczynam od kabiny':step.type==='review'?'Zakończ raport':step.type==='checklist'?(step.section==='cabin'?'Kabina sprawdzona — do zdjęć':step.section==='cargo'?'Paka sprawdzona — do zdjęć':'Wyposażenie sprawdzone — obchodzę auto'):'Dalej';
+      const step=current(),label=capturePage?'Zapisz zdjęcie i wróć':step.type==='intro'?'Zaczynam od kabiny':step.type==='review'?(custody?'Podpisz auto · sprawdź ładunki i CMR':'Zakończ raport'):step.type==='checklist'?(step.section==='cabin'?'Kabina sprawdzona — do zdjęć':step.section==='cargo'?'Paka sprawdzona — do zdjęć':'Wyposażenie sprawdzone — obchodzę auto'):'Dalej';
       return `<div class="hv2-actions">${protocol.stepIndex?`<button class="hv2-secondary" data-hv2-back aria-label="Poprzedni krok">${icon('back')}</button>`:''}<button class="hv2-primary primary-button" data-hv2-next>${esc(label)}${icon(step.type==='review'?'check':'arrow')}</button></div>`;
     }
     function notes(){
@@ -123,6 +142,7 @@
         const first=model.firstIncompleteStepIndex(steps,protocol);
         if(first>=0&&first<steps.length-1){go(first);report(model.firstProblem(current(),protocol));return;}
         if(!model.allReady(steps,protocol)){report({kind:'confirmation',key:'confirmed',message:'Potwierdź stan auta przed zakończeniem raportu.'});return;}
+        if(custody){const signed=custody.sign(protocol);if(!signed.ok){report({kind:'confirmation',key:'confirmed',message:signed.reason==='MANIFEST_UNAVAILABLE'?'Nie pobrano listy ładunków i dokumentów dla tego auta. Nie można zamknąć przekazania.':'Nie można podpisać protokołu.'});return;}viewingSignedVehicle=false;}
         protocol.submitted=true;
         redraw(true);
         return;
@@ -147,6 +167,14 @@
     function samplePhoto(){return {url:demoPhoto(0),demo:true,mime:'image/svg+xml',name:'Zdjęcie demonstracyjne'};}
     function bind(){
       const all=(selector)=>[...document.querySelectorAll(selector)];
+      all('[data-hv2-role]').forEach(button=>button.onclick=()=>options.onRole(button.dataset.hv2Role));
+      all('[data-hv2-swap]').forEach(button=>button.onclick=options.onSwap);
+      if(custody?.state.signature){
+        if(!viewingSignedVehicle){custody.bind();return;}
+        all('[data-hv2-return-contents]').forEach(button=>button.onclick=()=>{viewingSignedVehicle=false;redraw(true);});
+        all('[data-hv2-reopen-signed]').forEach(button=>button.onclick=()=>{root.SuperSpedytorVehicleCustody.reopen(custody.state);viewingSignedVehicle=false;protocol.submitted=false;protocol.confirmed=false;redraw(true);});
+        return;
+      }
       all('[data-hv2-back]').forEach(button=>button.onclick=()=>{if(capturePage){capturePage=null;go(protocol.stepIndex);}else if(protocol.submitted){protocol.submitted=false;redraw(true);}else if(protocol.stepIndex)go(protocol.stepIndex-1);else onExit();});
       all('[data-hv2-next]').forEach(button=>button.onclick=next);
       all('[data-hv2-close]').forEach(button=>button.onclick=onExit);
@@ -175,14 +203,14 @@
         if(!file||!target)return;
         if(!file.type.startsWith('image/')){report({kind:'photo',key:target.key,message:'Wybierz zdjęcie w formacie obrazu.'});return;}
         if(file.size>25*1024*1024){report({kind:'photo',key:target.key,message:'Zdjęcie jest zbyt duże. Wybierz plik do 25 MB.'});return;}
-        const url=URL.createObjectURL(file),image=new Image();
-        image.onload=()=>storePhoto(target,{url,blob:file,name:file.name,mime:file.type,demo:false});
-        image.onerror=()=>{URL.revokeObjectURL(url);report({kind:'photo',key:target.key,message:'Nie można odczytać tego zdjęcia. Zrób nowe lub wybierz JPG albo PNG.'});};
+        const url=URL.createObjectURL(file),image=new Image(),generation=++photoGeneration,reportId=snapshot.protocolId||snapshot.handoverId||snapshot.inventoryId;
+        image.onload=()=>{if(generation!==photoGeneration||document.querySelector('[data-protocol-report]')?.dataset.protocolReport!==reportId){URL.revokeObjectURL(url);return;}storePhoto(target,{url,blob:file,name:file.name,mime:file.type,demo:false});};
+        image.onerror=()=>{URL.revokeObjectURL(url);if(generation===photoGeneration&&document.querySelector('[data-protocol-report]')?.dataset.protocolReport===reportId)report({kind:'photo',key:target.key,message:'Nie można odczytać tego zdjęcia. Zrób nowe lub wybierz JPG albo PNG.'});};
         image.src=url;
       };
     }
-    function reset(){Object.values(protocol.photos).forEach(release);Object.values(protocol.issuePhotos).flatMap(Object.values).forEach(release);Object.assign(protocol,model.createState());capturePage=null;captureTarget=null;}
-    return {view,actions,notes,bind,reset};
+    function reset(){photoGeneration++;Object.values(protocol.photos).forEach(release);Object.values(protocol.issuePhotos).flatMap(Object.values).forEach(release);Object.assign(protocol,model.createState());custody?.reset();viewingSignedVehicle=false;capturePage=null;captureTarget=null;}
+    return {view,actions,notes,bind,reset,status:()=>({started:protocol.stepIndex>0,vehicleSigned:Boolean(custody?.state.signature),complete:mode==='inventory'?protocol.submitted:Boolean(custody?.state.completedAt),contents:custody?root.SuperSpedytorVehicleCustody.progress(custody.state):null})};
   }
   root.SuperSpedytorHandoverV2={create};
 })(window);
