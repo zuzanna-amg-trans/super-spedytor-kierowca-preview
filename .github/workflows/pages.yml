@@ -27,8 +27,9 @@ jobs:
           const fs=require('node:fs'),crypto=require('node:crypto');
           const info=JSON.parse(fs.readFileSync('dist/build-info.json','utf8'));
           const manifest=JSON.parse(fs.readFileSync('dist/asset-manifest.json','utf8'));
-          const live=info.sourceBranch==='codex/preview-integration'&&info.mode==='live-driver-session';
-          if(info.protocol!==2||!live)throw Error('Required: tested branch integration and authenticated driver-session preview');
+          const demo=info.sourceBranch==='codex/preview-integration'&&info.mode==='demo-driver-preview';
+          if(info.protocol!==2||!demo)throw Error('Required: tested branch integration and demonstration preview');
+          if(info.backend?.enabled!==false||info.backend?.mode!=='demonstration'||info.backend?.apiBaseUrl!==null)throw Error('Public demo must keep the backend disabled');
           if(!/^[a-f0-9]{40}$/.test(info.sourceCommit)||manifest.sourceCommit!==info.sourceCommit)throw Error('Source identity mismatch');
           const hash=crypto.createHash('sha256').update(JSON.stringify(manifest.files)+'\n').digest('hex');
           if(hash!==info.assetManifestSha256||hash!==manifest.assetManifestSha256)throw Error('Visual assets manifest mismatch');
@@ -38,7 +39,9 @@ jobs:
             const bytes=fs.readFileSync('dist/'+name);
             if(bytes.length!==file.size||crypto.createHash('sha256').update(bytes).digest('hex')!==file.sha256)throw Error('Changed shared asset '+file.path);
           }
-          if(live&&(!fs.existsSync('dist/app.html')||!fs.existsSync('dist/web-backend.js')))throw Error('Missing shared app');
+          if(!fs.existsSync('dist/app.html')||!fs.existsSync('dist/web-backend.js'))throw Error('Missing shared app');
+          const shell=fs.readFileSync('dist/index.html','utf8');
+          if(!shell.includes('src="app.html?android=1&amp;preview=1"')||/[?&](?:amp;)?(?:backend|web)=1/.test(shell))throw Error('Public shell must open only demo views');
           console.log('Verified '+info.mode+' shared source '+info.sourceCommit);
           JS
       - name: Przygotuj paczkę GitHub Pages
