@@ -237,3 +237,5 @@
 .app-content .stage-title{font-size:31px}.app-content .stage-description{font-size:17px;line-height:1.6}
 .compact-cmr .collection-cmr-identifiers strong{font-size:19px}.compact-cmr .collection-verification-actions button{font-size:17px;min-height:60px}
 @media(max-height:740px){.compact-cmr .collection-cmr-identifiers strong{font-size:16px}.compact-cmr .collection-verification-actions button{font-size:15px!important;min-height:48px!important}.compact-cmr .collection-pending-preview{height:clamp(95px,calc(100dvh - 510px),180px)}}
+
+.adblue-receipt-note{margin:9px 0 0;font-size:10px;line-height:1.65;color:#66765d}.adblue-fields .fuel-section-heading h3{font-size:12px}.adblue-fields .fuel-photo-button{width:100%}.fuel-expense-record>span{min-width:0;flex:1}.fuel-expense-record strong{display:block;font-size:11px}.fuel-expense-record small{display:block;margin-top:4px;font-size:9px;line-height:1.6;overflow-wrap:anywhere}.fuel-expense-record>b{flex-shrink:0;font-size:11px}
