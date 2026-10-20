@@ -9,7 +9,7 @@
     const controllers=new Map();
     const active=()=>controllers.get(activeId);
     function redraw(){onChange();const scroll=document.querySelector('#app-scroll');if(scroll)scroll.scrollTop=0;}
-    function status(definition){const s=controllers.get(definition.id)?.status();return s?.complete?'Zakończono lokalnie':s?.vehicleSigned?'Auto podpisane · sprawdź zawartość':s?.started?'W trakcie kontroli auta':'Do wykonania';}
+    function status(definition){const s=controllers.get(definition.id)?.status();return s?.complete?(s.contents?.missing||s.contents?.extra?'Zapisano z rozbieżnościami':'Zakończono lokalnie'):s?.vehicleSigned?'Auto podpisane · sprawdź zawartość':s?.started?'W trakcie kontroli auta':'Do wykonania';}
     function card(definition){
       const s=controllers.get(definition.id)?.status(),snapshot=definition.snapshot;
       return `<button class="vx-report ${s?.complete?'done':''}" data-vx-report="${esc(definition.id)}"><span>${icon(definition.role==='issue'?'truck':'clipboard')}</span><div><small>${definition.role==='issue'?'PRZEKAZUJESZ SWOJE AUTO':'ODBIERASZ DRUGIE AUTO'}</small><strong>${esc(snapshot.vehicle.registration)}</strong><p>${definition.role==='issue'?'Dla: '+esc(snapshot.receiver.displayName):'Od: '+esc(snapshot.transferor.displayName)}</p><b>${status(definition)}</b></div>${icon(s?.complete?'check':'arrow')}</button>`;

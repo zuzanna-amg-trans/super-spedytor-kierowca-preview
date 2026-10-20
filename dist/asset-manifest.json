@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
+  "sourceCommit": "36174b1c47189344952a9f564b104b38ed3d569b",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.27-internal",
-  "assetManifestSha256": "0375e3317adcced49c37ee5d18ebcb8e2971634912e64eda3bd6fad3bb4ebdda",
+  "assetManifestSha256": "cd2b5f017f02932b207dd8bc56613d263b5201e2d80901f3b4fcf9265bfc8462",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -223,8 +223,8 @@
     },
     {
       "path": "vehicle-exchange.js",
-      "sha256": "a05e7bfead65747086e13a83e2af11778869a823d9a07c927cfb4a755960c4af",
-      "size": 4845
+      "sha256": "434e48304cf3550665aea7203f6fa2dd77f15e3d5322f1788494be63b1ea07ba",
+      "size": 4917
     },
     {
       "path": "vehicle-handover.js",
