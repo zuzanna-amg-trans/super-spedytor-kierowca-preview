@@ -13,7 +13,7 @@
     :!originValid?'Odczyt danych DEV jest dostępny wyłącznie pod adresem https://dev.amg-trans.eu/driver-app/.':'';
   const readonlyState=next=>({...next,backend_environment:'dev',backend_origin:BACKEND_ORIGIN,read_only:true,write_capabilities:[]});
   const authPaths=new Set(['token/','token/refresh/','logout/']);
-  const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/']);
+  const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/','driver-tasks/survey-history/']);
   const allowedRequest=(method,path)=>method==='POST'?authPaths.has(path):method==='GET'&&(readPaths.has(path)||/^documents\/transport\/[1-9]\d*\/$/.test(path)||/^driver-tasks\/[1-9]\d*\/$/.test(path));
   const MAX_BYTES=2*1024*1024;
   const REMEMBER_KEY='ss-web-dev-remember';
@@ -244,7 +244,18 @@
       if(!Array.isArray(tasks))throw new SessionError('Backend zwrócił nieprawidłowe dane historii ankiet');
       serviceHistory=tasks.filter(task=>plain(task)&&task.definition_slug==='service-inspection'&&task.status==='completed');
     }catch(error){alive(gen);if(error.status===401)throw error;historyError=error instanceof SessionError?error.message:'Nie udało się pobrać historii ankiet';}
+    let serviceRegistry=null,registryError='';
+    try{
+      serviceRegistry=await getObject('driver-tasks/survey-history/',gen);alive(gen);
+      if(!Array.isArray(serviceRegistry.rows))throw new SessionError('Nieprawidłowy rejestr serwisów');
+      for(const day of serviceRegistry.rows)for(const row of Array.isArray(day?.surveys)?day.surveys:[]){
+        if(row?.survey_slug==='service-inspection'&&row.status==='completed'&&Number.isSafeInteger(row.task_id)&&row.task_id>0&&!serviceHistory.some(task=>task.id===row.task_id))
+          serviceHistory.push({...row,date:day.date,id:row.task_id,definition_slug:'service-inspection'});
+      }
+    }catch(error){alive(gen);if(error.status===401)throw error;serviceRegistry=null;registryError=error instanceof SessionError?error.message:'Nie udało się pobrać rejestru serwisów';}
     const next={status:'connected',message:'Połączono z Super Spedytorem',read_only:true,write_capabilities:[],backend_environment:'dev',backend_origin:BACKEND_ORIGIN,synced_at:new Date().toISOString(),profile,vehicle:vehicleResponse.vehicle??null,route_status:routeStatus,service_history:serviceHistory};
+    if(serviceRegistry)next.service_registry=serviceRegistry;
+    if(registryError)next.service_registry_error=registryError;
     if(cargoError)next.cargo_error=cargoError;
     if(historyError)next.service_history_error=historyError;
     return next;

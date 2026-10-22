@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "2e5147596707168a07be3457d4db07c8467905b3",
+  "sourceCommit": "92b28749720750bd5dd2efbc735dee2b5e9e3767",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.28-internal",
-  "assetManifestSha256": "fb3615fbe6695ee9805398b1f5ec33bf45f022c009d49c2dd0f90d6c8295e0b4",
+  "assetManifestSha256": "c0337f135ed80540485813c73ce6fd7ef3bc1289a0d1403f8e562dfa427aaa64",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -118,8 +118,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "8b09e53486863133bec98316b05069b2153bd9342e21be0d69f453b2f911a293",
-      "size": 395806
+      "sha256": "30d924b2e3ac916f11c4ad6ff7306679cc1806f70ae4b034e762d7195a3af365",
+      "size": 399475
     },
     {
       "path": "handover-v2.css",
@@ -133,8 +133,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "686ae25481431f3b90b097bc3a5e570c225d95fb9b3308bb290fbf2f9d27f3e3",
-      "size": 13532
+      "sha256": "04c4f447848371d128c47283cceac752f07845e7982e47b12ea5cebd1ea2e34c",
+      "size": 13578
     },
     {
       "path": "live-operation.js",
@@ -172,14 +172,19 @@
       "size": 39621
     },
     {
+      "path": "service-register.js",
+      "sha256": "c302fd6299212e0454d69f4dc9e6b9f3147b6e5a2f94acbd2da6887ee06e6147",
+      "size": 2640
+    },
+    {
       "path": "service-survey.js",
       "sha256": "2721e1009d270dd2e8ccff28965563b8c43c4aef12852f1a6d9ea96a81753647",
       "size": 4113
     },
     {
       "path": "service.css",
-      "sha256": "f601163832db3d1e318b38123d73392852ed2988f17ba7545f4cbc109c68e2ce",
-      "size": 42301
+      "sha256": "6ed712220b7317c8ad1d58f214c0a69daf1e43ccd60fea29dfaf39611824157e",
+      "size": 44273
     },
     {
       "path": "ss-scanner/core.js",
@@ -293,8 +298,8 @@
     },
     {
       "path": "web-backend.js",
-      "sha256": "6a5b30ddf5a11ccda1f84ef1095e00293676f9ecbc983a401c8d5d39e499f3f7",
-      "size": 18556
+      "sha256": "80c5d6171f1ab79e835812436dcfd069392fe331d2b65c2a5d632a34c0e85408",
+      "size": 19550
     }
   ]
 }

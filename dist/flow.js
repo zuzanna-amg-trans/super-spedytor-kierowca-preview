@@ -508,7 +508,14 @@ function previewServiceHistory(){
     today.local=true;
     records.unshift(today);
   }
-  return records;
+  if(!records.some(record=>record.date===serviceDateKey()))records.unshift({
+    id:'demo-service-today',date:serviceDateKey(),status:local?.status==='in_progress'?'in_progress':'pending',
+    definition_slug:'service-inspection',vehicle_registration:'DEMO 01'
+  });
+  for(const days of [-3,-5])records.push({id:'demo-service-missing'+days,date:serviceHistoryDateOffset(days),
+    status:'not_submitted',definition_slug:'service-inspection',vehicle_registration:'DEMO 01'});
+  records.push({id:'demo-service-unassigned',date:serviceHistoryDateOffset(-6),status:'not_assigned',definition_slug:'service-inspection'});
+  return records.sort((a,b)=>b.date.localeCompare(a.date));
 }
 const inventoryGroups=[
   {
@@ -1702,10 +1709,11 @@ function serviceTaskCard(key,index){
 }
 function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&typeof driverBridge?.backendServiceSurvey==='function';}
 function serviceHistoryRecords(){
-  const records=serviceHistoryIsLive()
-    ?Array.isArray(backendState.service_history)?backendState.service_history:[]
-    :previewServiceHistory();
-  return records.filter(record=>record?.definition_slug==='service-inspection'&&record.status==='completed');
+  const model=window.SuperSpedytorServiceRegister;
+  if(!serviceHistoryIsLive())return previewServiceHistory();
+  const completed=(Array.isArray(backendState.service_history)?backendState.service_history:[])
+    .filter(record=>record?.definition_slug==='service-inspection'&&record.status==='completed');
+  return model.records(backendState.service_registry,completed);
 }
 function serviceHistorySelectedRecord(){
   const selected=String(state.serviceHistorySelectedId??'');
@@ -1730,7 +1738,7 @@ function serviceHistoryDateLabel(value){
 function serviceHistoryTime(value){
   if(!has(value))return '';
   const date=new Date(value);
-  return Number.isNaN(date.getTime())?'':date.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  return Number.isNaN(date.getTime())?'':date.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Warsaw'});
 }
 function serviceHistoryNumber(value){
   if(!has(value))return '';
@@ -1738,12 +1746,16 @@ function serviceHistoryNumber(value){
   return Number.isFinite(number)?number.toLocaleString('pl-PL',{maximumFractionDigits:1}):String(value);
 }
 function serviceHistoryEntryButton(){
-  return `<button type="button" class="service-history-entry" data-service-panel="history"><span>${icon('clipboard')}</span><span><strong>Historia ankiet</strong><small>Daty, odpowiedzi i potwierdzenia zapisane w SS</small></span><b>Pokaż ${icon('arrow')}</b></button>`;
+  return `<button type="button" class="service-history-entry" data-service-panel="history"><span>${icon('clipboard')}</span><span><strong>Rejestr serwisów</strong><small>Wykonane ankiety, braki i kary −5 EUR</small></span><b>Pokaż ${icon('arrow')}</b></button>`;
 }
 function serviceHistoryListCard(record){
-  const progress=Number(record.completed_steps||0),total=Number(record.total_steps||0);
-  const completedAt=serviceHistoryTime(record.completed_at);
-  return `<button type="button" class="service-history-card" data-service-history-id="${esc(record.id)}"><span class="service-history-check">${icon('check')}</span><span class="service-history-card-copy"><small>${esc(serviceHistoryDateLabel(record.date))}</small><strong>Ankieta wykonana${completedAt?` · ${esc(completedAt)}`:''}</strong><em>${esc(record.vehicle_registration||'Pojazd z przypisania SS')}</em></span><span class="service-history-card-result"><b>${progress&&total?`${progress}/${total}`:'GOTOWA'}</b>${icon('arrow')}</span></button>`;
+  const meta=window.SuperSpedytorServiceRegister.status(record),completedAt=serviceHistoryTime(record.completed_at);
+  const open=record.status==='completed';
+  const tag=open?'button':'section';
+  const attributes=open?` type="button" data-service-history-id="${esc(record.id)}"`:'';
+  const result=meta.penalty?'−5 EUR':open?'PODGLĄD':meta.tone==='pending'?'W TERMINIE':'BEZ KARY';
+  const label=record.status==='needs_correction'?'DO POPRAWY':result;
+  return `<${tag}${attributes} class="service-history-card service-register-${meta.tone}"><span class="service-history-check">${icon(meta.icon)}</span><span class="service-history-card-copy"><small>${esc(serviceHistoryDateLabel(record.date))}</small><strong>${esc(meta.label)}${open&&completedAt?` · ${esc(completedAt)}`:''}</strong><em>${esc(record.vehicle_registration||'Bez przypisanego pojazdu')}${record.local?' · zapis na tym urządzeniu':''}</em>${meta.penalty?'<span class="service-register-reason">Kara za niewypełnioną ankietę</span>':''}</span><span class="service-history-card-result"><b>${label}</b>${open?icon('arrow'):''}</span></${tag}>`;
 }
 function serviceHistoryResponseMap(detail){
   return new Map((Array.isArray(detail?.step_responses)?detail.step_responses:[]).map(response=>[response.step_key,response]));
@@ -1765,18 +1777,25 @@ function serviceHistoryAnswerRow(key,response){
 function serviceHistoryDetailView(detail){
   const responses=serviceHistoryResponseMap(detail),photoCount=[...responses.values()].reduce((sum,response)=>sum+(Array.isArray(response.photos)?response.photos.length:0),0);
   const completedAt=serviceHistoryTime(detail.completed_at),odometer=serviceHistoryNumber(detail.odometer_km);
-  return `<div class="service-history-detail"><section class="service-history-owner"><span>${icon('check')}</span><div><small>REKORD SUPER SPEDYTORA</small><strong>Wykonana i zapisana</strong><p>${esc(serviceHistoryDateLabel(detail.date))}${completedAt?` · ${esc(completedAt)}`:''}</p></div><b>TYLKO ODCZYT</b></section><section class="panel service-history-facts"><div><small>Pojazd</small><strong>${esc(detail.vehicle_registration||'Z przypisania kierowcy')}</strong></div><div><small>Przebieg</small><strong>${odometer?`${esc(odometer)} km`:'Nie podano'}</strong></div><div><small>Zdjęcia</small><strong>${photoCount}</strong></div></section><div class="service-history-section-title"><span>ODPOWIEDZI KIEROWCY</span><h3>Co zostało zapisane</h3></div><div class="service-history-answers">${serviceHistoryStepOrder.map(key=>serviceHistoryAnswerRow(key,responses.get(key))).join('')}</div><p class="service-history-retention">${icon('info')}Historia pozostaje w Super Spedytorze. Czyszczenie lokalnej kopii telefonu po 00:01 nie usuwa tego rekordu.</p></div>`;
+  return `<div class="service-history-detail"><section class="service-history-owner"><span>${icon('check')}</span><div><small>${serviceHistoryIsLive()?'REKORD SUPER SPEDYTORA':'PRZYKŁAD ANKIETY'}</small><strong>${serviceHistorySelectedRecord()?.local?'Zapisana na tym urządzeniu':'Wykonana i zapisana'}</strong><p>${esc(serviceHistoryDateLabel(detail.date))}${completedAt?` · ${esc(completedAt)}`:''}</p></div><b>TYLKO ODCZYT</b></section><section class="panel service-history-facts"><div><small>Pojazd</small><strong>${esc(detail.vehicle_registration||'Z przypisania kierowcy')}</strong></div><div><small>Przebieg</small><strong>${odometer?`${esc(odometer)} km`:'Nie podano'}</strong></div><div><small>Zdjęcia</small><strong>${photoCount}</strong></div></section><div class="service-history-section-title"><span>ODPOWIEDZI KIEROWCY</span><h3>Co zostało zapisane</h3></div><div class="service-history-answers">${serviceHistoryStepOrder.map(key=>serviceHistoryAnswerRow(key,responses.get(key))).join('')}</div><p class="service-history-retention">${icon('info')}Historia pozostaje w Super Spedytorze. Czyszczenie lokalnej kopii telefonu po 00:01 nie usuwa tego rekordu.</p></div>`;
 }
 function serviceHistoryView(){
   const selected=serviceHistorySelectedRecord(),detail=serviceHistorySelectedDetail(),records=serviceHistoryRecords();
-  const live=serviceHistoryIsLive(),loading=live&&String(backendState.service_history_loading_id??'')===String(state.serviceHistorySelectedId??'');
+  const model=window.SuperSpedytorServiceRegister,live=serviceHistoryIsLive();
+  const complete=!live||model.validRegistry(backendState.service_registry),totals=model.summary(records);
+  const loading=live&&String(backendState.service_history_loading_id??'')===String(state.serviceHistorySelectedId??'');
   const error=live?(backendState.service_history_detail_error||backendState.service_history_error||''):'';
-  const title=selected?'Szczegóły ankiety':'Historia ankiet';
+  const title=selected?'Szczegóły ankiety':'Rejestr serwisów';
+  const filter=state.serviceHistoryFilter||'all';
+  const shown=records.filter(record=>filter==='missing'?record.status==='not_submitted':filter==='done'?record.status==='completed':true);
+  const period=live&&complete?backendState.service_registry.month.split('-').reverse().join('.'):'Ostatnie dni';
+  const summary=`<section class="service-history-summary"><span>${icon('clipboard')}</span><div><small>ANKIETY SERWISOWE · ${esc(period)}</small><strong>Wykonane i brakujące</strong><p>Każdy brak ankiety po terminie: −5 EUR.</p></div></section><div class="service-register-totals"><div><strong>${totals.completed}</strong><span>Wykonane</span></div><div><strong>${complete?totals.missing:'—'}</strong><span>Braki po terminie</span></div><div class="penalty"><strong>${complete?(totals.penalty?'−'+Math.abs(totals.penalty):'0')+' EUR':'—'}</strong><span>Suma kar za braki</span></div></div>`;
+  const unavailable=complete?'':`<p class="service-register-warning" role="status">${icon('info')}<span>Pełny rejestr jest niedostępny. Pokazujemy tylko wykonane ankiety. Nie można ustalić braków ani sumy kar.${backendState.service_registry_error?' '+esc(backendState.service_registry_error):''}</span></p>`;
+  const filters=`<div class="service-register-filters" role="group" aria-label="Filtr rejestru">${[['all','Wszystkie'],['missing','Braki'],['done','Wykonane']].map(([key,label])=>`<button type="button" data-service-history-filter="${key}" aria-pressed="${filter===key}">${label}</button>`).join('')}</div>`;
   const body=selected
     ?detail?serviceHistoryDetailView(detail):`<section class="service-history-loading">${loading?'<span class="backend-loader" aria-hidden="true"></span>':icon('warning')}<h3>${loading?'Pobieramy odpowiedzi…':'Nie udało się otworzyć ankiety'}</h3><p>${esc(error||'Spróbuj ponownie z listy historii.')}</p></section>`
-    :records.length?`<section class="service-history-summary"><span>${icon('clipboard')}</span><div><small>WYKONANE ANKIETY SERWISOWE</small><strong>${records.length} ${records.length===1?'zapis':'ostatnich zapisów'}</strong><p>Dotknij daty, aby zobaczyć własne odpowiedzi.</p></div><b>SS</b></section><div class="service-history-list">${records.map(serviceHistoryListCard).join('')}</div>`
-      :`<section class="service-history-empty">${icon('clipboard')}<h3>Nie ma jeszcze wykonanych ankiet</h3><p>${esc(error||'Po zapisaniu pierwszej ankiety pojawi się tutaj jej data i odpowiedzi.')}</p></section>`;
-  return `<div class="app-content service-screen service-history-screen"><div class="service-page-header"><button id="service-history-back" aria-label="${selected?'Wróć do historii ankiet':'Wróć do ankiety dziennej'}">${icon('back')}</button><div><span>${live?(backendState?.read_only===true&&backendState?.backend_environment==='dev'?'DANE Z WERSJI DEV SUPER SPEDYTORA':'DANE Z SUPER SPEDYTORA'):'PODGLĄD NA DANYCH DEMONSTRACYJNYCH'}</span><h2>${title}</h2></div><b class="service-state-badge saved">${selected?'ZAPIS':'HISTORIA'}</b></div>${body}</div>`;
+    :summary+unavailable+filters+(shown.length?`<div class="service-history-list">${shown.map(serviceHistoryListCard).join('')}</div>`:`<section class="service-history-empty">${icon('clipboard')}<h3>${filter==='missing'?(complete?'Brak zaległych ankiet':'Braki są nieznane'):filter==='done'||!complete?'Nie ma jeszcze wykonanych ankiet':'Brak pozycji w rejestrze'}</h3><p>${esc(error||'Zmień filtr, aby zobaczyć pozostałe dni.')}</p></section>`)+`<p class="service-history-retention">${icon('info')}<span>${live?'Statusy pochodzą z Super Spedytora.':'Dane demonstracyjne. Zapis dzisiejszej ankiety pozostaje na tym urządzeniu.'} Kara dotyczy tylko ankiety oznaczonej jako niewysłana po terminie. Brak przydziału i ankieta w terminie: bez kary. Kwoty w rejestrze nie potwierdzają potrącenia z rozliczenia.</span></p>`;
+  return `<div class="app-content service-screen service-history-screen"><div class="service-page-header"><button id="service-history-back" aria-label="${selected?'Wróć do rejestru serwisów':'Wróć do ankiety dziennej'}">${icon('back')}</button><div><span>${live?(backendState?.read_only===true&&backendState?.backend_environment==='dev'?'DANE Z WERSJI DEV SUPER SPEDYTORA':'DANE Z SUPER SPEDYTORA'):'PODGLĄD NA DANYCH DEMONSTRACYJNYCH'}</span><h2>${title}</h2></div><b class="service-state-badge saved">${selected?'ZAPIS':'REJESTR'}</b></div>${live&&!selected?'<button type="button" class="secondary-button service-register-refresh" id="service-register-refresh">'+icon('sync')+'Odśwież rejestr</button>':''}${body}</div>`;
 }
 function serviceHistoryActionView(){
   const selected=serviceHistorySelectedRecord();
@@ -1795,6 +1814,8 @@ function bindServiceHistoryView(){
   };
   if($('#service-history-back'))$('#service-history-back').onclick=goBack;
   if($('#service-history-action'))$('#service-history-action').onclick=goBack;
+  $$('[data-service-history-filter]').forEach(button=>button.onclick=()=>{state.serviceHistoryFilter=button.dataset.serviceHistoryFilter;render();});
+  if($('#service-register-refresh'))$('#service-register-refresh').onclick=()=>driverBridge?.backendRefresh?.();
   $$('[data-service-history-id]').forEach(button=>button.onclick=()=>{
     state.serviceHistorySelectedId=button.dataset.serviceHistoryId;
     if(serviceHistoryIsLive()){
@@ -3611,7 +3632,7 @@ const designedDriverViews=[
   {id:'tacho',title:'Tacho',icon:'clock',description:'Czas jazdy, przerwy i odpoczynki'},
   {id:'chat',title:'Czat i załączniki',icon:'chat',description:'Wiadomości i dokumentacja operacji'},
   {id:'survey',title:'Ankieta serwisowa',icon:'service',description:'Odczyty, zdjęcia i zapis na telefonie'},
-  {id:'history',title:'Historia ankiet — przykład',icon:'clipboard',description:'Lista i szczegóły wykonanych ankiet'},
+  {id:'history',title:'Rejestr serwisów — przykład',icon:'clipboard',description:'Wykonane ankiety, braki i kary −5 EUR'},
   {id:'inventory',title:'Inwentaryzacja',icon:'clipboard',description:'Wyposażenie, braki i uszkodzenia'},
   {id:'handover',title:'Przekazanie auta',icon:'truck',description:'Kabina, paka, zdjęcia i wyposażenie'},
   {id:'help',title:'Pomoc',icon:'help',description:'Instrukcje i kontakt w procesie'}
