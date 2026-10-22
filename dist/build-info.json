@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "36174b1c47189344952a9f564b104b38ed3d569b",
+  "sourceCommit": "16ed0352311da6cbd6ddd11ba041fdc608591286",
   "sourceBranch": "codex/preview-integration",
-  "androidSourceVersion": "0.1.27-internal",
-  "builtAt": "2026-10-20T19:51:13.469Z",
-  "assetManifestSha256": "cd2b5f017f02932b207dd8bc56613d263b5201e2d80901f3b4fcf9265bfc8462",
+  "androidSourceVersion": "0.1.28-internal",
+  "builtAt": "2026-10-22T00:04:48.883Z",
+  "assetManifestSha256": "fb3615fbe6695ee9805398b1f5ec33bf45f022c009d49c2dd0f90d6c8295e0b4",
   "mode": "demo-driver-preview",
   "backend": {
     "enabled": false,
@@ -12,13 +12,13 @@
     "apiBaseUrl": null
   },
   "devViewerUrl": "https://dev.amg-trans.eu/driver-app/",
-  "androidRuntimeVersion": "0.1.27-internal-test",
+  "androidRuntimeVersion": "0.1.28-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "36174b1c47189344952a9f564b104b38ed3d569b",
-    "initialIntegrationSha": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
+    "candidateSha": "16ed0352311da6cbd6ddd11ba041fdc608591286",
+    "initialIntegrationSha": "36174b1c47189344952a9f564b104b38ed3d569b",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "449f4ff5a1b89460e2cac9cab9d451b8a6daf6ae",
+    "baseSha": "36174b1c47189344952a9f564b104b38ed3d569b",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "142e32cc8906beeb938e51a5750874ae05a6e9a5"
+        "sha": "205e511b475840525a4495c47e59b750565b8328"
       },
       {
         "name": "codex/advanced-document-scanner",
@@ -56,7 +56,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-36174b1c47189344952a9f564b104b38ed3d569b/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-16ed0352311da6cbd6ddd11ba041fdc608591286/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }

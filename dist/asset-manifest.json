@@ -1,15 +1,15 @@
 {
   "protocol": 2,
-  "sourceCommit": "36174b1c47189344952a9f564b104b38ed3d569b",
+  "sourceCommit": "16ed0352311da6cbd6ddd11ba041fdc608591286",
   "sourceBranch": "codex/preview-integration",
-  "androidSourceVersion": "0.1.27-internal",
-  "assetManifestSha256": "cd2b5f017f02932b207dd8bc56613d263b5201e2d80901f3b4fcf9265bfc8462",
+  "androidSourceVersion": "0.1.28-internal",
+  "assetManifestSha256": "fb3615fbe6695ee9805398b1f5ec33bf45f022c009d49c2dd0f90d6c8295e0b4",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
       "path": "android-shell.css",
-      "sha256": "5c851808ef6aa19dcac96064c2ad95b35f4d642133c3a04b43744d0147c43eee",
-      "size": 21458
+      "sha256": "a9c2ba21ff108da07dab40850950699cc94062e27e25ef03343556c321163745",
+      "size": 22101
     },
     {
       "path": "assets/OFL.txt",
@@ -118,8 +118,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "7762848549a789c27f83c9c6d84e57bcd1875143c328c562a45065bf0fdb4ebc",
-      "size": 393137
+      "sha256": "8b09e53486863133bec98316b05069b2153bd9342e21be0d69f453b2f911a293",
+      "size": 395806
     },
     {
       "path": "handover-v2.css",

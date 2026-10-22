@@ -698,3 +698,16 @@ html.android-shell.backend-connected:not(.backend-testing) .bottom-nav button:no
 .live-loading-gallery { margin-bottom: 14px; }
 .live-loading-gallery .loading-photo-reference-grid { grid-template-columns: repeat(2, 1fr); }
 #live-cmr-missing { margin-top: 10px; }
+
+/* The first production release exposes live operations and closed CMR tasks. */
+.android-shell.production-scope .bottom-nav.five-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.production-scope [data-nav="tacho"],
+.production-scope [data-nav="chat"],
+.production-scope [data-nav="service"],
+.production-scope #workspace-choose,
+.production-scope #workspace-live,
+.production-scope [data-open-chat],
+.production-scope #help-chat,
+.production-scope #help-stop-chat,
+.production-scope #cwp-chat { display: none !important; }
+.backend-privacy-link { display: block; margin: 16px 0; text-align: center; text-decoration: underline; }

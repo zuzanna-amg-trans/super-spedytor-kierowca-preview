@@ -16,6 +16,16 @@ const driverBridge=window.SuperSpedytorNative||window.SuperSpedytorWeb;
 const browserBackend=Boolean(window.SuperSpedytorWeb)&&!window.SuperSpedytorNative;
 const installedAppVersion=(()=>{try{return driverBridge?.getAppVersion?.()||'';}catch{return '';}})();
 const appQuery=new URLSearchParams(window.location.search);
+const productionScope=appQuery.get('production')==='1';
+const privacyPolicyUrl=(()=>{
+  try{
+    const value=driverBridge?.getPrivacyPolicyUrl?.();
+    if(!value)return '';
+    const url=new URL(value);
+    return url.protocol==='https:'&&url.hostname&&!url.username&&!url.password?url.href:'';
+  }catch{return '';}
+})();
+const privacyPolicyLink=()=>privacyPolicyUrl?`<a class="backend-privacy-link" href="${esc(privacyPolicyUrl)}">Polityka prywatności</a>`:'';
 const previewMode=appQuery.get('preview')==='1';
 const nativeBackendAvailable=(()=>{try{return androidShell&&Boolean(driverBridge?.backendEnabled());}catch{return false;}})();
 const backendMode=nativeBackendAvailable&&appQuery.get('backend')==='1';
@@ -28,6 +38,8 @@ const vehicleHandoverModel=window.SuperSpedytorVehicleHandover;
 const transshipmentModel=window.SuperSpedytorTransshipment;
 const liveOperationModel=window.SuperSpedytorLiveOperation;
 document.documentElement.classList.toggle('backend-mode',backendMode);
+document.documentElement.classList.toggle('production-scope',productionScope);
+if(productionScope)$$('[data-nav="tacho"],[data-nav="chat"],[data-nav="service"]').forEach(button=>{button.hidden=true;button.disabled=true;});
 const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',transshipment:'demo-transshipment-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
 const nativeHasArrival=stopId=>{
   try{return androidShell&&Boolean(driverBridge?.hasArrival(stopId));}catch{return false;}
@@ -888,6 +900,7 @@ function revoke(record){if(record?.scanId||record?.originalUrl||record?.sourcePa
 function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);revoke(piece.photos.unload);}
 
 function openService(panel=(!serviceCompletedToday()?'survey':state.servicePanel||'survey')){
+  if(productionScope)return;
   if(backendTestWorkspace)backendActiveNav='service';
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&panel!=='history'&&!enterTestingWorkspace('survey',false))return;
   cancelArrivalCountdown(false);
@@ -944,6 +957,7 @@ function startArrivalCountdown(){
 }
 
 function go(screen){
+  if(productionScope&&screen==='chat')return;
   if(backendTestWorkspace)backendActiveNav='now';
   if(arrivalCountdown)cancelArrivalCountdown(false);
   state.serviceOpen=false;
@@ -981,6 +995,7 @@ function go(screen){
   $('#app-scroll').scrollTop=0;
 }
 function goStop(screen){
+  if(productionScope)return;
   if(arrivalCountdown)cancelArrivalCountdown(false);
   state.serviceOpen=false;
   const stop=currentStop();
@@ -2882,6 +2897,7 @@ function attachmentChoices(){
 }
 
 function openModal(type,target){
+  if(productionScope&&['designed-views','service-help'].includes(type))return;
   if(type==='collection-reference'&&!collectionModel.referenceFor(collectionGroup(target?.sourceId),collectionOrders,target?.itemId))return;
   if(type==='collection-missing'){
     const group=collectionGroup();
@@ -3050,6 +3066,11 @@ function openModal(type,target){
   }
   if(type==='reset'){title='Zresetować podgląd?';body='<p>Usuniesz postęp i wybrane pliki z tej demonstracji.</p><button class="primary-button" id="confirm-reset">Zresetuj podgląd</button>';}
 
+  if(productionScope&&['help','live-help','route-help','cwp-contact'].includes(type)){
+    title='Pomoc · Super Spedytor';
+    body='<p>Operacja pokazuje Twoją trasę z Super Spedytora. Mapa otwiera lokalizację, a Nawiguj rozpoczyna prowadzenie. Rozpoczęcie i zakończenie punktu, plomby, zdjęcia oraz dokumenty zapisują się w systemie.</p><p>W skanerze CMR sprawdź wszystkie strony, rogi, kolor, podpisy i pieczątki przed zatwierdzeniem PDF. Zadania zamkniętych CMR znajdziesz przy swojej trasie.</p><p>W razie problemu z operacją skontaktuj się ze swoim spedytorem przez ustalony kanał firmowy.</p>';
+  }
+  if(['help','live-help','route-help'].includes(type))body+=privacyPolicyLink();
   $('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="modal-title">${title}</h3><button class="icon-button" id="close-modal" aria-label="Zamknij">${icon('close')}</button></div>${body}</section></div>`;
   $('#close-modal').onclick=()=>closeModal();
   if($('#collection-missing-from-scan'))$('#collection-missing-from-scan').onclick=()=>openModal('collection-missing');
@@ -3524,6 +3545,7 @@ $$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>state.routeS
 $('#scenario-select').onchange=event=>switchScenario(event.target.value);
 $('#mobile-scenario').onchange=event=>switchScenario(event.target.value);
 $$('[data-nav]').forEach(button=>button.onclick=event=>{
+  if(productionScope&&!['now','help'].includes(button.dataset.nav)){event?.stopImmediatePropagation();return;}
   if(backendTestWorkspace)backendActiveNav=button.dataset.nav==='service'?'service':'now';
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
     event?.stopImmediatePropagation();
@@ -3606,11 +3628,16 @@ function updateDriverWorkspaceBar(){
     ?`<div><strong>Test widoków · dane przykładowe</strong><small>${browserBackend?'Zmiany zostają na tym urządzeniu':'Zmiany zostają na telefonie'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">${devConnection?'Wróć do danych DEV':'Wróć do SS'}</button>`
     :`<div><strong>${devConnection?'DEV · tylko odczyt':'Dane Super Spedytora'}</strong><small>${devConnection?'Profil, pojazd, trasa i historia ankiet':'Twoja trasa i historia ankiet'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Testuj widoki</button>`;
   $('#workspace-choose').onclick=()=>openModal('designed-views',{});
+  if(productionScope){
+    const note=bar.querySelector('small');
+    if(note)note.textContent=`Trasa i dokumenty CMR${installedAppVersion?` · ${installedAppVersion}`:''}`;
+  }
   if($('#workspace-live'))$('#workspace-live').onclick=leaveTestingWorkspace;
   const chip=$('.driver-chip');
   if(chip)chip.textContent=backendTestWorkspace?'TEST WIDOKÓW':devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR';
 }
 function enterTestingWorkspace(viewId,renderView=true){
+  if(productionScope)return false;
   if(!backendMode||backendState?.status!=='connected')return false;
   if(liveBusy||liveOperation?.finishing||backendPointActionPending||backendState?.write?.status==='pending'||pendingRequests.size>0){toast('Poczekaj na zakończenie bieżącej operacji.');return false;}
   if(liveMode())exitLiveOperation();
@@ -3646,6 +3673,7 @@ function leaveTestingWorkspace(){
   render();
 }
 function showDesignedView(viewId){
+  if(productionScope)return;
   if(!designedDriverViews.some(view=>view.id===viewId))return;
   backendActiveNav=viewId==='tacho'?'tacho':'now';
   window.SuperSpedytorTacho?.close?.();
@@ -3932,7 +3960,9 @@ function backendOperationView(){
   const readOnly=backendState.read_only===true;
   const devConnection=readOnly&&backendState.backend_environment==='dev';
   const connectionLabel=devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
-  const connectionNote=readOnly
+  const connectionNote=productionScope
+    ?'<strong>Operacje zapisują się w Super Spedytorze.</strong>Trasa, status punktu, załadunek i rozładunek, plomby, zdjęcia oraz CMR korzystają z firmowego systemu. Inwentaryzacja zamkniętych CMR jest dostępna w zadaniach przypisanych do kierowcy.'
+    :readOnly
     ?`<strong>${devConnection?'Dane z wersji dev Super Spedytora.':'Połączenie tylko do odczytu.'}</strong>Pobierasz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet. Ten podgląd nie rozpoczyna ani nie kończy operacji oraz nie wysyła zdjęć, plomb i dokumentów do SS. „Testuj widoki” otwiera osobny test na danych przykładowych.`
     :'<strong>Operacje zapisują się w Super Spedytorze.</strong>Kreatory załadunku i rozładunku zapisują plomby, zdjęcia, CMR oraz status zlecenia przez główne API i odczyt kontrolny. Historia ankiet z SS jest dostępna, jeśli obsługuje ją używany mostek aplikacji. Wszystkie zaprojektowane procesy otworzysz przez „Testuj widoki”. W trybie testowym używamy danych przykładowych, a zdjęcia, plomby i dokumenty nie są wysyłane do SS.';
   return `<div class="app-content backend-operation-screen"><div id="cmri-tasks">${inventoryTaskCards()}</div><div class="backend-session-card"><div class="backend-session-top"><div class="backend-session-identity"><small class="backend-readonly">${icon('signal')} ${connectionLabel}</small><strong>${esc(driverName)}</strong><span>${vehicleRegistration?`Pojazd ${esc(vehicleRegistration)}`:'Brak pojazdu przypisanego do aktywnej trasy'}</span></div><button id="backend-refresh" class="backend-session-action" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="backend-session-action logout" aria-label="Wyloguj z aplikacji">×</button></div>
@@ -4029,6 +4059,14 @@ function renderBackendPanel(){
   const error=status==='error'?backendState.message:'';
   const nativeRemember=!browserBackend&&typeof driverBridge?.backendLoginRemembered==='function';
   panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>${devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR KIEROWCA'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>${devConnection?'Połącz z wersją dev SS':'Zaloguj kierowcę'}</h2><p>${devConnection?'Pobierzesz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet z wersji dev Super Spedytora. Ten podgląd służy wyłącznie do odczytu.':'Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.'}</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required ${configurationError?'disabled':''}></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required ${configurationError?'disabled':''}></label>${(browserBackend||nativeRemember)&&!devConnection?`<label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym urządzeniu</span></label>`:''}${backendState.can_retry&&!configurationError?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit" ${configurationError?'disabled':''}>${icon('signal')} ${devConnection?'Połącz z wersją dev SS':'Połącz z Super Spedytorem'}</button><div class="backend-security">${icon('check')} ${devConnection?'Login i hasło nie są zapamiętywane. Sesja dotyczy wyłącznie wersji dev.':browserBackend?'Zapamiętanie sesji wymaga pliku cookie Super Spedytora. Jeśli przeglądarka go zablokuje, zalogujesz się ponownie.':nativeRemember?'Dane logowania i tokeny pozostają w warstwie natywnej. Zapamiętana sesja jest szyfrowana na tym urządzeniu.':'Dane logowania i tokeny pozostają w warstwie natywnej. Po ponownym uruchomieniu aplikacji zalogujesz się ponownie.'}</div></form>`;
+  if(productionScope){
+    const description=$('#backend-login > p',panel);
+    if(description)description.textContent='Połączenie pobierze profil kierowcy, aktualny pojazd i własną trasę. Operacje oraz zadania zamkniętych CMR korzystają z firmowego systemu.';
+  }
+  if(privacyPolicyUrl){
+    const form=$('#backend-login',panel);
+    form.insertAdjacentHTML('beforeend',privacyPolicyLink());
+  }
   $('#backend-login',panel).onsubmit=event=>{
     event.preventDefault();
     if(configurationError)return;
@@ -4046,6 +4084,7 @@ function renderBackendPanel(){
 }
 window.SuperSpedytorBackend={
   setActiveNav(nav){
+    if(productionScope&&!['now','help'].includes(nav))return;
     if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return;
     backendActiveNav=nav==='service'?'service':nav==='tacho'?'tacho':'now';
     updateDriverWorkspaceBar();
