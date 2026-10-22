@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
+  "sourceCommit": "4c632857c71f8c9852e35fafb75ea29edb469976",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-22T19:42:19.266Z",
+  "builtAt": "2026-10-22T19:46:43.560Z",
   "assetManifestSha256": "1231e97d506f66479a317158fe166822211b58d0dc8ef877ca186847c413a82a",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
-    "initialIntegrationSha": "023ca82a03d914a16ed3a0cb24f599a8e1e8b109",
+    "candidateSha": "4c632857c71f8c9852e35fafb75ea29edb469976",
+    "initialIntegrationSha": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "023ca82a03d914a16ed3a0cb24f599a8e1e8b109",
+    "baseSha": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "6c2ddefc29a10cbdbc24f996cc5f9246b4cd983c"
+        "sha": "ea7933ee8484d89618b67aedcf9c8c77d92900ed"
       },
       {
         "name": "B792-Translator-Android-Dev",
@@ -61,7 +61,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-4c632857c71f8c9852e35fafb75ea29edb469976/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
