@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "80f5bb27ca5bdf5e712bb38ba4283f94cb945deb",
+  "sourceCommit": "d211d25aa110787f9060a0c613e0fa84451b3fa3",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "b67713ac4fd0c7b44e19260e308821897137f11a0a4a323bafe2f69fe2f3fe66",
+  "assetManifestSha256": "4e6bd5fbbb5cf008d8dc54e6ebf300bc695a14850a418b21cb26af8b5d26ac5e",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -58,8 +58,8 @@
     },
     {
       "path": "cmr-inventory.js",
-      "sha256": "62e4cc01f4e0abca5e4dfc01f7f961a6336c4046f8e83510f3b18b5f98e994b9",
-      "size": 15894
+      "sha256": "5177750a289f01404602381de68c77d07f3600e26602c6f5e78fc8c90cf8e8a7",
+      "size": 15871
     },
     {
       "path": "demo-assets.js",

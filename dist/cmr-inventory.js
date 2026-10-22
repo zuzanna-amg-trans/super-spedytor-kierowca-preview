@@ -150,7 +150,7 @@
         const packed = new Set(data.attempts.filter(a => a.status === 'packed').map(a => a.cmr_item_id));
         content = '<div class="cmri-identity"><strong>' + esc(data.driver_name) + '</strong><span>' + esc(data.vehicle_registration) + '</span></div>' +
           '<div class="cmri-progress"><strong>' + data.packed + ' / ' + data.expected + '</strong><span>koszulek w kopercie</span></div>' +
-          (data.status === 'completed' ? '<section class="panel"><h3>Inwentaryzacja zakończona</h3><p>Raport z parami zdjęć zapisano w SuperSpedytorze i zakolejkowano do CWP.</p></section>'
+          (data.status === 'completed' ? '<section class="panel"><h3>Inwentaryzacja zakończona</h3><p>Raport z parami zdjęć zapisano w SuperSpedytorze.</p></section>'
             : data.status === 'cancelled' ? '<p class="cmri-warning">Zadanie anulowane po zmianie stanu dokumentów.</p>'
             : data.status === 'scope_changed' ? '<p class="cmri-warning">Plan trasy lub stan dokumentów zmienił się. Poczekaj na zakończenie rozładunków i odśwież zakres.</p>'
             : this.step(active)) +
