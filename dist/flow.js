@@ -2432,6 +2432,7 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  window.SuperSpedytorTranslator?.refresh(backendState);
   updateDriverWorkspaceBar();
   $('.device')?.classList.toggle('service-survey-focus',state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted&&(!serviceCompletedToday()||state.serviceSurvey.reopened));
   $('.device')?.classList.toggle('document-verification-mode',state.routeStop==='collection'&&Boolean(collectionGroup()?.pendingDocument));
@@ -3903,10 +3904,11 @@ const backendPointCard=(point,label,options={})=>{
   const actionIcon=action==='start'?'pin':'check';
   const wizardButton=wizard?`<button type="button" class="backend-point-action wizard" data-backend-open-wizard="${esc(pointId)}" ${writePending?'disabled':''}>${icon('box')} ${writePending?'Zapisywanie w Super Spedytorze…':`Kreator ${wizardMode==='unload'?'rozładunku':'załadunku'} · plomby, zdjęcia, CMR`}</button>`:'';
   const actionButton=actionAllowed?`<button type="button" class="backend-point-action ${action}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:wizardButton;
+  const translatorButton=window.SuperSpedytorTranslator?.button(point,backendState)||'';
   const writeFeedback=writeForPoint&&['error','uncertain'].includes(write.status)?`<div class="backend-write-feedback ${esc(write.status)}" role="alert">${icon('warning')}<span>${esc(write.message||'Nie udało się potwierdzić zapisu.')}</span></div>`:'';
   const mapActions=canShowMap||canNavigate?`<div class="backend-map-actions${canNavigate?'':' pin-only'}">${canShowMap?`<a class="backend-show-map" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')} Pinezka</a>`:''}${canNavigate?`<a class="backend-navigate" href="${navigationUrl(place)}" target="_blank" rel="noopener">${icon('nav')} Nawiguj</a>`:''}</div>`:'';
-  if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${actionButton}${writeFeedback}</section>`;
-  return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${actionButton}${writeFeedback}</section>`;
+  if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
+  return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
 };
 let cmrInventoryTasks=[];
 let cmrInventoryScreen=null;
@@ -3994,6 +3996,7 @@ function backendOperationView(){
         ${upcomingCards||`<section class="backend-upcoming-empty"><strong>Brak kolejnych operacji</strong><span>Nie ma następnej niezakończonej operacji na dziś ani jutro.</span></section>`}${historySection}<div class="backend-plan-limit">${icon('info')}<p>${sourceNote}</p></div></div></details>`:`<section class="backend-no-route">${icon('route')}<h3>Brak aktywnej trasy</h3><p>Konto kierowcy jest połączone, ale Super Spedytor nie zwrócił aktywnej trasy.</p></section>`}<div class="backend-prototype-note ${readOnly?'read-only':'live-write'}">${icon('info')}<p>${connectionNote}</p></div></div></div>`;
 }
 function renderBackendOperationScreen(scroll=0){
+  window.SuperSpedytorTranslator?.refresh(backendState);
   $('#app').innerHTML=backendOperationView();
   $('#app-action').innerHTML='';
   $('#design-context').innerHTML='';
@@ -4115,6 +4118,7 @@ window.SuperSpedytorBackend={
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;
     if(!['connected','connecting'].includes(backendState?.status))backendPointActionPending=null;
     else if(backendPointActionPending&&pointWrite?.id

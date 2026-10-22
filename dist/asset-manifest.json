@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "1d8e5ca39e151dcf591864090fe5c26c8c41e50f",
+  "sourceCommit": "59527b4b515e64f17da388ddb151ad9594904977",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "3727ad63070ada9cca8d394c70775e16a39e8bc7f0d22edb5dcfd776ee5fa2bf",
+  "assetManifestSha256": "3e58ec1366de1df0dd4a81de2e2798f8e8ab682ca936c0b947ea8cc2597f99b5",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "053fdd4c4261e5c2523566f64ffa300a1a8c3926f6c06047fd27d55d3d6e70b0",
-      "size": 399668
+      "sha256": "f8231d11ed66011cff0640479f9112f95d50b987049077802fc5e5c7e395f119",
+      "size": 399968
     },
     {
       "path": "handover-v2.css",
@@ -138,8 +138,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "be35d514fd33e787e286230672d572c61a1fadacb20a9599bc2a2a8fecef772b",
-      "size": 13640
+      "sha256": "a98546058272ec6d7977c2fa7d77feaa5038068fdf850727687c02efb644dc42",
+      "size": 13744
     },
     {
       "path": "live-operation.js",
@@ -210,6 +210,31 @@
       "path": "tacho.js",
       "sha256": "3a456fb8193789f0f03951ec11bfb089df1fe100d6c75f6c5de7c618360fbb7c",
       "size": 36493
+    },
+    {
+      "path": "translator-launcher.css",
+      "sha256": "baa6cf3a58fb2258031573e534d09f2f43f53c2f6172a3ddad915ec6dc211028",
+      "size": 337
+    },
+    {
+      "path": "translator-launcher.js",
+      "sha256": "26b09baed823805e4276d6e58a5e74304326d31d3f21d2fb687c3fda3ba95829",
+      "size": 2038
+    },
+    {
+      "path": "translator/app.js",
+      "sha256": "c191a2e4f437448aa3e7a4fa16d3e1edece09f01bf15607fe0d630801c6566ec",
+      "size": 221415
+    },
+    {
+      "path": "translator/index.html",
+      "sha256": "f3605489944d34c1fba0478bbc518c2589e01efc8a6cc6cc14758417fd2c7e03",
+      "size": 526
+    },
+    {
+      "path": "translator/styles.css",
+      "sha256": "76a08e989eb8dc020e488f4200711029fd786bb959508ee5519d81574510c68e",
+      "size": 1773
     },
     {
       "path": "transshipment.css",
