@@ -1158,7 +1158,7 @@ function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
   return `<div class="stage-header"><button id="stage-back" aria-label="Wróć do poprzedniego ekranu">${icon('back')}</button><div><span>${operationName()} · ${cargoOrderId()}</span><b>KROK ${index+1} Z 3</b></div><button class="stage-chat" data-open-chat aria-label="Otwórz czat i dokumentację">${icon('chat')}</button></div>${operationTimerView(true)}<div class="stage-progress" aria-label="Postęp dokumentacji">${steps.map((step,stepIndex)=>`<span class="${stepIndex===index?'current':progress()[stepIndex]?'done':''}"></span>`).join('')}</div><h2 class="stage-title">${title}</h2><p class="stage-description">${description}</p>`;
 }
-function sourceLabel(record){if(record.source==='transshipment')return 'Nowe zdjęcie po przeładunku';return record.source==='chat'?'Dodano z czatu':record.chatSynced?'Automatycznie w czacie':record.demo?'Dodano przykład':'Dodano z tego ekranu';}
+function sourceLabel(record){if(record.syncState&&record.syncState!=='confirmed')return 'Zapisano na telefonie · oczekuje na synchronizację';if(record.source==='transshipment')return 'Nowe zdjęcie po przeładunku';return record.source==='chat'?'Dodano z czatu':record.chatSynced?'Automatycznie w czacie':record.demo?'Dodano przykład':'Dodano z tego ekranu';}
 
 function piecePhotoButton(piece,index,side){
   const photo=piece.photos[side],near=side==='near',title=side==='unload'?'Zdjęcie z rozładunku':near?'Zdjęcie z bliska':'Zdjęcie z daleka',enabled=Boolean(piece.seal);
@@ -1206,7 +1206,7 @@ function documentsView(){
   const records=current().documents;
   const title=isLoad()?'Skan dokumentu CMR':'Skan CMR po rozładunku';
   const description=isLoad()?'Plomba dokumentu jest już zapisana. Teraz dołącz pełny, czytelny skan wypełnionego CMR.':'Plomba CMR i sztuki ładunku są już sprawdzone. Po rozładunku dołącz nowy, pełny i czytelny skan dokumentu CMR.';
-  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index,!liveMode())).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Automatycznie w czacie</strong>Każda strona CMR lub plik PDF od razu pojawi się w czacie zlecenia.</span></div></div>`;
+  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.syncState&&record.syncState!=='confirmed')?'Plik zapisano na telefonie — oczekuje na synchronizację.':records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index,!liveMode())).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Po synchronizacji w czacie</strong>Strony CMR i pliki PDF pojawią się w czacie zlecenia po potwierdzeniu wysyłki.</span></div></div>`;
 }
 function cmrRetentionView(){
   if(isLoad()||liveMode())return '';
@@ -2266,13 +2266,23 @@ const nativeCall=invoke=>new Promise((resolve,reject)=>{
   pendingRequests.set(id,{resolve,reject});
   try{invoke(id);}catch(error){pendingRequests.delete(id);reject(error);}
 });
-const nativeRequest=(method,path,body)=>nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,method,path,body?JSON.stringify(body):''));
-const nativeUpload=(path,token,fields)=>nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,path,token,JSON.stringify(fields||{})));
+const nativeRequest=(method,path,body)=>{
+  const send=()=>nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,method,path,body?JSON.stringify(body):''));
+  return window.SuperSpedytorOfflineWorkspace?.request(method,path,body,send)||send();
+};
+const nativeUpload=(path,token,fields)=>{
+  const send=()=>nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,path,token,JSON.stringify(fields||{})));
+  return window.SuperSpedytorOfflineWorkspace?.upload(path,token,fields,send)||send();
+};
+function queuePointAction(pointId,action){
+  if(window.SuperSpedytorOfflineWorkspace)window.SuperSpedytorOfflineWorkspace.point(pointId,action).catch(()=>{backendPointActionPending=null;toast('Nie zapisano statusu. Sprawdź pamięć telefonu i spróbuj ponownie.');});
+  else driverBridge?.backendPointAction(pointId,action);
+}
 const nativeCapturePhoto=()=>nativeCall(id=>window.SuperSpedytorNative.capturePhoto(id));
 const nativeScanDocument=()=>window.CmrEnhancement?.available()&&window.SuperSpedytorScanner?.scanForUpload
   ?window.SuperSpedytorScanner.scanForUpload():nativeCall(id=>window.SuperSpedytorNative.scanDocument(id));
 const nativeScanCode=()=>nativeCall(id=>window.SuperSpedytorNative.scanCode(id));
-const nativeReleaseFile=token=>{try{if(token)window.SuperSpedytorNative?.releaseFile(token);}catch{}};
+const nativeReleaseFile=token=>{try{if(token&&!window.SuperSpedytorOfflineWorkspace?.retains(token))window.SuperSpedytorNative?.releaseFile(token);}catch{}};
 const liveTargetsPath=()=>liveOperationModel.targetsPath(liveOperation.mode,liveOperation.pointId);
 let liveScanManual=false;
 let liveBusy=false;
@@ -2341,6 +2351,7 @@ async function liveAssign(target,code){
   try{
     const result=await nativeRequest('POST',unload?`routes/points/${encodeURIComponent(liveOperation.pointId)}/label-scan/`:'documents/labels/assign/',body);
     if(!liveMode())return;
+    if(result.queued){closeModal(false);render();toast('Plombę zapisano na telefonie. Potwierdzenie zgodności nastąpi po odzyskaniu internetu.');return;}
     if(!liveOperationModel.isSuccess(result)){
       const message=liveOperationModel.errorMessage(result,'Super Spedytor odrzucił tę plombę.');
       if($('#qr-error'))$('#qr-error').textContent=message;else toast(message);
@@ -2362,6 +2373,7 @@ async function liveAttach(target){
   const record=current(),cmr=target.kind==='cmr';
   liveBusy=true;
   let file=null;
+  let evidence=null;
   try{
     file=await (cmr?nativeScanDocument():nativeCapturePhoto());
     if(!liveMode()||current()!==record){if(file?.token)nativeReleaseFile(file.token);return;}
@@ -2373,19 +2385,22 @@ async function liveAttach(target){
     toast(cmr?'Wysyłam skan CMR do zlecenia…':'Wysyłam zdjęcie do zlecenia…');
     const fields=liveOperationModel.uploadFields(record.mode,target.kind);
     if(cmr)fields.route_point_id=String(record.live.pointId);
+    evidence=liveOperationModel.evidenceRecord(file,target.kind,target.pieceIndex,{});
+    evidence.syncState='local';
+    if(!addEvidence(record.mode,evidence))return;
+    record.live.fileTokens.push(file.token);
+    render();
     const result=await nativeUpload(`documents/transport/${encodeURIComponent(record.live.offerId)}/upload_document/`,file.token,fields);
     if(!liveMode()){nativeReleaseFile(file.token);return;}
-    if(!liveOperationModel.isSuccess(result)){nativeReleaseFile(file.token);liveFailure(result,'Super Spedytor nie przyjął pliku.');return;}
-    const evidence=liveOperationModel.evidenceRecord(file,target.kind,target.pieceIndex,result.body);
-    if(addEvidence(record.mode,evidence)){
-      record.live.fileTokens.push(file.token);
-      render();
-      toast(cmr?'Skan CMR zapisany w zleceniu.':'Zdjęcie zapisane w zleceniu.');
-    }
+    if(!liveOperationModel.isSuccess(result)){liveFailure(result,'Plik pozostał na telefonie. Super Spedytor nie potwierdził odbioru.');return;}
+    evidence.syncState=result.queued?'queued':'confirmed';
+    evidence.documentId=result.body?.id??null;
+    evidence.chatSynced=!result.queued;
+    render();
+    toast(result.queued?'Plik zapisano na telefonie. Oczekuje na synchronizację.':cmr?'Skan CMR zapisany w zleceniu.':'Zdjęcie zapisane w zleceniu.');
     await refreshLiveTargets();
   }catch(error){
-    if(file?.token)nativeReleaseFile(file.token);
-    toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');
+    toast('Plik pozostaje na telefonie. Nie udało się potwierdzić wysyłki. Sprawdź kolejkę synchronizacji.');
   }finally{liveBusy=false;}
 }
 function liveFinish(){
@@ -2394,7 +2409,7 @@ function liveFinish(){
   liveOperation.finishing=true;
   closeModal(false);
   toast(current().mode==='unload'?'Zamykam rozładunek w Super Spedytorze…':'Zamykam załadunek w Super Spedytorze…');
-  window.SuperSpedytorNative?.backendPointAction(liveOperation.pointId,'complete');
+  queuePointAction(liveOperation.pointId,'complete');
 }
 function liveWriteFeedback(write){
   if(!liveMode()||!write||String(write.point_id||'')!==liveOperation.pointId)return;
@@ -2432,6 +2447,7 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  window.SuperSpedytorOfflineWorkspace?.changed();
   window.SuperSpedytorTranslator?.refresh(backendState);
   updateDriverWorkspaceBar();
   $('.device')?.classList.toggle('service-survey-focus',state.serviceOpen&&state.servicePanel==='survey'&&!state.serviceSurvey.submitted&&(!serviceCompletedToday()||state.serviceSurvey.reopened));
@@ -3267,7 +3283,7 @@ function addEvidence(operationNameValue,record){
     toast(existing.kind===record.kind?'Ten plik jest już w dokumentacji. Nie dodajemy go ponownie.':'Ten plik jest już przypisany do innego materiału. Wybierz właściwy plik.');
     return false;
   }
-  record.chatSynced=record.source!=='chat';
+  record.chatSynced=record.syncState==='queued'?false:record.source!=='chat';
   if(record.kind==='cmr'){
     operation.documents.push(record);
     operation.documentsComplete=false;
@@ -3527,7 +3543,7 @@ $('#file-input').onchange=async event=>{
       if(!uploadIsCurrent()){URL.revokeObjectURL(url);return;}
       const previous=state.routeStops.fueling.photos[target.key];
       revoke(previous);
-      state.routeStops.fueling.photos[target.key]={hash:`fuel-${target.key}-${Date.now()}`,url,name:file.name,mime:file.type,demo:false,kind:'fuel-photo',source:'fuel-operation'};
+      state.routeStops.fueling.photos[target.key]={hash:`fuel-${target.key}-${Date.now()}`,url,blob:file,name:file.name,mime:file.type,demo:false,kind:'fuel-photo',source:'fuel-operation'};
       closeModal(false);
       render();
       toast('Zdjęcie z tankowania zostało dodane.');
@@ -3983,7 +3999,7 @@ function backendOperationView(){
   const historySection=operationPlan.history.length?`<details class="backend-history-details"><summary><span>Zakończone i pominięte</span><b>${operationPlan.history.length}</b></summary><div>${historyCards}</div></details>`:'';
   const readOnly=backendState.read_only===true;
   const devConnection=readOnly&&backendState.backend_environment==='dev';
-  const connectionLabel=devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
+  const connectionLabel=backendState.offline?'OFFLINE · ZAPIS NA TELEFONIE':devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
   const connectionNote=productionScope
     ?'<strong>Operacje zapisują się w Super Spedytorze.</strong>Trasa, status punktu, załadunek i rozładunek, plomby, zdjęcia oraz CMR korzystają z firmowego systemu. Inwentaryzacja zamkniętych CMR jest dostępna w zadaniach przypisanych do kierowcy.'
     :readOnly
@@ -4023,7 +4039,7 @@ function renderBackendOperationScreen(scroll=0){
     if(!window.confirm(question))return;
     backendPointActionPending={pointId,action,previousWriteId:String(backendState?.write?.id||'')};
     button.disabled=true;
-    try{driverBridge?.backendPointAction(pointId,action);}
+    try{queuePointAction(pointId,action);}
     catch{
       backendPointActionPending=null;
       button.disabled=false;
@@ -4116,10 +4132,11 @@ window.SuperSpedytorBackend={
   },
   receive(raw){
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
-    try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
+    try{const next=typeof raw==='string'?JSON.parse(raw):raw;backendState=next?.status==='connecting'&&backendState?.status==='connected'?{...backendState,refreshing:true}:next;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
     window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;
+    window.SuperSpedytorOfflineWorkspace?.receive();
     if(!['connected','connecting'].includes(backendState?.status))backendPointActionPending=null;
     else if(backendPointActionPending&&pointWrite?.id
       &&String(pointWrite.id)!==backendPointActionPending.previousWriteId

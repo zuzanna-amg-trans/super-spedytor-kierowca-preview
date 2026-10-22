@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "59527b4b515e64f17da388ddb151ad9594904977",
+  "sourceCommit": "023ca82a03d914a16ed3a0cb24f599a8e1e8b109",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "3e58ec1366de1df0dd4a81de2e2798f8e8ab682ca936c0b947ea8cc2597f99b5",
+  "assetManifestSha256": "4f5c7a8d8898d1594097398191fa538295efbf49bc4ffb54e024cebb736ee15d",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "f8231d11ed66011cff0640479f9112f95d50b987049077802fc5e5c7e395f119",
-      "size": 399968
+      "sha256": "488714452b06b0983e1ecde07d18ead7f26cf4ac4d5c3439fdd96947d7ee0fae",
+      "size": 401530
     },
     {
       "path": "handover-v2.css",
@@ -133,18 +133,33 @@
     },
     {
       "path": "handover-v2.js",
-      "sha256": "b40ee115294313fdc7d871309057db36e405864a1046319b03179c8359134914",
-      "size": 28388
+      "sha256": "3cef716373d1adca2e1346a3f7c2c150ceb164da0dfd13a65c33e358bb4914bb",
+      "size": 28719
     },
     {
       "path": "index.html",
-      "sha256": "a98546058272ec6d7977c2fa7d77feaa5038068fdf850727687c02efb644dc42",
-      "size": 13744
+      "sha256": "f14ce15e3fafa55e0b4aca389013239b4060c6ccfb75dcfadd5289264895eb55",
+      "size": 13879
     },
     {
       "path": "live-operation.js",
       "sha256": "034b78767fa6b7f1b2d6a97151207080c4824d9029d246f2200db9dc654e248e",
       "size": 20174
+    },
+    {
+      "path": "offline-store.js",
+      "sha256": "23c898c5d608406e1b8982d72138ce98986eb4f7a1ef4e703a248108a120c563",
+      "size": 5866
+    },
+    {
+      "path": "offline-workspace.js",
+      "sha256": "2421eadbc843a2fddf071ea7e2f9c4d23525c066cfd2837eaffe8198f63af073",
+      "size": 16975
+    },
+    {
+      "path": "offline.css",
+      "sha256": "dc46fc0db4e0524ae58e31ee054ce56e10205a56d3019d30182e4a4dbebf9d41",
+      "size": 1529
     },
     {
       "path": "operation-timing.js",
@@ -248,8 +263,8 @@
     },
     {
       "path": "vehicle-custody-ui.js",
-      "sha256": "623dd50b9d4d19263a61400e30a2e44e2598d969a95bef8e6d9e8fc211e15919",
-      "size": 15448
+      "sha256": "713a094445ed8dbd76366d8a0b5a3aa7e93757a69c3d146fa8ad1b0209702466",
+      "size": 15783
     },
     {
       "path": "vehicle-custody.js",
@@ -258,8 +273,8 @@
     },
     {
       "path": "vehicle-exchange.js",
-      "sha256": "434e48304cf3550665aea7203f6fa2dd77f15e3d5322f1788494be63b1ea07ba",
-      "size": 4917
+      "sha256": "33f2672e8445286693c085989929ba2a8be0fba8e5d3393c0ef486f490e417a1",
+      "size": 5497
     },
     {
       "path": "vehicle-handover.js",

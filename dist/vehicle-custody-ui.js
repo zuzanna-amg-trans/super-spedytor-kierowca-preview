@@ -72,7 +72,10 @@
         if(result(model.finish(state)))redraw();
       };
     }
-    return {state,view,actions,bind,sign:inspection=>model.sign(state,inspection),reopen:()=>{model.reopen(state);go('list');},reset:()=>{generation++;if(draftScan)root.SuperSpedytorScanner?.release(draftScan);state.extras.forEach(item=>{if(item.scan)root.SuperSpedytorScanner?.release(item.scan);});Object.assign(state,model.create(snapshot,options.role||'issue'));screen='list';selectedId=null;error='';draftScan=null;}};
+    return {state,view,actions,bind,
+      snapshot:()=>({state,screen,selectedId,page,draft,draftScan,pdfOpened}),
+      restore:saved=>{if(saved?.state){Object.assign(state,saved.state);screen=saved.screen||'list';selectedId=saved.selectedId||null;page=saved.page||0;draft=saved.draft||draft;draftScan=saved.draftScan||null;pdfOpened=Boolean(saved.pdfOpened);}},
+      sign:inspection=>model.sign(state,inspection),reopen:()=>{model.reopen(state);go('list');},reset:()=>{generation++;if(draftScan)root.SuperSpedytorScanner?.release(draftScan);state.extras.forEach(item=>{if(item.scan)root.SuperSpedytorScanner?.release(item.scan);});Object.assign(state,model.create(snapshot,options.role||'issue'));screen='list';selectedId=null;error='';draftScan=null;}};
   }
   root.SuperSpedytorVehicleCustodyUI={create};
 })(window);

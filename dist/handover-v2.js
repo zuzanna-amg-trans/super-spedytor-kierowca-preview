@@ -210,7 +210,10 @@
       };
     }
     function reset(){photoGeneration++;Object.values(protocol.photos).forEach(release);Object.values(protocol.issuePhotos).flatMap(Object.values).forEach(release);Object.assign(protocol,model.createState());custody?.reset();viewingSignedVehicle=false;capturePage=null;captureTarget=null;}
-    return {view,actions,notes,bind,reset,status:()=>({started:protocol.stepIndex>0,vehicleSigned:Boolean(custody?.state.signature),complete:mode==='inventory'?protocol.submitted:Boolean(custody?.state.completedAt),contents:custody?root.SuperSpedytorVehicleCustody.progress(custody.state):null})};
+    return {view,actions,notes,bind,reset,
+      snapshot:()=>({protocol,custody:custody?.snapshot(),viewingSignedVehicle,capturePage}),
+      restore:saved=>{if(saved?.protocol){Object.assign(protocol,saved.protocol);protocol.error=null;custody?.restore(saved.custody);viewingSignedVehicle=Boolean(saved.viewingSignedVehicle);capturePage=saved.capturePage||null;}},
+      status:()=>({started:protocol.stepIndex>0,vehicleSigned:Boolean(custody?.state.signature),complete:mode==='inventory'?protocol.submitted:Boolean(custody?.state.completedAt),contents:custody?root.SuperSpedytorVehicleCustody.progress(custody.state):null})};
   }
   root.SuperSpedytorHandoverV2={create};
 })(window);

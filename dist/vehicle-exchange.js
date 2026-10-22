@@ -30,7 +30,10 @@
         activeId=definition.id;redraw();
       });
     }
-    return {view,actions,bind,notes:()=>activeId?active().notes():'<h2>Zamiana aut</h2><p>Dwa auta, cztery niezależne protokoły. Każdy kierowca kontroluje wydanie i odbiór.</p>',reset:()=>{controllers.forEach(controller=>controller.reset());controllers.clear();activeId=null;driverId=drivers[0].id;}};
+    return {view,actions,bind,
+      snapshot:()=>({activeId,driverId,reports:Object.fromEntries([...controllers].map(([id,controller])=>[id,controller.snapshot()]))}),
+      restore:saved=>{if(!saved)return;for(const [id,report]of Object.entries(saved.reports||{})){const definition=definitions.find(item=>item.id===id);if(!definition)continue;const controller=createReport(definition.snapshot,definition.role,()=>{activeId=null;redraw();});controller.restore(report);controllers.set(id,controller);}driverId=saved.driverId||drivers[0].id;activeId=controllers.has(saved.activeId)?saved.activeId:null;},
+      notes:()=>activeId?active().notes():'<h2>Zamiana aut</h2><p>Dwa auta, cztery niezależne protokoły. Każdy kierowca kontroluje wydanie i odbiór.</p>',reset:()=>{controllers.forEach(controller=>controller.reset());controllers.clear();activeId=null;driverId=drivers[0].id;}};
   }
   root.SuperSpedytorVehicleExchange={create};
 })(window);
