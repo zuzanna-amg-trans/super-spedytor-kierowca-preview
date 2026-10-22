@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "fd2a6911434b26ebcd1faf56df3c2c233cbb0464",
+  "sourceCommit": "1d8e5ca39e151dcf591864090fe5c26c8c41e50f",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "e843b96255019e3c6d92160ad88c2116999bca36067261296fef1b6387dd649d",
+  "assetManifestSha256": "3727ad63070ada9cca8d394c70775e16a39e8bc7f0d22edb5dcfd776ee5fa2bf",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -173,8 +173,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "74a47efede47ab7ae39812fe4dde33c10c341427d8fe45b95ff382286aff5928",
-      "size": 42503
+      "sha256": "592bb40342f56f3d4beb844e6a02e98da53f48ea26c893b930e05c35e5e0b6fc",
+      "size": 42515
     },
     {
       "path": "service-register.js",

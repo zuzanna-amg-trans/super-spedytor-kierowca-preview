@@ -5,7 +5,7 @@
   const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const native=()=>window.SuperSpedytorNative;
   const available=()=>typeof native()?.scanQr==='function';
-  const androidApp=()=>new URLSearchParams(window.location.search).get('android')==='1'&&!window.SuperSpedytorWeb;
+  const androidApp=()=>!!native()&&new URLSearchParams(window.location.search).get('android')==='1'&&!window.SuperSpedytorWeb;
   const liveCamera=()=>typeof native()?.scanCmr==='function';
   // AA8 uses its own ML Kit/token bridge for live operations. The view-only
   // scanner must not pretend that bridge implements CameraX or local AI.
