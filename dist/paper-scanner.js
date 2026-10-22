@@ -4,7 +4,7 @@
   else{root.CmrPaperScanner=factory(root.SsDocumentScannerCore);root.CmrPaperScannerFactory=factory;}
 })(typeof globalThis!=='undefined'?globalThis:this,function(core){
   'use strict';
-  const VERSION='ss-driver-adc5c3b3b-1',MAX_EDGE=4200,MAX_PIXELS=11000000;
+  const VERSION='ss-driver-adc5c3b3b-2-color-normalized',MAX_EDGE=4200,MAX_PIXELS=11000000;
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const area=q=>Math.abs(q.reduce((sum,p,i)=>{const n=q[(i+1)%q.length];return sum+p.x*n.y-n.x*p.y;},0))/2;
   function order(points){
@@ -181,13 +181,66 @@
       return {data:new Uint8ClampedArray(dst.data),...size};
     });
   }
+  function normalizeColor(cv,image){
+    // Same fixed classical preset as Android. Its SCI illumination model runs
+    // natively; the browser uses this deterministic OpenCV fallback offline.
+    // Only the small illumination map is float RGB. Apply it in 128-row tiles
+    // so a full-resolution scan never needs a full float32 RGB gain image.
+    const {width,height,data}=image,owned=new Set();
+    const keep=value=>{owned.add(value);return value;};
+    const release=value=>{if(owned.delete(value))value.delete();};
+    try{
+      const rgba=keep(cv.matFromArray(height,width,cv.CV_8UC4,data)),rgb=keep(new cv.Mat());
+      cv.cvtColor(rgba,rgb,cv.COLOR_RGBA2RGB);release(rgba);
+      const scale=Math.min(1,512/Math.max(width,height));
+      const sw=Math.max(1,Math.round(width*scale)),sh=Math.max(1,Math.round(height*scale));
+      const small=keep(new cv.Mat());
+      cv.resize(rgb,small,new cv.Size(sw,sh),0,0,cv.INTER_AREA);
+      const edge=Math.max(sw,sh),kernel=2*Math.round(.0125*edge)+1;
+      const element=keep(cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(kernel,kernel)));
+      const paper=keep(new cv.Mat()),background=keep(new cv.Mat());
+      cv.dilate(small,paper,element,new cv.Point(-1,-1),1,cv.BORDER_REPLICATE,cv.morphologyDefaultBorderValue());
+      cv.GaussianBlur(paper,background,new cv.Size(0,0),.035*edge,.035*edge,cv.BORDER_REPLICATE);
+      const gains=keep(new cv.Mat(sh,sw,cv.CV_32FC3)),values=gains.data32F,bg=background.data;
+      for(let i=0;i<values.length;i++)values[i]=Math.max(.65,Math.min(4,Math.pow(.96/Math.max(bg[i]/255,.08),.82)));
+      release(background);release(paper);release(element);release(small);
+      const normalized=keep(new cv.Mat(height,width,cv.CV_8UC3));
+      const gainTile=keep(new cv.Mat()),floatTile=keep(new cv.Mat());
+      const transform=keep(cv.matFromArray(2,3,cv.CV_64F,[sw/width,0,.5*sw/width-.5,0,sh/height,.5*sh/height-.5]));
+      for(let y=0;y<height;y+=128){
+        const rows=Math.min(128,height-y);transform.data64F[5]=(y+.5)*sh/height-.5;
+        cv.warpAffine(gains,gainTile,transform,new cv.Size(width,rows),cv.INTER_LINEAR|cv.WARP_INVERSE_MAP,cv.BORDER_REPLICATE,new cv.Scalar());
+        const source=keep(rgb.roi(new cv.Rect(0,y,width,rows))),target=keep(normalized.roi(new cv.Rect(0,y,width,rows)));
+        source.convertTo(floatTile,cv.CV_32FC3);
+        cv.multiply(floatTile,gainTile,floatTile,1,cv.CV_32F);
+        floatTile.convertTo(target,cv.CV_8UC3);release(target);release(source);
+      }
+      release(transform);release(floatTile);release(gainTile);release(gains);release(rgb);
+      const lab=keep(new cv.Mat());cv.cvtColor(normalized,lab,cv.COLOR_RGB2Lab);release(normalized);
+      const luminance=keep(new cv.Mat(height,width,cv.CV_8UC1)),local=keep(new cv.Mat()),mixed=keep(new cv.Mat());
+      const clahe=keep(new cv.CLAHE(1.4,new cv.Size(8,8)));
+      // This reviewed OpenCV.js build does not bind extract/insertChannel.
+      // Copy only L; a and b remain byte-for-byte unchanged in the Lab Mat.
+      for(let i=0;i<luminance.data.length;i++)luminance.data[i]=lab.data[i*3];
+      clahe.apply(luminance,local);cv.addWeighted(luminance,.8,local,.2,0,mixed);
+      for(let i=0;i<mixed.data.length;i++)lab.data[i*3]=mixed.data[i];
+      release(clahe);release(mixed);release(local);release(luminance);
+      const color=keep(new cv.Mat());cv.cvtColor(lab,color,cv.COLOR_Lab2RGB);release(lab);
+      const blurred=keep(new cv.Mat()),sharp=keep(new cv.Mat());
+      cv.GaussianBlur(color,blurred,new cv.Size(0,0),.8,.8,cv.BORDER_REPLICATE);
+      cv.addWeighted(color,1.25,blurred,-.25,0,sharp);release(blurred);release(color);
+      const output=keep(new cv.Mat());cv.cvtColor(sharp,output,cv.COLOR_RGB2RGBA);release(sharp);
+      return {data:new Uint8ClampedArray(output.data),width,height};
+    }finally{for(const value of [...owned].reverse())value.delete();}
+  }
   function process(cv,rgba,width,height,quad,mode='color',options={refine:false}){
     if(!validQuad(quad,width,height))throw new Error('Ustaw cztery rogi kartki w kolejności. Obrys nie może się przecinać.');
     if(!core)throw new Error('Brakuje silnika dokumentów SS. Zaktualizuj aplikację.');
     const geometry=options?.refine===true?refineQuad(rgba,width,height,quad,options.aiOutline===true):{quad:quad.map(p=>({...p})),refined:false};
-    const size=dimensions(geometry.quad);
-    const result=mode==='natural'?natural(cv,rgba,width,height,geometry.quad):core.finishOpenCvExact(cv,{data:rgba,width,height},geometry.quad,{maxEdge:Math.max(size.width,size.height),neutralize:false});
-    return {...result,version:VERSION,mode:mode==='natural'?'natural':'color',quad:geometry.quad,refined:geometry.refined,sourceEngine:core.sourceCommit};
+    const cropped=natural(cv,rgba,width,height,geometry.quad);
+    const result=mode==='natural'?cropped:normalizeColor(cv,cropped);
+    return {...result,version:VERSION,mode:mode==='natural'?'natural':'color',quad:geometry.quad,refined:geometry.refined,sourceEngine:core.sourceCommit,
+      enhancementEngine:mode==='natural'?'none':'opencv-classical-rgb-v1'};
   }
   return {VERSION,MAX_EDGE,MAX_PIXELS,order,area,validQuad,dimensions,detect,process};
 });

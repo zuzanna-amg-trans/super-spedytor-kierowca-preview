@@ -1,0 +1,27 @@
+SCI low-light assistance model
+
+Original SCI implementation and checkpoint:
+Copyright (c) 2022 Tengyu Ma
+https://github.com/vis-opt-group/SCI
+CVPR subtree at f6f88fd73cd614dbeee17d61a0dbde3678b7e183
+MIT License: LICENSE-SCI.txt
+
+ONNX inference-only conversion and packaged ONNX checkpoint:
+Copyright (c) 2024 mdturp
+https://github.com/mdturp/low-light-image-enhancement
+Revision ea248be860bd4e0ab001f893cd96fb3119f82dac
+MIT License: LICENSE-SCI-ONNX.txt
+
+The port's difficult checkpoint is byte-identical to the original SCI
+CVPR/weights/difficult.pt checkpoint. The unchanged packaged ONNX is
+frontend/public/model.onnx from the pinned port revision; it has not been
+quantized, retrained, or modified by Super Spedytor.
+
+SCI reference:
+Long Ma, Tengyu Ma, Risheng Liu, Xin Fan, Zhongxuan Luo.
+Toward Fast, Flexible, and Robust Low-Light Image Enhancement. CVPR 2022.
+
+Super Spedytor supplies a bounded Android CPU runner and applies conservative
+gain fields to original image pixels. SCI supports low-light correction;
+native document background correction handles document shadows separately.
+The model does not identify document edges or reconstruct unreadable text.

@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "f76be86e5dcc485a6b77d4b9e20e2a7f2683009c",
+  "sourceCommit": "607f5db96321208e9e05d7636efb3d8529ac6a51",
   "sourceBranch": "codex/preview-integration",
-  "androidSourceVersion": "0.1.28-internal",
-  "assetManifestSha256": "c0337f135ed80540485813c73ce6fd7ef3bc1289a0d1403f8e562dfa427aaa64",
+  "androidSourceVersion": "0.1.29-internal",
+  "assetManifestSha256": "e843b96255019e3c6d92160ad88c2116999bca36067261296fef1b6387dd649d",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -92,9 +92,14 @@
       "size": 13404960
     },
     {
+      "path": "document-enhancement.js",
+      "sha256": "10d73070c952fe0c22eacd89b8b766cbf6f22da97d3cf6f21c77bfab58670096",
+      "size": 3821
+    },
+    {
       "path": "document-export.js",
-      "sha256": "b1c38363a032bb17d3814bd4746c82b977b2f5dc3f2ce2902503f99ad0da8c5f",
-      "size": 3982
+      "sha256": "b17e072d5487f192775e22e08b401edfaf4b86562ff49b384c8008304d2d3e96",
+      "size": 4350
     },
     {
       "path": "document-pdf.js",
@@ -118,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "30d924b2e3ac916f11c4ad6ff7306679cc1806f70ae4b034e762d7195a3af365",
-      "size": 399475
+      "sha256": "053fdd4c4261e5c2523566f64ffa300a1a8c3926f6c06047fd27d55d3d6e70b0",
+      "size": 399668
     },
     {
       "path": "handover-v2.css",
@@ -133,8 +138,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "04c4f447848371d128c47283cceac752f07845e7982e47b12ea5cebd1ea2e34c",
-      "size": 13578
+      "sha256": "be35d514fd33e787e286230672d572c61a1fadacb20a9599bc2a2a8fecef772b",
+      "size": 13640
     },
     {
       "path": "live-operation.js",
@@ -148,8 +153,8 @@
     },
     {
       "path": "paper-scanner.js",
-      "sha256": "e835b8d7e0838a38beae4b68027dd10e5137f032dcfc42a0af7d19d55bb51176",
-      "size": 12869
+      "sha256": "8750c990da3921ac19605452e7a68ca466207e1af5931f188c32c7c4902ddacf",
+      "size": 16743
     },
     {
       "path": "robots.txt",
@@ -168,8 +173,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "149dc6aa4faec3a13938e562575b3433e16fbbaf57a99812e2009a637324e705",
-      "size": 39621
+      "sha256": "74a47efede47ab7ae39812fe4dde33c10c341427d8fe45b95ff382286aff5928",
+      "size": 42503
     },
     {
       "path": "service-register.js",
@@ -250,6 +255,26 @@
       "path": "vendor/OpenCV-NOTICE.txt",
       "sha256": "bca6efdc15e7dac49ec88f9dfb331dd7692473e724251639e9137994edcc1a70",
       "size": 500
+    },
+    {
+      "path": "vendor/models/LICENSE-SCI-ONNX.txt",
+      "sha256": "35fdaf0f5815a0b8f172b4d23abeca72e2b7aa9a0a08fc29a8305868bb8f00b4",
+      "size": 1063
+    },
+    {
+      "path": "vendor/models/LICENSE-SCI.txt",
+      "sha256": "dd147ad8e8594ad718d51ec13e5f6776ee05c7d6ce168126d30855baee2b6fed",
+      "size": 1066
+    },
+    {
+      "path": "vendor/models/SCI-NOTICE.txt",
+      "sha256": "cce0c5ca57a4625ed8d917910d652634d3dc8442ecc1dc16650006246499e36b",
+      "size": 1170
+    },
+    {
+      "path": "vendor/models/sci-difficult.onnx",
+      "sha256": "1b8ad92668eb694c5a9ba022d802efd56b992c82ca6328fc1dbd0cbca960f8aa",
+      "size": 6813
     },
     {
       "path": "vendor/onnxruntime/LICENSE.txt",

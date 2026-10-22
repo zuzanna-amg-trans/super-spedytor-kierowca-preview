@@ -2269,7 +2269,8 @@ const nativeCall=invoke=>new Promise((resolve,reject)=>{
 const nativeRequest=(method,path,body)=>nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,method,path,body?JSON.stringify(body):''));
 const nativeUpload=(path,token,fields)=>nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,path,token,JSON.stringify(fields||{})));
 const nativeCapturePhoto=()=>nativeCall(id=>window.SuperSpedytorNative.capturePhoto(id));
-const nativeScanDocument=()=>nativeCall(id=>window.SuperSpedytorNative.scanDocument(id));
+const nativeScanDocument=()=>window.CmrEnhancement?.available()&&window.SuperSpedytorScanner?.scanForUpload
+  ?window.SuperSpedytorScanner.scanForUpload():nativeCall(id=>window.SuperSpedytorNative.scanDocument(id));
 const nativeScanCode=()=>nativeCall(id=>window.SuperSpedytorNative.scanCode(id));
 const nativeReleaseFile=token=>{try{if(token)window.SuperSpedytorNative?.releaseFile(token);}catch{}};
 const liveTargetsPath=()=>liveOperationModel.targetsPath(liveOperation.mode,liveOperation.pointId);
@@ -2363,7 +2364,7 @@ async function liveAttach(target){
   let file=null;
   try{
     file=await (cmr?nativeScanDocument():nativeCapturePhoto());
-    if(!liveMode())return;
+    if(!liveMode()||current()!==record){if(file?.token)nativeReleaseFile(file.token);return;}
     if(!file||file.status!=='ok'||!file.token){
       if(file&&file.status==='error')toast(file.message||'Nie udało się zrobić zdjęcia.');
       return;

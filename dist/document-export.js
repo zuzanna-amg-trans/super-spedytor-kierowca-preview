@@ -17,9 +17,10 @@
   function receive(result){
     try{if(typeof result==='string')result=JSON.parse(result);}catch{return;}
     const job=waiting.get(result?.requestId);
-    if(!job)return;
+    if(!job){if(result?.status==='attached'&&/^[a-f0-9]{32}$/.test(result.file?.token||''))try{globalThis.SuperSpedytorNative?.releaseFile?.(result.file.token);}catch{}return;}
     waiting.delete(result.requestId);
     if(result.status==='error')job.reject(new Error(result.message||'Nie udało się wyeksportować PDF. Spróbuj ponownie.'));
+    else if(result.status==='attached'&&result.file?.status==='ok'&&/^[a-f0-9]{32}$/.test(result.file.token||'')&&result.file.mime==='application/pdf')job.resolve({status:'attached',file:result.file});
     else if(Object.prototype.hasOwnProperty.call(messages,result.status))job.resolve({status:result.status,message:messages[result.status]});
     else job.reject(new Error('Nie udało się potwierdzić eksportu PDF.'));
   }
@@ -31,7 +32,7 @@
   }
   function cancelAll(){for(const requestId of [...waiting.keys()])cancel(requestId);}
   async function start(document,action,{native,requestId,onProgress=()=>{}}={}){
-    if(!['save','share','view'].includes(action))throw new Error('Nieobsługiwana czynność PDF.');
+    if(!['save','share','view','attach'].includes(action))throw new Error('Nieobsługiwana czynność PDF.');
     if(!native||typeof native.beginPdfExport!=='function')throw new Error('Ta instalacja nie obsługuje eksportu PDF. Zaktualizuj aplikację.');
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId||''))throw new Error('Nie udało się bezpiecznie rozpocząć eksportu PDF.');
     if(waiting.size)throw new Error('Dokończ bieżący eksport PDF.');
