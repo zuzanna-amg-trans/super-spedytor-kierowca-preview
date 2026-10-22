@@ -3,7 +3,7 @@
   "sourceCommit": "4c632857c71f8c9852e35fafb75ea29edb469976",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-22T19:46:43.560Z",
+  "builtAt": "2026-10-22T19:51:38.387Z",
   "assetManifestSha256": "1231e97d506f66479a317158fe166822211b58d0dc8ef877ca186847c413a82a",
   "mode": "demo-driver-preview",
   "backend": {
@@ -16,9 +16,9 @@
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
     "candidateSha": "4c632857c71f8c9852e35fafb75ea29edb469976",
-    "initialIntegrationSha": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
+    "initialIntegrationSha": "4c632857c71f8c9852e35fafb75ea29edb469976",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "2bb19dd42b8f25daa26a0caaa7dd1082ae5f36df",
+    "baseSha": "4c632857c71f8c9852e35fafb75ea29edb469976",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "ea7933ee8484d89618b67aedcf9c8c77d92900ed"
+        "sha": "4c632857c71f8c9852e35fafb75ea29edb469976"
       },
       {
         "name": "B792-Translator-Android-Dev",
@@ -49,11 +49,10 @@
         "sha": "a39e6db38a638083a2423a739e7ce4dfa68fda00"
       }
     ],
-    "mergedBranches": [
-      "codex/play-internal-testing"
-    ],
+    "mergedBranches": [],
     "skippedBranches": [
       "main",
+      "codex/play-internal-testing",
       "B792-Translator-Android-Dev",
       "codex/advanced-document-scanner",
       "codex/preview-demo-mode",
