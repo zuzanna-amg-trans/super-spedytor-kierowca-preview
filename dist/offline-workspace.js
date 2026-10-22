@@ -11,8 +11,11 @@
     if(!value||typeof value!=='object'||value instanceof Blob)return value;
     return Array.isArray(value)?value.map(clone):Object.fromEntries(Object.entries(value).filter(([,item])=>typeof item!=='function').map(([key,item])=>[key,clone(item)]));
   };
-  const currentScope=()=>!backendMode||backendTestWorkspace?'demo':backendState?.profile?.id!=null
-    ?`${backendState.backend_origin||'native'}|${backendState.profile.id}`:'';
+  const currentScope=()=>{
+    if(!backendMode)return 'demo';
+    const owner=backendState?.profile?.id!=null?`${backendState.backend_origin||'native'}|${backendState.profile.id}`:'';
+    return owner&&backendTestWorkspace?`${owner}|demo`:owner;
+  };
   const initialState=clone(state);
   const initialAssignment=clone(demoAssignment);
   const offline=()=>navigator.onLine===false||Boolean(backendMode&&!backendTestWorkspace&&backendState?.offline);
@@ -32,7 +35,7 @@
     document.getElementById('offline-details-panel')?.remove();
     if(!detailOpen)return;
     const panel=document.createElement('div');panel.id='offline-details-panel';panel.className='offline-details-panel';
-    panel.innerHTML=`<button id="offline-details-close" aria-label="Zamknij szczegóły">×</button><h3>Zapis i synchronizacja</h3><p>Zdjęcia, skany i postęp pozostają na tym urządzeniu. Status „wysłano” wymaga potwierdzenia systemu. ${scope==='demo'?'Dane DEMO pozostają lokalne i nie są wysyłane do SS.':'Wysyłka wznawia się po odzyskaniu połączenia i potwierdzeniu konta kierowcy.'}</p>${problem?`<p role="alert">${esc(problem)} Zachowaj otwartą aplikację i zwolnij pamięć.</p>`:''}${(queue?.list()||[]).map(job=>`<article><strong>${esc(job.label||'Zmiana statusu')}</strong><span>${esc(({queued:'Oczekuje na internet',sending:'Wysyłanie',uncertain:'Wynik nieznany — sprawdź w SS',blocked:'Wymaga sprawdzenia'})[job.state])}</span>${job.message?`<p>${esc(job.message)}</p>`:''}${['blocked','uncertain'].includes(job.state)?`<button data-offline-retry="${esc(job.id)}">Ponów po sprawdzeniu w SS</button>`:''}</article>`).join('')}<button id="offline-retry-save">Ponów zapis / sprawdź połączenie</button>`;
+    panel.innerHTML=`<button id="offline-details-close" aria-label="Zamknij szczegóły">×</button><h3>Zapis i synchronizacja</h3><p>Zdjęcia, skany i postęp pozostają na tym urządzeniu. Status „wysłano” wymaga potwierdzenia systemu. ${!backendMode||backendTestWorkspace?'Dane DEMO pozostają lokalne i nie są wysyłane do SS.':'Wysyłka wznawia się po odzyskaniu połączenia i potwierdzeniu konta kierowcy.'}</p>${problem?`<p role="alert">${esc(problem)} Zachowaj otwartą aplikację i zwolnij pamięć.</p>`:''}${(queue?.list()||[]).map(job=>`<article><strong>${esc(job.label||'Zmiana statusu')}</strong><span>${esc(({queued:'Oczekuje na internet',sending:'Wysyłanie',uncertain:'Wynik nieznany — sprawdź w SS',blocked:'Wymaga sprawdzenia'})[job.state])}</span>${job.message?`<p>${esc(job.message)}</p>`:''}${['blocked','uncertain'].includes(job.state)?`<button data-offline-retry="${esc(job.id)}">Ponów po sprawdzeniu w SS</button>`:''}</article>`).join('')}<button id="offline-retry-save">Ponów zapis / sprawdź połączenie</button>`;
     document.querySelector('.device').append(panel);
     panel.querySelector('#offline-details-close').onclick=()=>{detailOpen=false;panel.remove();};
     panel.querySelector('#offline-retry-save').onclick=()=>{flush();if(writable())driverBridge?.backendRefresh();};
