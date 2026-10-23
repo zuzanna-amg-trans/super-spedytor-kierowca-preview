@@ -301,8 +301,9 @@
   }
 
   function renderTacho(){
+    if(window.SuperSpedytorBackend?.setActiveNav?.('tacho')===false)return;
+    closeTachoModal();
     tachoOpen=true;
-    window.SuperSpedytorBackend?.setActiveNav?.('tacho');
     tq('.device')?.classList.add('tacho-mode');
     tq('#app').innerHTML=tachoView();
     tq('#app-action').innerHTML='';
@@ -496,7 +497,6 @@
     if(button.dataset.nav==='tacho'){
       event.preventDefault();
       event.stopPropagation();
-      closeTachoModal();
       renderTacho();
       return;
     }

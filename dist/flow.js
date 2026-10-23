@@ -1110,15 +1110,17 @@ function demoTravelTimingView(){
   if(!has(arrival))return '';
   return `<div class="travel-arrival">${icon('clock')}<span><small>${first?'BĄDŹ NA MIEJSCU':'AKTUALNE ETA'}</small><strong>${esc(arrival)}</strong></span><p>${first?`Operacja o ${esc(item.appointment)}<br>15 minut wcześniej`:'Przewidywany dojazd<br>do celu podróży'}</p></div>`;
 }
+function travelDestinationCard({place,operationLabel,access=[],timing='',actions='',details='',schematicLabel='Punkt trasy',demoRoadLabels=false}){
+  return `<section class="travel-map-card" aria-label="Cel podróży: ${esc(place.company)}">
+    <div class="travel-destination"><span class="travel-destination-icon">${icon('pin')}</span><div><small>${esc(operationLabel)}${place.country?` · ${esc(place.country)}`:''}</small><h3>${esc(place.company)}</h3>${place.address||place.countryName?`<p>${esc(place.address||place.countryName)}</p>`:''}${access.length?`<div class="travel-access">${access.map(item=>`<span>${esc(item)}</span>`).join('')}</div>`:''}</div></div>
+    ${timing}${actions}${details}
+    <div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat celu podróży — otwórz mapę, aby zobaczyć rzeczywistą trasę"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-street thin" d="M121 -14 C127 44 152 67 197 91 S282 128 315 220"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg>${demoRoadLabels?'<span class="travel-map-road road-one">A15</span><span class="travel-map-road road-two">N210</span>':''}<span class="travel-map-pin">${icon('pin')}</span><span class="travel-map-label">${esc(schematicLabel)}</span></div>
+  </section>`;
+}
 function travelView(){
   const place=currentPlace(),data=optional();
   const access=[has(data.gate)?`Brama ${data.gate}`:null,has(data.parking)?`Parking ${data.parking}`:null,has(data.ramp)?`Rampa ${data.ramp}`:null].filter(Boolean);
-  return `<div class="app-content travel-screen">${pageHeading(true)}
-    <section class="travel-map-card" aria-label="Cel podróży: ${esc(place.company)}">
-      <div class="travel-destination"><span class="travel-destination-icon">${icon('pin')}</span><div><small>${isLoad()?'ZAŁADUNEK':'ROZŁADUNEK'} · ${esc(place.country)}</small><h3>${esc(place.company)}</h3><p>${esc(place.address||place.countryName)}</p>${access.length?`<div class="travel-access">${access.map(item=>`<span>${esc(item)}</span>`).join('')}</div>`:''}</div></div>
-      ${demoTravelTimingView()}${locationActionsView(place,'travel-goal-actions')}
-      <div class="travel-map-visual"><svg viewBox="0 0 360 210" role="img" aria-label="Schemat trasy do punktu"><path class="map-street major" d="M-20 166 C55 128 93 139 151 101 S278 36 390 52"/><path class="map-street" d="M18 15 C62 62 79 96 91 224"/><path class="map-street" d="M185 -15 C177 37 198 88 243 128 S304 176 374 193"/><path class="map-street thin" d="M-10 79 C66 88 103 60 148 46 S254 35 370 98"/><path class="map-street thin" d="M121 -14 C127 44 152 67 197 91 S282 128 315 220"/><path class="map-route" d="M38 181 C82 146 112 153 148 119 S217 78 276 65"/><circle class="map-start" cx="38" cy="181" r="7"/><circle class="map-destination" cx="276" cy="65" r="9"/></svg><span class="travel-map-road road-one">A15</span><span class="travel-map-road road-two">N210</span><span class="travel-map-pin">${icon('pin')}</span><span class="travel-map-label">Punkt ${operationGenitive()}</span></div>
-    </section>${unloadBeforeArrivalView()}${demoOperationPlanView()}</div>`;
+  return `<div class="app-content travel-screen">${pageHeading(true)}${travelDestinationCard({place,operationLabel:isLoad()?'ZAŁADUNEK':'ROZŁADUNEK',access,timing:demoTravelTimingView(),actions:locationActionsView(place,'travel-goal-actions'),schematicLabel:`Punkt ${operationGenitive()}`,demoRoadLabels:true})}${unloadBeforeArrivalView()}${demoOperationPlanView()}</div>`;
 }
 function placeView(){
   const place=currentPlace(),data=optional();
@@ -3589,6 +3591,7 @@ $$('[data-nav]').forEach(button=>button.onclick=event=>{
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
     event?.stopImmediatePropagation();
     if(button.dataset.nav==='chat'){showDesignedView('chat');return;}
+    if(button.dataset.nav==='tacho'){showDesignedView('tacho');return;}
     if(button.dataset.nav==='help'){openModal('live-help',{});return;}
     if(button.dataset.nav==='service'&&typeof driverBridge?.backendServiceSurvey!=='function'){showDesignedView('history');return;}
     backendActiveNav=button.dataset.nav==='service'?'service':'now';
@@ -3882,6 +3885,24 @@ const backendCargoLabel=point=>{
   if(/load|pickup|załad/.test(operation))return 'CO ŁADUJESZ';
   return 'TOWAR DLA TEJ OPERACJI';
 };
+const backendPointActions=(point,options={})=>{
+  const statusCode=String(point?.status||'').toLowerCase();
+  const pointId=has(point.id)?String(point.id):'';
+  const write=backendState?.write||{};
+  const writeForPoint=pointId&&String(write.point_id||'')===pointId;
+  const writePending=writeForPoint&&write.status==='pending';
+  const capabilities=backendState?.read_only===true?[]:Array.isArray(backendState?.write_capabilities)?backendState.write_capabilities:[];
+  const action=statusCode==='pending'?'start':statusCode==='in_progress'?'complete':'';
+  const wizardMode=backendState?.read_only!==true&&options.nearest&&window.SuperSpedytorNative?.backendRequest?liveOperationModel?.wizardMode(point):null;
+  const wizard=Boolean(wizardMode);
+  const actionAllowed=Boolean(options.nearest&&pointId&&action&&capabilities.includes(action))&&!wizard;
+  const actionLabel=action==='start'?'Dotarłem · rozpocznij operację':'Zakończ operację';
+  const actionIcon=action==='start'?'pin':'check';
+  const wizardButton=wizard?`<button type="button" class="${options.designed?'primary-button live-operation-action':'backend-point-action wizard'}" data-backend-open-wizard="${esc(pointId)}" ${writePending?'disabled':''}>${icon('box')} ${writePending?'Zapisywanie w Super Spedytorze…':`Kreator ${wizardMode==='unload'?'rozładunku':'załadunku'} · plomby, zdjęcia, CMR`}</button>`:'';
+  const actionButton=actionAllowed?`<button type="button" class="${options.designed?'primary-button live-operation-action':`backend-point-action ${action}`}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:wizardButton;
+  const writeFeedback=writeForPoint&&['error','uncertain'].includes(write.status)?`<div class="backend-write-feedback ${esc(write.status)}" role="alert">${icon('warning')}<span>${esc(write.message||'Nie udało się potwierdzić zapisu.')}</span></div>`:'';
+  return {actionButton,writeFeedback};
+};
 const backendPointCard=(point,label,options={})=>{
   if(!point)return `<section class="backend-point backend-point-empty"><small>${esc(label)}</small><strong>Brak punktu w odpowiedzi backendu</strong></section>`;
   const place=backendPointPlace(point);
@@ -3907,21 +3928,8 @@ const backendPointCard=(point,label,options={})=>{
   const operationFacts=[point.planned_stay_minutes?`Planowany postój ${point.planned_stay_minutes} min`:null,point.actual_arrival_datetime?`Przyjazd ${backendClock(point.actual_arrival_datetime)}`:null].filter(Boolean);
   const cargoCard=cargoRelevant?`<div class="backend-point-cargo${cargo?'':' missing'}">${icon('box')}<span><small>${backendCargoLabel(point)}</small><strong>${esc(cargo||'Opis ładunku jest niedostępny — odśwież dane')}</strong></span></div>`:'';
   const statusText=late?'SPÓŹNIENIE':status;
-  const pointId=has(point.id)?String(point.id):'';
-  const write=backendState?.write||{};
-  const writeForPoint=pointId&&String(write.point_id||'')===pointId;
-  const writePending=writeForPoint&&write.status==='pending';
-  const capabilities=backendState?.read_only===true?[]:Array.isArray(backendState?.write_capabilities)?backendState.write_capabilities:[];
-  const action=statusCode==='pending'?'start':statusCode==='in_progress'?'complete':'';
-  const wizardMode=backendState?.read_only!==true&&options.nearest&&window.SuperSpedytorNative?.backendRequest?liveOperationModel?.wizardMode(point):null;
-  const wizard=Boolean(wizardMode);
-  const actionAllowed=Boolean(options.nearest&&pointId&&action&&capabilities.includes(action))&&!wizard;
-  const actionLabel=action==='start'?'Dotarłem · rozpocznij operację':'Zakończ operację';
-  const actionIcon=action==='start'?'pin':'check';
-  const wizardButton=wizard?`<button type="button" class="backend-point-action wizard" data-backend-open-wizard="${esc(pointId)}" ${writePending?'disabled':''}>${icon('box')} ${writePending?'Zapisywanie w Super Spedytorze…':`Kreator ${wizardMode==='unload'?'rozładunku':'załadunku'} · plomby, zdjęcia, CMR`}</button>`:'';
-  const actionButton=actionAllowed?`<button type="button" class="backend-point-action ${action}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:wizardButton;
+  const {actionButton,writeFeedback}=backendPointActions(point,options);
   const translatorButton=window.SuperSpedytorTranslator?.button(point,backendState)||'';
-  const writeFeedback=writeForPoint&&['error','uncertain'].includes(write.status)?`<div class="backend-write-feedback ${esc(write.status)}" role="alert">${icon('warning')}<span>${esc(write.message||'Nie udało się potwierdzić zapisu.')}</span></div>`:'';
   const mapActions=canShowMap||canNavigate?`<div class="backend-map-actions${canNavigate?'':' pin-only'}">${canShowMap?`<a class="backend-show-map" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')} Pinezka</a>`:''}${canNavigate?`<a class="backend-navigate" href="${navigationUrl(place)}" target="_blank" rel="noopener">${icon('nav')} Nawiguj</a>`:''}</div>`:'';
   if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
   return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
@@ -3968,6 +3976,37 @@ function openInventory(id){
   cmrInventoryScreen.start();
 }
 window.SuperSpedytorOpenInventory=id=>{if(backendState?.status==='connected')openInventory(Number(id));};
+function backendDesignedTiming(point,{firstOperation=false,history=false}={}){
+  const planned=point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start;
+  const actual=history?(point.actual_end_datetime||point.actual_arrival_datetime):point.actual_arrival_datetime;
+  const inProgress=String(point.status||'').toLowerCase()==='in_progress';
+  const appointment=backendClock(point.time_window_start);
+  const arrivalBy=firstOperation&&appointment?operationTimingModel.subtractMinutesFromClock(appointment,15):'';
+  const clock=arrivalBy||backendClock(history?actual||planned:planned);
+  const label=history?(point.actual_end_datetime?'ZAKOŃCZONO':'PRZYJAZD'):inProgress?'PLANOWANY CZAS':arrivalBy?'BĄDŹ NA MIEJSCU':'AKTUALNE ETA';
+  const hint=arrivalBy?`Operacja o ${esc(appointment)} · 15 min wcześniej`:history?'Według odczytu TMS':point.live_eta_datetime||point.eta_datetime?'Przewidywany dojazd':'Planowany czas operacji';
+  const timing=clock?`<div class="travel-arrival">${icon('clock')}<span><small>${label}</small><strong>${esc(clock)}</strong></span><p>${hint}</p></div>`:'';
+  const window=has(point.time_window_start)||has(point.time_window_end)?`<div class="live-time-window"><small>OKNO CZASOWE</small><strong>${esc(backendClock(point.time_window_start)||'—')}–${esc(backendClock(point.time_window_end)||'—')}</strong></div>`:'';
+  const actualFacts=[actual&&!history?`Przyjazd ${backendClock(actual)}`:null,has(point.planned_stay_minutes)?`Planowany postój ${point.planned_stay_minutes} min`:null].filter(Boolean);
+  const facts=actualFacts.length?`<div class="travel-access live-operation-facts">${actualFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:'';
+  return timing+window+facts;
+}
+function backendDesignedCargo(point){
+  const cargo=backendCargoText(point);
+  const notes=point.notes;
+  if(!cargo&&!notes)return '';
+  return `<section class="panel live-operation-details">${cargo?`<div class="travel-cargo-heading"><span>${icon('box')}</span><div><small>${backendCargoLabel(point)}</small><strong>${esc(cargo)}</strong></div></div>`:''}${notes?`<div class="additional-info-row guidance-row"><span class="additional-info-icon">${icon('info')}</span><div><small>Instrukcje od spedytora</small><p>${esc(notes)}</p></div></div>`:''}</section>`;
+}
+function backendDesignedPlanItem(point,{history=false,current=false}={}){
+  const place=backendPointPlace(point),cargo=backendCargoText(point);
+  const clock=backendClock(history?(point.actual_end_datetime||point.actual_arrival_datetime||point.planned_at||point.time_window_start):(point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start));
+  const hasLocation=has(place.address)||(has(place.latitude)&&has(place.longitude));
+  return `<article class="operation-plan-item ${current?'current':''}"><div class="operation-plan-time"><small>${history?'WYKONANO':'PLAN'}</small><strong>${esc(clock||'—')}</strong></div><div class="operation-plan-line"><span></span></div><div class="operation-plan-detail"><div><b>${esc(point.operation_type_display||point.operation_type||'Operacja')}</b>${point.status_display?`<em>${esc(point.status_display)}</em>`:''}</div><h4>${esc(place.company)}</h4>${place.address?`<p>${esc(place.address)}</p>`:''}${point.order_number?`<p>${esc(point.order_number)}</p>`:''}${has(point.transport_offer)?`<p class="operation-plan-reference">Oferta ${esc(point.transport_offer)}</p>`:''}${hasLocation?`<a class="operation-plan-pin" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')}<span>Pinezka</span></a>`:''}${cargo?`<div class="operation-plan-cargo">${icon('box')}<span><strong>${esc(cargo)}</strong></span></div>`:''}${point.notes?`<p>${esc(point.notes)}</p>`:''}</div></article>`;
+}
+function backendDesignedPlanGroups(points,dates={},options={}){
+  const groups=['today','tomorrow','other'].map(day=>({day,points:points.filter(point=>(point.day==='today'||point.day==='tomorrow'?point.day:'other')===day)})).filter(group=>group.points.length);
+  return groups.map(group=>`<section class="live-operation-day"><div class="section-heading"><h3>${esc(backendDayLabel(group.day,dates))}</h3><span>${group.points.length}</span></div><div class="operation-plan-list">${group.points.map(point=>backendDesignedPlanItem(point,{...options,current:point===backendLastNearest})).join('')}</div></section>`).join('');
+}
 function backendOperationView(){
   const profile=backendState.profile||{};
   const vehicle=backendState.vehicle||profile.driver_profile?.current_vehicle||null;
@@ -3976,40 +4015,34 @@ function backendOperationView(){
   const operationsDates=routeStatus.operations_dates||{};
   const operationPlan=backendDriverOperationPlan(activeRoutes);
   backendLastNearest=operationPlan.nearest||null;
-  const route=operationPlan.nearest?.__route||activeRoutes[0]||null;
+  const point=operationPlan.nearest;
+  const route=point?.__route||activeRoutes[0]||null;
   const driverName=routeStatus.driver_name||`${profile.first_name||''} ${profile.last_name||''}`.trim()||profile.username||'Kierowca';
-  const progress=route?Number(route.progress_percentage||0):0;
-  const firstOperation=route&&Number(route.completed_points||0)===0;
-  const routeLabel=route?.route_name||route?.route_id&&`Trasa ${route.route_id}`||'Brak aktywnej trasy';
-  const planPoints=[operationPlan.nearest,...operationPlan.upcoming].filter(Boolean);
-  const upcomingCount=planPoints.length;
-  const upcomingCards=backendOperationGroups(planPoints,operationsDates);
-  const historyCards=backendOperationGroups(operationPlan.history,operationsDates,{history:true});
-  const upcomingCaption=backendUpcomingCaption(planPoints,operationsDates);
   const vehicleRegistration=vehicle?.registration_number||route?.vehicle||'';
-  const travelling=String(operationPlan.nearest?.status||'').toLowerCase()==='pending';
-  const nearestCard=operationPlan.nearest
-    ?backendPointCard(operationPlan.nearest,travelling?'CEL PODRÓŻY':'OPERACJA W TOKU',{firstOperation:firstOperation&&operationPlan.source==='legacy',nearest:true,destination:travelling})
-    :`<section class="backend-upcoming-empty backend-nearest-empty"><strong>Brak niezakończonej operacji</strong><span>Super Spedytor nie zwrócił operacji oczekującej ani trwającej na dziś lub jutro.</span></section>`;
-  const sourceNote=operationPlan.source==='operations'
-    ?`Plan obejmuje operacje na dziś i jutro zwrócone przez TMS (${esc(operationsDates.today||'dzisiaj')}–${esc(operationsDates.tomorrow||'jutro')}). Licznik eskalacji nie jest jeszcze częścią tego API.`
-    :operationPlan.source==='mixed'
-      ?'Część aktywnych tras nie zwróciła pola operations. Widok uzupełnia ich plan danymi current_point i next_point.'
-      :'Backend nie zwrócił jeszcze pola operations. Widok awaryjnie korzysta z bieżącego i następnego punktu.';
-  const historySection=operationPlan.history.length?`<details class="backend-history-details"><summary><span>Zakończone i pominięte</span><b>${operationPlan.history.length}</b></summary><div>${historyCards}</div></details>`:'';
+  const routeLabel=route?.route_name||route?.route_id&&`Trasa ${route.route_id}`||'Brak aktywnej trasy';
+  const travelling=String(point?.status||'').toLowerCase()==='pending';
   const readOnly=backendState.read_only===true;
   const devConnection=readOnly&&backendState.backend_environment==='dev';
   const connectionLabel=backendState.offline?'OFFLINE · ZAPIS NA TELEFONIE':devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
-  const connectionNote=productionScope
-    ?'<strong>Operacje zapisują się w Super Spedytorze.</strong>Trasa, status punktu, załadunek i rozładunek, plomby, zdjęcia oraz CMR korzystają z firmowego systemu. Inwentaryzacja zamkniętych CMR jest dostępna w zadaniach przypisanych do kierowcy.'
-    :readOnly
-    ?`<strong>${devConnection?'Dane z wersji dev Super Spedytora.':'Połączenie tylko do odczytu.'}</strong>Pobierasz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet. Ten podgląd nie rozpoczyna ani nie kończy operacji oraz nie wysyła zdjęć, plomb i dokumentów do SS. „Testuj widoki” otwiera osobny test na danych przykładowych.`
-    :'<strong>Operacje zapisują się w Super Spedytorze.</strong>Kreatory załadunku i rozładunku zapisują plomby, zdjęcia, CMR oraz status zlecenia przez główne API i odczyt kontrolny. Historia ankiet z SS jest dostępna, jeśli obsługuje ją używany mostek aplikacji. Wszystkie zaprojektowane procesy otworzysz przez „Testuj widoki”. W trybie testowym używamy danych przykładowych, a zdjęcia, plomby i dokumenty nie są wysyłane do SS.';
-  return `<div class="app-content backend-operation-screen"><div id="cmri-tasks">${inventoryTaskCards()}</div><div class="backend-session-card"><div class="backend-session-top"><div class="backend-session-identity"><small class="backend-readonly">${icon('signal')} ${connectionLabel}</small><strong>${esc(driverName)}</strong><span>${vehicleRegistration?`Pojazd ${esc(vehicleRegistration)}`:'Brak pojazdu przypisanego do aktywnej trasy'}</span></div><button id="backend-refresh" class="backend-session-action" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="backend-session-action logout" aria-label="Wyloguj z aplikacji">×</button></div>
-    ${route?`<div class="backend-operations-heading backend-destination-heading"><small>${travelling?'W DRODZE':'TERAZ'}</small><h3>${travelling?'Cel podróży':'Bieżąca operacja'}</h3></div>${nearestCard}
-      <details class="backend-upcoming-details"><summary><span class="backend-upcoming-icon">${icon('pin')}</span><span><strong>Podgląd najbliższych operacji</strong><small>${esc(upcomingCaption)}</small></span><b>${upcomingCount}</b></summary><div class="backend-upcoming-body">
-        <section class="backend-route-context"><span><small>AKTYWNA TRASA</small><strong>${esc(routeLabel)}</strong><em>${Number(route.completed_points||0)} z ${Number(route.total_points||0)} punktów</em></span><b>${Math.round(progress)}%</b><div class="backend-progress"><span style="width:${Math.max(0,Math.min(100,progress))}%"></span></div></section>
-        ${upcomingCards||`<section class="backend-upcoming-empty"><strong>Brak kolejnych operacji</strong><span>Nie ma następnej niezakończonej operacji na dziś ani jutro.</span></section>`}${historySection}<div class="backend-plan-limit">${icon('info')}<p>${sourceNote}</p></div></div></details>`:`<section class="backend-no-route">${icon('route')}<h3>Brak aktywnej trasy</h3><p>Konto kierowcy jest połączone, ale Super Spedytor nie zwrócił aktywnej trasy.</p></section>`}<div class="backend-prototype-note ${readOnly?'read-only':'live-write'}">${icon('info')}<p>${connectionNote}</p></div></div></div>`;
+  const session=`<div class="live-driver-session"><div><small>${icon('signal')} ${connectionLabel}</small><strong>${esc(driverName)}${vehicleRegistration?` · ${esc(vehicleRegistration)}`:''}</strong></div><div class="live-session-controls"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></div></div>`;
+  const tasks=`<div id="cmri-tasks">${inventoryTaskCards()}</div>`;
+  if(!point)return `<div class="app-content travel-screen live-designed-screen">${session}${tasks}<div class="operation-heading"><div><div class="overline">${esc(routeLabel)}</div><h2>${route?'Trasa zakończona':'Brak aktywnej trasy'}</h2></div></div><section class="panel"><p>${route?'Nie ma kolejnej niezakończonej operacji. Odśwież plan, jeśli spedytor dodał nowe zadanie.':'Super Spedytor nie zwrócił aktywnej trasy dla Twojego konta.'}</p></section></div>`;
+  const place=backendPointPlace(point);
+  const operationLabel=point.operation_type_display||point.operation_type||'Operacja';
+  const heading=`<div class="operation-heading"><div><div class="overline">${esc(point.order_number||routeLabel)}</div><h2>${travelling?'Cel podróży':esc(operationLabel)}</h2></div></div><div class="heading-status"><span class="badge ${travelling?'orange':'green'}">${icon(travelling?'route':'check')}${travelling?'W drodze':esc(point.status_display||'Operacja w toku')}</span>${place.country?`<span class="arrival-time">${esc(place.country)} · ${esc(place.countryName)}</span>`:''}</div>`;
+  const {actionButton,writeFeedback}=backendPointActions(point,{nearest:true,designed:true});
+  const destination=travelDestinationCard({place,operationLabel,timing:backendDesignedTiming(point,{firstOperation:operationPlan.source==='legacy'&&Number(route.completed_points||0)===0}),actions:locationActionsView(place,'travel-goal-actions'),schematicLabel:'Schemat celu · otwórz mapę'});
+  const translatorButton=window.SuperSpedytorTranslator?.button(point,backendState)||'';
+  const currentDetails=travelling?'':backendDesignedCargo(point);
+  const actionPanel=actionButton?`<div class="live-operation-controls">${actionButton}${writeFeedback}</div>`:writeFeedback;
+  const planPoints=[point,...operationPlan.upcoming];
+  const historySection=operationPlan.history.length?`<details class="live-history-details"><summary>Zakończone i pominięte · ${operationPlan.history.length}</summary>${backendDesignedPlanGroups(operationPlan.history,operationsDates,{history:true})}</details>`:'';
+  const routeProgress=has(route.progress_percentage)?Number(route.progress_percentage):NaN;
+  const routeCounts=has(route.completed_points)&&has(route.total_points)&&Number.isFinite(Number(route.completed_points))&&Number.isFinite(Number(route.total_points))?`${Number(route.completed_points)} z ${Number(route.total_points)} punktów`:'';
+  const routeFacts=[routeCounts,Number.isFinite(routeProgress)?`${routeProgress}% trasy`:null].filter(Boolean);
+  const plan=`<details class="operation-plan operation-plan-preview backend-upcoming-details"><summary><span class="operation-plan-summary-icon">${icon('pin')}</span><span><strong>Podgląd najbliższych operacji</strong><small>${esc(backendUpcomingCaption(planPoints,operationsDates))}</small></span><span class="operation-plan-chevron">${icon('arrow')}</span></summary><div class="operation-plan-body"><div class="live-route-context"><small>AKTYWNA TRASA</small><strong>${esc(routeLabel)}</strong>${routeFacts.length?`<span>${routeFacts.map(esc).join(' · ')}</span>`:''}</div>${backendDesignedPlanGroups(planPoints,operationsDates)}${historySection}</div></details>`;
+  const modeNote=readOnly?`<p class="live-mode-note">${devConnection?'Dane z wersji DEV.':'Połączenie tylko do odczytu.'} Podgląd nie zapisuje zmian w TMS.</p>`:'';
+  return `<div class="app-content travel-screen live-designed-screen">${session}${heading}${destination}${translatorButton}${currentDetails}${actionPanel}${tasks}${plan}${modeNote}</div>`;
 }
 function renderBackendOperationScreen(scroll=0){
   window.SuperSpedytorTranslator?.refresh(backendState);
@@ -4125,10 +4158,11 @@ function renderBackendPanel(){
 }
 window.SuperSpedytorBackend={
   setActiveNav(nav){
-    if(productionScope&&!['now','help'].includes(nav))return;
-    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return;
+    if(productionScope&&!['now','help'].includes(nav))return false;
+    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return false;
     backendActiveNav=nav==='service'?'service':nav==='tacho'?'tacho':'now';
     updateDriverWorkspaceBar();
+    return true;
   },
   receive(raw){
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;

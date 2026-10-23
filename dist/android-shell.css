@@ -679,11 +679,41 @@ html.android-shell .backend-panel {
 .backend-readonly-note strong { display: block; color: #4f5f49; }
 .backend-logout { margin-top: 16px; background: transparent; color: #7c4c34; border: 1px solid #e3cbbd; }
 
-html.android-shell.backend-connected:not(.backend-testing) .bottom-nav {
+/* The connected app keeps the same navigation and destination layout as the
+   designed driver views. The historical first-scope profile remains isolated. */
+.live-driver-session { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.live-driver-session > div:first-child { flex: 1; min-width: 0; }
+.live-driver-session small { display: flex; align-items: center; gap: 5px; color: #7c8b71; font-size: 8px; font-weight: 800; letter-spacing: .6px; }
+.live-driver-session small .icon { width: 12px; height: 12px; }
+.live-driver-session strong { display: block; margin-top: 5px; color: #3e4639; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.live-session-controls { display: flex; gap: 6px; }
+.live-session-controls .icon-button { display: grid; place-items: center; width: 36px; min-width: 36px; height: 36px; border: 1px solid #e2e7dd; border-radius: 11px; background: #fff; color: #73806b; font-size: 19px; }
+.live-session-controls .icon-button .icon { width: 16px; height: 16px; }
+.live-time-window { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 16px 12px; color: #78846f; }
+.live-time-window small { font-size: 8px; font-weight: 800; letter-spacing: .5px; }
+.live-time-window strong { font-size: 11px; font-variant-numeric: tabular-nums; }
+.live-operation-details { padding: 13px; margin-top: 13px; }
+.live-operation-details .travel-cargo-heading { padding-bottom: 0; }
+.live-operation-details .additional-info-row { margin-top: 10px; }
+.live-operation-controls { margin-top: 16px; }
+.live-operation-action { width: 100%; min-height: 54px; font-size: 12px; line-height: 1.5; }
+.live-route-context { padding: 4px 2px 13px; border-bottom: 1px solid var(--line); }
+.live-route-context small, .live-route-context strong, .live-route-context span { display: block; }
+.live-route-context small { color: #8c9684; font-size: 8px; font-weight: 800; letter-spacing: .7px; }
+.live-route-context strong { margin-top: 4px; font-size: 12px; line-height: 1.5; }
+.live-route-context span { margin-top: 4px; color: #86917c; font-size: 9px; }
+.live-operation-day .section-heading { margin: 14px 0 0; }
+.live-operation-day .section-heading h3 { font-size: 10px; }
+.live-operation-day .operation-plan-list { padding: 0; }
+.live-history-details { margin-top: 12px; border-top: 1px solid var(--line); }
+.live-history-details > summary { padding: 13px 0; color: #7f8b75; font-size: 10px; cursor: pointer; }
+.live-mode-note { margin: 14px 0 0; color: #7d8974; font-size: 9px; line-height: 1.7; }
+
+html.android-shell.backend-connected.production-scope:not(.backend-testing) .bottom-nav {
   grid-template-columns: 1fr;
 }
 
-html.android-shell.backend-connected:not(.backend-testing) .bottom-nav button:not([data-nav="now"]) {
+html.android-shell.backend-connected.production-scope:not(.backend-testing) .bottom-nav button:not([data-nav="now"]) {
   display: none;
 }
 
