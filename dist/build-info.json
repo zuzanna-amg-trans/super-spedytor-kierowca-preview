@@ -3,7 +3,7 @@
   "sourceCommit": "6196077898a1ae945abb45340bf8794f1e645e26",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-23T20:56:59.884Z",
+  "builtAt": "2026-10-23T21:01:42.213Z",
   "assetManifestSha256": "27f5b578d82f597ee3057e6d12723bc33b47b0366122f2d0e9c3273e33f124d2",
   "mode": "demo-driver-preview",
   "backend": {
@@ -16,9 +16,9 @@
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
     "candidateSha": "6196077898a1ae945abb45340bf8794f1e645e26",
-    "initialIntegrationSha": "907740db089c684d7d9b55e89cc380f2abaaeaa0",
+    "initialIntegrationSha": "6196077898a1ae945abb45340bf8794f1e645e26",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "907740db089c684d7d9b55e89cc380f2abaaeaa0",
+    "baseSha": "6196077898a1ae945abb45340bf8794f1e645e26",
     "branches": [
       {
         "name": "main",
@@ -61,11 +61,10 @@
         "sha": "a39e6db38a638083a2423a739e7ce4dfa68fda00"
       }
     ],
-    "mergedBranches": [
-      "codex/play-internal-testing"
-    ],
+    "mergedBranches": [],
     "skippedBranches": [
       "main",
+      "codex/play-internal-testing",
       "AA21-Pelne-Widoki-Wydanie-Produkcyjne",
       "B792-Translator-Android-Dev",
       "B857-Designed-Driver-UI",
