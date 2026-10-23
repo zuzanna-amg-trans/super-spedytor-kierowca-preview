@@ -50,12 +50,26 @@
       this.root = document.createElement('section'); this.root.className = 'cmri-screen';
       this.root.setAttribute('aria-label', 'Inwentaryzacja zamkniętych CMR');
       options.host.appendChild(this.root);
+      this.unsubscribe=options.subscribe?.(()=>{
+        if(this.disposed)return;
+        if(options.isActive&&!options.isActive()){this.close();return;}
+        this.syncReadPending=true;
+        if(!this.busy)this.refreshQueuedPhotos();
+      });
     }
     path(action) { return 'documents/cmr-inventory/' + this.options.id + '/' + (action ? action + '/' : ''); }
-    async start() { await this.run(() => this.read()); }
+    async start() { await this.run(async()=>{await this.options.prepare?.();await this.read();}); }
+    pendingPhotos(){return this.options.pendingUploads?.()||[];}
+    async refreshQueuedPhotos(){
+      if(this.disposed||this.busy||this.options.isActive&&!this.options.isActive())return;
+      this.syncReadPending=false;
+      await this.run(()=>this.read(),true);
+    }
     async read() {
       const data = await this.options.request('GET', this.path());
-      if (this.disposed) return;
+      if (this.disposed||this.options.isActive&&!this.options.isActive()) return;
+      await this.options.reconcile?.(data);
+      if(this.disposed||this.options.isActive&&!this.options.isActive())return;
       this.data = data;
       const active = activeAttempt(data);
       if (this.pendingScan && (data.attempts || []).some(a => a.request_key === this.pendingScan.request_key)) this.pendingScan = null;
@@ -84,7 +98,13 @@
         this.error = error.message || 'Nie udało się potwierdzić zapisu. Odśwież stan zadania.';
         // A lost response may hide a committed write. Recover server state before another action.
         try { await this.read(); } catch (_) { /* Keep the original error and last confirmed state. */ }
-      } finally { this.busy = false; if (!this.disposed) this.render(); }
+      } finally {
+        this.busy = false;
+        if (!this.disposed) {
+          this.render();
+          if(this.syncReadPending)setTimeout(()=>this.refreshQueuedPhotos(),0);
+        }
+      }
     }
     async mutate(action, body) {
       await this.options.request('POST', this.path(action), body); await this.read();
@@ -99,11 +119,18 @@
     }
     async photo(side) {
       const attempt = activeAttempt(this.data);
+      if(!attempt||attempt['has_'+side]||this.pendingPhotos().length)return;
       const file = this.files[side] || await this.options.capture();
       if (!file) return;
+      if(this.disposed||this.options.isActive&&!this.options.isActive()){this.options.release(file.token);return;}
       this.files[side] = {...file, attemptId: attempt.id};
-      await this.options.upload(this.path('photo'), file.token, {side, attempt_id: String(attempt.id)});
-      this.options.release(file.token); delete this.files[side];
+      const result=await this.options.upload(this.path('photo'), file.token, {side, attempt_id: String(attempt.id),file_sha256:file.sha256});
+      if(result?.queued||result?.offline_queued){
+        this.files[side].queued=true;
+        this.render();
+        return;
+      }
+      // Only a scoped owner GET can move the screen past this photograph.
       await this.read();
     }
     gallery(attempt) {
@@ -128,6 +155,13 @@
       const title = {back: '2. Zdjęcie tyłu z plombą', front: '3. Odwróć koszulkę — zdjęcie przodu',
         verify: '4. Porównaj CMR', processing: 'Porównywanie dokumentu…', confirm: '5. Sprawdź komplet',
         pack: '6. Włóż do tekturowej koperty', review: 'Dokument wymaga wyjaśnienia'}[step];
+      const pending=this.pendingPhotos();
+      if(pending.length){
+        const uncertain=pending.some(job=>['uncertain','blocked'].includes(job.state));
+        return '<section class="panel"><h3>'+title+'</h3><p class="cmri-note" role="status">Zdjęcie zapisano na telefonie. '+
+          (uncertain?'Wynik wysyłki wymaga sprawdzenia w kolejce synchronizacji. Nie rób kolejnego zdjęcia tej strony.':'Oczekuje na potwierdzenie w Super Spedytorze.')+
+          '</p></section>';
+      }
       let body = '';
       if (step === 'back' || step === 'front') body = '<p>' + (step === 'back'
         ? 'Pokaż całą tylną stronę koszulki. Numer plomby musi być czytelny.'
@@ -209,7 +243,8 @@
       };
     }
     close() {
-      this.disposed = true; clearTimeout(this.timer);
+      if(this.disposed)return;
+      this.disposed = true; clearTimeout(this.timer);this.unsubscribe?.();
       Object.values(this.files).forEach(file => this.options.release(file.token));
       this.root.remove(); this.options.onClose();
     }

@@ -3683,6 +3683,7 @@ function enterTestingWorkspace(viewId,renderView=true){
   if(!backendMode||backendState?.status!=='connected')return false;
   if(liveBusy||liveOperation?.finishing||backendPointActionPending||backendState?.write?.status==='pending'||pendingRequests.size>0){toast('Poczekaj na zakończenie bieżącej operacji.');return false;}
   if(liveMode())exitLiveOperation();
+  if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen){cmrInventoryScreen.close();cmrInventoryScreen=null;}
   backendTestWorkspace=true;
   document.documentElement.classList.add('backend-testing');
   driverBridge?.backendTestingMode?.(true);
@@ -3934,6 +3935,7 @@ const backendPointCard=(point,label,options={})=>{
   if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
   return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
 };
+let surveyRegisterScreen=null;
 let cmrInventoryTasks=[];
 let cmrInventoryScreen=null;
 let cmrInventoryRefreshAt=0;
@@ -3965,10 +3967,16 @@ function bindInventoryCards(){
 function openInventory(id){
   if(!window.SuperSpedytorNative?.backendRequest)return;
   if(cmrInventoryScreen)cmrInventoryScreen.close();
+  const owner=String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??'');
   if(!window.SuperSpedytorCmrInventory)return;
   cmrInventoryScreen=new window.SuperSpedytorCmrInventory.Screen({
     id,host:document.querySelector('.device'),request:inventoryRequest,
-    upload:async(path,token,fields)=>{const result=await nativeUpload(path,token,fields);if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Zdjęcie nie zostało potwierdzone.'));return result.body;},
+    upload:async(path,token,fields)=>{const result=await nativeUpload(path,token,fields);if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Zdjęcie nie zostało potwierdzone.'));return {...result.body,queued:result.queued===true};},
+    prepare:()=>window.SuperSpedytorOfflineWorkspace?.prepare(),
+    pendingUploads:()=>window.SuperSpedytorOfflineWorkspace?.inventoryUploads(id)||[],
+    reconcile:data=>window.SuperSpedytorOfflineWorkspace?.reconcileInventory(id,data),
+    subscribe:listener=>window.SuperSpedytorOfflineWorkspace?.subscribeInventory(listener),
+    isActive:()=>backendState?.status==='connected'&&!backendTestWorkspace&&owner===String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??''),
     capture:async()=>{const result=await nativeCapturePhoto();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zrobić zdjęcia.');return result;},
     scan:async()=>{const result=await nativeScanCode();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zeskanować plomby.');return result.code;},
     release:nativeReleaseFile,onClose:()=>{cmrInventoryScreen=null;refreshInventoryTasks(true);}
@@ -4045,6 +4053,7 @@ function backendOperationView(){
   return `<div class="app-content travel-screen live-designed-screen">${session}${heading}${destination}${translatorButton}${currentDetails}${actionPanel}${tasks}${plan}${modeNote}</div>`;
 }
 function renderBackendOperationScreen(scroll=0){
+  if(typeof surveyRegisterScreen!=='undefined')surveyRegisterScreen?.destroy();
   window.SuperSpedytorTranslator?.refresh(backendState);
   $('#app').innerHTML=backendOperationView();
   $('#app-action').innerHTML='';
@@ -4082,6 +4091,29 @@ function renderBackendOperationScreen(scroll=0){
   $('#app-scroll').scrollTop=scroll;
 }
 function renderBackendServiceHistoryScreen(scroll=0){
+  if(!productionScope&&window.SuperSpedytorSurveyRegister
+    &&(window.SuperSpedytorNative?.backendRequest||driverBridge?.backendSurveyRegister)){
+    surveyRegisterScreen?.destroy();
+    const owner=String(backendState?.profile?.id??'');
+    $('#app-action').innerHTML='';
+    $('#design-context').innerHTML='';
+    $('#preview-label').textContent='REJESTR ANKIET / SUPER SPEDYTOR';
+    surveyRegisterScreen=window.SuperSpedytorSurveyRegister.mount($('#app'),{
+      request:async month=>{
+        const result=browserBackend
+          ?await driverBridge.backendSurveyRegister(month)
+          :await nativeRequest('GET','driver-tasks/survey-history/'+(month?'?month='+month:''));
+        if(!liveOperationModel.isSuccess(result))throw new Error('Nie udało się pobrać rejestru.');
+        return result.body;
+      },
+      isActive:()=>backendState?.status==='connected'&&!backendTestWorkspace
+        &&backendActiveNav==='service'&&String(backendState?.profile?.id??'')===owner,
+      onBack:()=>{surveyRegisterScreen?.destroy();backendActiveNav='now';render();}
+    });
+    $('#app-scroll').scrollTop=scroll;
+    return;
+  }
+
   $('#app').innerHTML=serviceModuleSwitch('history')+serviceHistoryView();
   $('#app-action').innerHTML=serviceHistoryActionView();
   $('#design-context').innerHTML=serviceHistoryDesignNotes();
@@ -4166,10 +4198,11 @@ window.SuperSpedytorBackend={
   },
   receive(raw){
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
-    try{const next=typeof raw==='string'?JSON.parse(raw):raw;backendState=next?.status==='connecting'&&backendState?.status==='connected'?{...backendState,refreshing:true}:next;}
+    try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
     window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;
+    if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen?.options?.isActive&&!cmrInventoryScreen.options.isActive())cmrInventoryScreen.close();
     window.SuperSpedytorOfflineWorkspace?.receive();
     if(!['connected','connecting'].includes(backendState?.status))backendPointActionPending=null;
     else if(backendPointActionPending&&pointWrite?.id
@@ -4178,6 +4211,7 @@ window.SuperSpedytorBackend={
       &&(!pointWrite.point_id||String(pointWrite.point_id)===String(backendPointActionPending.pointId))
       &&(!pointWrite.action||pointWrite.action===backendPointActionPending.action))backendPointActionPending=null;
     if(backendState?.status!=='connected'){
+      if(typeof surveyRegisterScreen!=='undefined')surveyRegisterScreen?.destroy();
       backendTestWorkspace=false;
       document.documentElement.classList.remove('backend-testing');
       driverBridge?.backendTestingMode?.(false);

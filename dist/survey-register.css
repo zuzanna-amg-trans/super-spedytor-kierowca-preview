@@ -1,0 +1,16 @@
+.survey-register{padding:16px 12px 32px;color:var(--ink,#202124);font-size:14px}
+.survey-register-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.survey-register-header h2{margin:0;font-size:24px}.survey-register-header p{margin:6px 0;color:#667085;line-height:1.5}
+.survey-register button{min-height:44px;min-width:44px;padding:8px 12px;border:1px solid #d9dde3;border-radius:12px;background:#fff;color:#202124;font:inherit;font-weight:700}
+.survey-register button:disabled{opacity:.4}.survey-register-month{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.survey-register-month h3{margin:0;font-size:16px;text-transform:capitalize}.survey-register-count{display:flex;align-items:center;justify-content:space-between;margin:10px 0;color:#667085;font-size:12px}
+.survey-register table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d9dde3}
+.survey-register th,.survey-register td{text-align:left;vertical-align:top;padding:12px 8px;border-bottom:1px solid #e6e8ec}
+.survey-register thead th{background:#f5f6f8;font-size:12px;color:#667085}.survey-register time{white-space:nowrap;font-size:12px}
+.survey-register small{display:block;margin-top:4px;color:#667085;font-size:11px;line-height:1.5}
+.survey-register-item{padding:4px 0 12px;overflow-wrap:anywhere}.survey-register-item+.survey-register-item{border-top:1px solid #e6e8ec;padding-top:12px}
+.survey-register-status{display:block;margin-top:8px;font-weight:800}.survey-register-status.sent{color:#157342}
+.survey-register-status.pending{color:#936000}.survey-register-status.missing{color:#b42318}.survey-register-status.muted{color:#667085}
+.survey-register-amount{display:inline-block;margin-top:6px;padding:5px 9px;border:1px solid #f1b8b2;border-radius:9px;background:#fff0ee;color:#b42318}
+.survey-register-empty{font-size:12px;color:#667085}.survey-register [role=alert]{padding:16px;background:#fff0ee;color:#b42318;border-radius:12px}
+.survey-register-entry{display:block;min-height:48px;margin:12px 0;padding:12px 16px;border:1px solid #d9dde3;border-radius:12px;background:#fff;color:#202124;font:inherit;font-weight:800}

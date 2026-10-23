@@ -14,7 +14,8 @@
   const readonlyState=next=>({...next,backend_environment:'dev',backend_origin:BACKEND_ORIGIN,read_only:true,write_capabilities:[]});
   const authPaths=new Set(['token/','token/refresh/','logout/']);
   const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/','driver-tasks/survey-history/']);
-  const allowedRequest=(method,path)=>method==='POST'?authPaths.has(path):method==='GET'&&(readPaths.has(path)||/^documents\/transport\/[1-9]\d*\/$/.test(path)||/^driver-tasks\/[1-9]\d*\/$/.test(path));
+  const isSurveyRegisterPath=path=>/^driver-tasks\/survey-history\/(\?month=[0-9]{4}-(0[1-9]|1[0-2]))?$/.test(path);
+  const allowedRequest=(method,path)=>method==='POST'?authPaths.has(path):method==='GET'&&(readPaths.has(path)||isSurveyRegisterPath(path)||/^documents\/transport\/[1-9]\d*\/$/.test(path)||/^driver-tasks\/[1-9]\d*\/$/.test(path));
   const MAX_BYTES=2*1024*1024;
   const REMEMBER_KEY='ss-web-dev-remember';
   const TIMEOUT_MS=25000;
@@ -105,7 +106,7 @@
   }
   async function performRequest(method,path,body,authenticated,gen,cookieChanging=false){
     alive(gen);
-    if(!/^[a-z0-9][a-z0-9/-]*\/$/i.test(path)||path.includes('..'))throw new SessionError('Nieprawidłowy adres żądania');
+    if((!/^[a-z0-9][a-z0-9/-]*\/$/i.test(path)&&!isSurveyRegisterPath(path))||path.includes('..'))throw new SessionError('Nieprawidłowy adres żądania');
     if(!allowedRequest(method,path))throw new SessionError('Podgląd DEV pozwala wyłącznie na odczyt danych kierowcy i obsługę sesji',403);
     const headers={Accept:'application/json'};
     if(authenticated){
@@ -319,6 +320,14 @@
       const gen=generation;
       publish({...current,write:{id:crypto.randomUUID(),status:'error',message:'Podgląd DEV jest tylko do odczytu. Operacja nie została wysłana.'}},gen);
       return Promise.resolve();
+    },
+    async backendSurveyRegister(month=''){
+      const gen=generation;
+      if(current.status!=='connected')throw new SessionError('Zaloguj się ponownie');
+      if(month&&(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month)||Number(month.slice(0,4))<1))throw new SessionError('Nieprawidłowy miesiąc');
+      const body=await getObject('driver-tasks/survey-history/'+(month?'?month='+month:''),gen);
+      alive(gen);
+      return {status:200,body};
     },
     backendServiceSurvey(rawId){
       const gen=generation;

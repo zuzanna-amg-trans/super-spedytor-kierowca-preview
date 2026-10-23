@@ -7,6 +7,8 @@
   let scope='',ready=false,loading=false,revision=0,saveTimer,saveChain=Promise.resolve(),queue,queueReady;
   let saving=false,problem='',savedAt='',syncing=false,pointWaiter=null,epoch=0,detailOpen=false;
   let serviceArchive={};
+  const inventoryListeners=new Set();
+  function inventoryChanged(){for(const listener of inventoryListeners)listener();}
   const clone=value=>{
     if(!value||typeof value!=='object'||value instanceof Blob)return value;
     return Array.isArray(value)?value.map(clone):Object.fromEntries(Object.entries(value).filter(([,item])=>typeof item!=='function').map(([key,item])=>[key,clone(item)]));
@@ -19,7 +21,7 @@
   const initialState=clone(state);
   const initialAssignment=clone(demoAssignment);
   const offline=()=>navigator.onLine===false||Boolean(backendMode&&!backendTestWorkspace&&backendState?.offline);
-  const writable=()=>backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendState?.read_only!==true&&Boolean(scope)&&scope!=='demo';
+  const writable=()=>backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&!backendState?.refreshing&&backendState?.read_only!==true&&ready&&!loading&&currentScope()===scope&&Boolean(scope)&&scope!=='demo';
   function banner(){
     let bar=document.getElementById('offline-status');
     if(!bar){bar=document.createElement('div');bar.id='offline-status';bar.className='offline-status';bar.setAttribute('role','status');document.querySelector('.app-header')?.after(bar);}
@@ -108,7 +110,7 @@
         if(restored.exchange)exchangeController().restore?.(restored.exchange);
         vehicleExchangeActive=Boolean(restored.vehicleExchangeActive);savedAt=restored.savedAt||'';
       }
-      queue=model.createQueue({db,key:`queue:${scope}`,onChange:banner,id:()=>`offline-${Date.now()}-${Math.random().toString(36).slice(2)}`});
+      queue=model.createQueue({db,key:`queue:${scope}`,onChange:()=>{banner();inventoryChanged();},id:()=>`offline-${Date.now()}-${Math.random().toString(36).slice(2)}`});
       queueReady=queue.restore();await queueReady;
       if(token!==epoch)return;
       problem='';ready=true;loading=false;document.querySelector('.device')?.classList.remove('offline-restoring');render();banner();sync();
@@ -121,10 +123,13 @@
   }
   const queuedResult=job=>({status:202,queued:true,queueId:job.id,body:{offline_queued:true},message:'Zapisano na telefonie. Oczekuje na synchronizację.'});
   async function enqueue(payload){
-    try{await ensure();const job=await queue.add(payload);await flush();setTimeout(sync,0);return queuedResult(job);}
+    try{const owner=currentScope();await ensure();if(owner!==currentScope()||scope!==owner||!writable())throw new Error('Konto kierowcy zmieniło się.');const job=await queue.add(payload);await flush();setTimeout(sync,0);return queuedResult(job);}
     catch(error){problem='Nie udało się trwale zapisać kolejki. Zwolnij pamięć telefonu i ponów zapis.';banner();throw error;}
   }
+  const paused=()=>backendMode&&(backendState?.status!=='connected'||backendState?.refreshing);
+  const pausedResult=()=>({status:409,message:'Poczekaj na potwierdzenie konta kierowcy. Zmiana nie została wysłana.'});
   async function request(method,path,body,send){
+    if(method!=='GET'&&paused())return pausedResult();
     if(method==='GET'){
       const key=`read:${currentScope()}:${path}`;
       if(offline()){const cached=await db.get(key);return cached?{...cached,cached:true}:{status:0,message:'Brak zapisanego podglądu tych danych. Pobierz je po odzyskaniu połączenia.'};}
@@ -135,11 +140,16 @@
     return send();
   }
   async function upload(path,token,fields,send){
+    if(paused())return pausedResult();
     if(!writable())return send();
     // Preserve the file before attempting any network write, including on-line failures.
-    return enqueue({kind:'upload',path,token,fields,label:fields.document_type?.includes('cmr')?'Skan CMR':'Zdjęcie',dedupe:`file:${token}`,pointId:liveOperation?.pointId});
+    const inventory=/^documents\/cmr-inventory\/\d+\/photo\/$/.test(path);
+    if(inventory&&!/^[a-f0-9]{64}$/.test(fields.file_sha256||''))throw new Error('Nie można potwierdzić sumy kontrolnej zdjęcia. Zrób zdjęcie ponownie.');
+    return enqueue({kind:'upload',path,token,fields,label:inventory?'Zdjęcie inwentaryzacji CMR':fields.document_type?.includes('cmr')?'Skan CMR':'Zdjęcie',
+      dedupe:inventory?`inventory:${path}:${fields.attempt_id}:${fields.side}`:`file:${token}`,pointId:inventory?undefined:liveOperation?.pointId});
   }
   async function point(pointId,action){
+    if(paused()){backendPointActionPending=null;toast(pausedResult().message);return;}
     if(!writable()){driverBridge?.backendPointAction(pointId,action);return;}
     await enqueue({kind:'point',pointId,action,label:action==='start'?'Dotarłem · rozpoczęcie operacji':'Zakończenie operacji',dedupe:`point:${pointId}:${action}`});
     if(liveOperation)liveOperation.finishing=false;
@@ -171,14 +181,24 @@
       const path=job.path.replace(/photo\/$/,'');
       const check=await nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,'GET',path,''));
       if(!outcome(check))return {state:Number(check.status)>0?'blocked':'queued',message:'Nie potwierdzono aktualnego zadania CMR.'};
-      if(!(check.body?.attempts||[]).some(attempt=>String(attempt.id)===String(job.fields.attempt_id)))
-        return {state:'blocked',message:'Próba skanowania CMR zmieniła się. Zdjęcie pozostaje na telefonie.'};
+      const attempt=(check.body?.attempts||[]).find(row=>String(row.id)===String(job.fields.attempt_id));
+      if(!attempt||!['front','back'].includes(job.fields.side)||!/^[a-f0-9]{64}$/.test(job.fields.file_sha256||''))
+        return {state:'blocked',message:'Próba lub suma zdjęcia CMR wymaga sprawdzenia. Plik pozostaje na telefonie.'};
+      if(attempt['has_'+job.fields.side])return attempt.hashes?.[job.fields.side]===job.fields.file_sha256
+        ?{confirmed:true}:{state:'blocked',message:'W Super Spedytorze jest inne zdjęcie tej strony. Zachowano plik na telefonie.'};
     }
     result=job.kind==='upload'
       ?await nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,job.path,job.token,JSON.stringify(job.fields||{})))
       :await nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,job.method,job.path,JSON.stringify(job.body||{})));
     if(token!==epoch)return {state:'uncertain'};
     if(outcome(result)){
+      if(job.kind==='upload'&&/^documents\/cmr-inventory\/\d+\/photo\/$/.test(job.path)){
+        const check=await nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,'GET',job.path.replace(/photo\/$/,''),''));
+        if(token!==epoch)return {state:'uncertain'};
+        const attempt=(check.body?.attempts||[]).find(row=>String(row.id)===String(job.fields.attempt_id));
+        if(!outcome(check)||!attempt?.['has_'+job.fields.side]||attempt.hashes?.[job.fields.side]!==job.fields.file_sha256)
+          return {state:'uncertain',message:'Nie potwierdzono dokładnego zdjęcia w Super Spedytorze. Nie rób kolejnego zdjęcia.'};
+      }
       if(job.kind==='upload'){
         for(const operation of Object.values(state.operations))for(const evidence of allEvidence(operation))if(evidence.token===job.token){evidence.syncState='confirmed';evidence.documentId=result.body?.id??null;evidence.chatSynced=true;}
         changed();await flush();
@@ -211,7 +231,26 @@
     if(currentScope()!==scope||!ready){open();return;}
     banner();sync();
   }
-  window.SuperSpedytorOfflineWorkspace={changed,flush,request,upload,point,receive,ready:()=>ready,retains:token=>Boolean(queue?.list().some(job=>job.token===token)||Object.values(state.operations).some(operation=>allEvidence(operation).some(record=>record.token===token&&record.syncState&&record.syncState!=='confirmed')))};
+  function inventoryUploads(taskId){
+    if(!ready||currentScope()!==scope)return [];
+    const path=`documents/cmr-inventory/${taskId}/photo/`;
+    return (queue?.list()||[]).filter(job=>job.kind==='upload'&&job.path===path);
+  }
+  async function reconcileInventory(taskId,data){
+    if(!writable()||currentScope()!==scope||String(data?.id)!==String(taskId))return;
+    const token=epoch,activeQueue=queue;
+    for(const job of inventoryUploads(taskId)){
+      const attempt=(data.attempts||[]).find(row=>String(row.id)===String(job.fields?.attempt_id));
+      if(job.state!=='sending'&&['front','back'].includes(job.fields?.side)&&attempt?.['has_'+job.fields.side]&&attempt.hashes?.[job.fields.side]===job.fields.file_sha256){
+        if(token!==epoch||currentScope()!==scope)return;
+        await activeQueue.remove(job.id);
+        nativeReleaseFile(job.token);
+      }
+    }
+  }
+  window.SuperSpedytorOfflineWorkspace={changed,flush,request,upload,point,receive,
+    prepare:ensure,inventoryUploads,reconcileInventory,
+    subscribeInventory(listener){inventoryListeners.add(listener);return()=>inventoryListeners.delete(listener);},ready:()=>ready,retains:token=>Boolean(queue?.list().some(job=>job.token===token)||Object.values(state.operations).some(operation=>allEvidence(operation).some(record=>record.token===token&&record.syncState&&record.syncState!=='confirmed')))};
   document.addEventListener('input',()=>setTimeout(changed,0));
   document.addEventListener('change',()=>setTimeout(changed,0));
   document.addEventListener('click',event=>{if(!event.target.closest('#offline-status,#offline-details-panel'))setTimeout(changed,0);});

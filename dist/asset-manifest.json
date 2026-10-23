@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "907740db089c684d7d9b55e89cc380f2abaaeaa0",
+  "sourceCommit": "6196077898a1ae945abb45340bf8794f1e645e26",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "893001934805e26c80accb4c44ff8f8115cff0ab7256df9be214af7f70e81962",
+  "assetManifestSha256": "27f5b578d82f597ee3057e6d12723bc33b47b0366122f2d0e9c3273e33f124d2",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -58,8 +58,8 @@
     },
     {
       "path": "cmr-inventory.js",
-      "sha256": "5177750a289f01404602381de68c77d07f3600e26602c6f5e78fc8c90cf8e8a7",
-      "size": 15871
+      "sha256": "a0796ba9f1aab3d731cb4d402766da360a06a0dcd6dd3cb233f872b220bf2fa6",
+      "size": 17651
     },
     {
       "path": "demo-assets.js",
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "e214bdc7a339d3992e226dde5bf0029724fad6af6faaffaeaf35f21a12007c76",
-      "size": 405987
+      "sha256": "291244e892f211d2d3a70577644c097e34e7bdbc44c02910735451c7c0c9f15d",
+      "size": 408119
     },
     {
       "path": "handover-v2.css",
@@ -138,8 +138,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "f14ce15e3fafa55e0b4aca389013239b4060c6ccfb75dcfadd5289264895eb55",
-      "size": 13879
+      "sha256": "c45c9222f07084a0bd66e1be404bb582aef4b321d6b7f6b298afae917dd34a05",
+      "size": 13977
     },
     {
       "path": "live-operation.js",
@@ -153,8 +153,8 @@
     },
     {
       "path": "offline-workspace.js",
-      "sha256": "996eb934824b9fa908143c5c6e740a83323fdb8719a9ca3b7d247de56872d3f8",
-      "size": 17068
+      "sha256": "74bd8e5a42a58d0bcb1a543b94a92c03603848e453a5e17615d155a9cf48de12",
+      "size": 20254
     },
     {
       "path": "offline.css",
@@ -210,6 +210,16 @@
       "path": "ss-scanner/core.js",
       "sha256": "44e316d8f784108b474afb5ee720f3fce10a915d3c504f568db479e799d6a29a",
       "size": 92211
+    },
+    {
+      "path": "survey-register.css",
+      "sha256": "c6bcd68f1aeade779bd391c2ed10834ef6fd29b4c20f028035bed9b4f51ab6c8",
+      "size": 2160
+    },
+    {
+      "path": "survey-register.js",
+      "sha256": "d0f41469bc9d24c5cfa92439a4f02b49d7658eb64afa6b5a793bf702421d4cea",
+      "size": 6304
     },
     {
       "path": "tacho-day-summary.js",
@@ -363,8 +373,8 @@
     },
     {
       "path": "web-backend.js",
-      "sha256": "80c5d6171f1ab79e835812436dcfd069392fe331d2b65c2a5d632a34c0e85408",
-      "size": 19550
+      "sha256": "6ed4164510ed511301fad99d3ca18c6a5ffe98eadc104ca6924ceb54f13a39e1",
+      "size": 20177
     }
   ]
 }
