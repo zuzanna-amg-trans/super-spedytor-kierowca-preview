@@ -1787,16 +1787,17 @@ function serviceHistoryView(){
   const complete=!live||model.validRegistry(backendState.service_registry),totals=model.summary(records);
   const loading=live&&String(backendState.service_history_loading_id??'')===String(state.serviceHistorySelectedId??'');
   const error=live?(backendState.service_history_detail_error||backendState.service_history_error||''):'';
+  const historyUnavailable=live&&!complete&&Boolean(backendState.service_history_error);
   const title=selected?'Szczegóły ankiety':'Rejestr serwisów';
   const filter=state.serviceHistoryFilter||'all';
   const shown=records.filter(record=>filter==='missing'?record.status==='not_submitted':filter==='done'?record.status==='completed':true);
   const period=live&&complete?backendState.service_registry.month.split('-').reverse().join('.'):'Ostatnie dni';
-  const summary=`<section class="service-history-summary"><span>${icon('clipboard')}</span><div><small>ANKIETY SERWISOWE · ${esc(period)}</small><strong>Wykonane i brakujące</strong><p>Każdy brak ankiety po terminie: −5 EUR.</p></div></section><div class="service-register-totals"><div><strong>${totals.completed}</strong><span>Wykonane</span></div><div><strong>${complete?totals.missing:'—'}</strong><span>Braki po terminie</span></div><div class="penalty"><strong>${complete?(totals.penalty?'−'+Math.abs(totals.penalty):'0')+' EUR':'—'}</strong><span>Suma kar za braki</span></div></div>`;
-  const unavailable=complete?'':`<p class="service-register-warning" role="status">${icon('info')}<span>Pełny rejestr jest niedostępny. Pokazujemy tylko wykonane ankiety. Nie można ustalić braków ani sumy kar.${backendState.service_registry_error?' '+esc(backendState.service_registry_error):''}</span></p>`;
+  const summary=`<section class="service-history-summary"><span>${icon('clipboard')}</span><div><small>ANKIETY SERWISOWE · ${esc(period)}</small><strong>Wykonane i brakujące</strong><p>Każdy brak ankiety po terminie: −5 EUR.</p></div></section><div class="service-register-totals"><div><strong>${historyUnavailable&&!records.length?'—':totals.completed}</strong><span>Wykonane</span></div><div><strong>${complete?totals.missing:'—'}</strong><span>Braki po terminie</span></div><div class="penalty"><strong>${complete?(totals.penalty?'−'+Math.abs(totals.penalty):'0')+' EUR':'—'}</strong><span>Suma kar za braki</span></div></div>`;
+  const unavailable=complete?'':`<p class="service-register-warning" role="status">${icon('info')}<span>Pełny rejestr jest niedostępny. ${historyUnavailable?'Nie udało się pobrać także historii wykonanych ankiet.':'Pokazujemy tylko wykonane ankiety.'} Nie można ustalić braków ani sumy kar.${backendState.service_registry_error?' '+esc(backendState.service_registry_error):''}</span></p>`;
   const filters=`<div class="service-register-filters" role="group" aria-label="Filtr rejestru">${[['all','Wszystkie'],['missing','Braki'],['done','Wykonane']].map(([key,label])=>`<button type="button" data-service-history-filter="${key}" aria-pressed="${filter===key}">${label}</button>`).join('')}</div>`;
   const body=selected
     ?detail?serviceHistoryDetailView(detail):`<section class="service-history-loading">${loading?'<span class="backend-loader" aria-hidden="true"></span>':icon('warning')}<h3>${loading?'Pobieramy odpowiedzi…':'Nie udało się otworzyć ankiety'}</h3><p>${esc(error||'Spróbuj ponownie z listy historii.')}</p></section>`
-    :summary+unavailable+filters+(shown.length?`<div class="service-history-list">${shown.map(serviceHistoryListCard).join('')}</div>`:`<section class="service-history-empty">${icon('clipboard')}<h3>${filter==='missing'?(complete?'Brak zaległych ankiet':'Braki są nieznane'):filter==='done'||!complete?'Nie ma jeszcze wykonanych ankiet':'Brak pozycji w rejestrze'}</h3><p>${esc(error||'Zmień filtr, aby zobaczyć pozostałe dni.')}</p></section>`)+`<p class="service-history-retention">${icon('info')}<span>${live?'Statusy pochodzą z Super Spedytora.':'Dane demonstracyjne. Zapis dzisiejszej ankiety pozostaje na tym urządzeniu.'} Kara dotyczy tylko ankiety oznaczonej jako niewysłana po terminie. Brak przydziału i ankieta w terminie: bez kary. Kwoty w rejestrze nie potwierdzają potrącenia z rozliczenia.</span></p>`;
+    :summary+unavailable+filters+(shown.length?`<div class="service-history-list">${shown.map(serviceHistoryListCard).join('')}</div>`:`<section class="service-history-empty">${icon('clipboard')}<h3>${historyUnavailable?'Historia ankiet jest niedostępna':filter==='missing'?(complete?'Brak zaległych ankiet':'Braki są nieznane'):filter==='done'||!complete?'Nie ma jeszcze wykonanych ankiet':'Brak pozycji w rejestrze'}</h3><p>${esc(error||'Zmień filtr, aby zobaczyć pozostałe dni.')}</p></section>`)+`<p class="service-history-retention">${icon('info')}<span>${live?'Statusy pochodzą z Super Spedytora.':'Dane demonstracyjne. Zapis dzisiejszej ankiety pozostaje na tym urządzeniu.'} Kara dotyczy tylko ankiety oznaczonej jako niewysłana po terminie. Brak przydziału i ankieta w terminie: bez kary. Kwoty w rejestrze nie potwierdzają potrącenia z rozliczenia.</span></p>`;
   return `<div class="app-content service-screen service-history-screen"><div class="service-page-header"><button id="service-history-back" aria-label="${selected?'Wróć do rejestru serwisów':'Wróć do ankiety dziennej'}">${icon('back')}</button><div><span>${live?(backendState?.read_only===true&&backendState?.backend_environment==='dev'?'DANE Z WERSJI DEV SUPER SPEDYTORA':'DANE Z SUPER SPEDYTORA'):'PODGLĄD NA DANYCH DEMONSTRACYJNYCH'}</span><h2>${title}</h2></div><b class="service-state-badge saved">${selected?'ZAPIS':'REJESTR'}</b></div>${live&&!selected?'<button type="button" class="secondary-button service-register-refresh" id="service-register-refresh">'+icon('sync')+'Odśwież rejestr</button>':''}${body}</div>`;
 }
 function serviceHistoryActionView(){
@@ -4091,9 +4092,13 @@ function renderBackendOperationScreen(scroll=0){
   $('#app-scroll').scrollTop=scroll;
 }
 function renderBackendServiceHistoryScreen(scroll=0){
-  if(!productionScope&&window.SuperSpedytorSurveyRegister
+  surveyRegisterScreen?.destroy();
+  surveyRegisterScreen=null;
+  // A bridge is not proof that this backend supports the monthly register.
+  // Keep own completed history available when the snapshot reports an error.
+  const monthlyAvailable=window.SuperSpedytorServiceRegister?.validRegistry(backendState?.service_registry)===true;
+  if(!productionScope&&monthlyAvailable&&window.SuperSpedytorSurveyRegister
     &&(window.SuperSpedytorNative?.backendRequest||driverBridge?.backendSurveyRegister)){
-    surveyRegisterScreen?.destroy();
     const owner=String(backendState?.profile?.id??'');
     $('#app-action').innerHTML='';
     $('#design-context').innerHTML='';
