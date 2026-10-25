@@ -21,7 +21,8 @@
   const initialState=clone(state);
   const initialAssignment=clone(demoAssignment);
   const offline=()=>navigator.onLine===false||Boolean(backendMode&&!backendTestWorkspace&&backendState?.offline);
-  const writable=()=>backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&!backendState?.refreshing&&backendState?.read_only!==true&&ready&&!loading&&currentScope()===scope&&Boolean(scope)&&scope!=='demo';
+  const localOwnerReady=()=>backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendState?.read_only!==true&&ready&&!loading&&currentScope()===scope&&Boolean(scope)&&scope!=='demo';
+  const writable=()=>localOwnerReady()&&!backendState?.refreshing;
   function banner(){
     let bar=document.getElementById('offline-status');
     if(!bar){bar=document.createElement('div');bar.id='offline-status';bar.className='offline-status';bar.setAttribute('role','status');document.querySelector('.app-header')?.after(bar);}
@@ -123,7 +124,7 @@
   }
   const queuedResult=job=>({status:202,queued:true,queueId:job.id,body:{offline_queued:true},message:'Zapisano na telefonie. Oczekuje na synchronizację.'});
   async function enqueue(payload){
-    try{const owner=currentScope();await ensure();if(owner!==currentScope()||scope!==owner||!writable())throw new Error('Konto kierowcy zmieniło się.');const job=await queue.add(payload);await flush();setTimeout(sync,0);return queuedResult(job);}
+    try{const owner=currentScope();await ensure();if(owner!==currentScope()||scope!==owner||!localOwnerReady())throw new Error('Konto kierowcy zmieniło się.');const job=await queue.add(payload);await flush();setTimeout(sync,0);return queuedResult(job);}
     catch(error){problem='Nie udało się trwale zapisać kolejki. Zwolnij pamięć telefonu i ponów zapis.';banner();throw error;}
   }
   const paused=()=>backendMode&&(backendState?.status!=='connected'||backendState?.refreshing);
@@ -140,8 +141,8 @@
     return send();
   }
   async function upload(path,token,fields,send){
-    if(paused())return pausedResult();
-    if(!writable())return send();
+    if(backendMode&&backendState?.status!=='connected')return pausedResult();
+    if(!localOwnerReady())return send();
     // Preserve the file before attempting any network write, including on-line failures.
     const inventory=/^documents\/cmr-inventory\/\d+\/photo\/$/.test(path);
     if(inventory&&!/^[a-f0-9]{64}$/.test(fields.file_sha256||''))throw new Error('Nie można potwierdzić sumy kontrolnej zdjęcia. Zrób zdjęcie ponownie.');
