@@ -4259,11 +4259,14 @@ function renderBackendPanel(){
     return;
   }
   if(status==='connected'){
+    delete renderSavedDriverLogin.state;
     panel.innerHTML='';
     render();
     return;
   }
   const error=status==='error'?backendState.message:'';
+  const savedLoginsSupported=!browserBackend&&['backendLoginSaved','backendForgetSavedAccount','backendLoginRemembered'].every(key=>typeof driverBridge?.[key]==='function');
+  if(savedLoginsSupported&&!devConnection&&!configurationError){renderSavedDriverLogin(panel,error);return;}
   const nativeRemember=!browserBackend&&typeof driverBridge?.backendLoginRemembered==='function';
   panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="off"><span class="backend-login-mark">${icon('truck')}</span><small>${devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR KIEROWCA'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>${devConnection?'Połącz z wersją dev SS':'Zaloguj kierowcę'}</h2><p>${devConnection?'Pobierzesz profil kierowcy, aktualny pojazd, własną trasę i historię ankiet z wersji dev Super Spedytora. Ten podgląd służy wyłącznie do odczytu.':'Połączenie pobierze profil, aktualny pojazd, własną trasę oraz historię wykonanych ankiet serwisowych.'}</p>${error?`<div class="backend-error" role="alert">${icon('info')} ${esc(error)}</div>`:''}<label><span>Login</span><input id="backend-username" name="username" autocomplete="off" autocapitalize="none" required ${configurationError?'disabled':''}></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="off" required ${configurationError?'disabled':''}></label>${(browserBackend||nativeRemember)&&!devConnection?`<label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${backendRememberMe?'checked':''}><span>Zapamiętaj mnie na tym urządzeniu</span></label>`:''}${backendState.can_retry&&!configurationError?'<button id="backend-retry" type="button">Spróbuj ponownie połączyć</button>':''}<button type="submit" ${configurationError?'disabled':''}>${icon('signal')} ${devConnection?'Połącz z wersją dev SS':'Połącz z Super Spedytorem'}</button><div class="backend-security">${icon('check')} ${devConnection?'Login i hasło nie są zapamiętywane. Sesja dotyczy wyłącznie wersji dev.':browserBackend?'Zapamiętanie sesji wymaga pliku cookie Super Spedytora. Jeśli przeglądarka go zablokuje, zalogujesz się ponownie.':nativeRemember?'Dane logowania i tokeny pozostają w warstwie natywnej. Zapamiętana sesja jest szyfrowana na tym urządzeniu.':'Dane logowania i tokeny pozostają w warstwie natywnej. Po ponownym uruchomieniu aplikacji zalogujesz się ponownie.'}</div></form>`;
   if(productionScope){
@@ -4288,6 +4291,40 @@ function renderBackendPanel(){
   };
   const retry=$('#backend-retry',panel);
   if(retry)retry.onclick=()=>driverBridge?.backendRefresh();
+}
+function renderSavedDriverLogin(panel,error){
+  const logins=[...new Set((Array.isArray(backendState.saved_logins)?backendState.saved_logins:[]).filter(value=>typeof value==='string'&&value.length>0&&value.length<=200))];
+  const ui=renderSavedDriverLogin.state||(renderSavedDriverLogin.state={manual:false,selected:'',username:'',remember:true,failure:''});
+  if(backendState.login_failure_id&&ui.failure!==backendState.login_failure_id){
+    ui.failure=backendState.login_failure_id;ui.manual=true;ui.username=backendState.login_username||'';
+  }
+  const selected=logins.includes(ui.selected)?ui.selected:logins[0]||'';
+  const manual=ui.manual||!selected;
+  const problem=error||backendState.saved_credentials_error||'';
+  const accounts=logins.length?`<section class="backend-saved-logins" aria-label="Zapisane konta kierowców"><h3>Zapisane konta</h3>${logins.map((username,index)=>`<div class="backend-saved-row ${!manual&&username===selected?'selected':''}"><button type="button" class="backend-saved-account" data-saved-login="${index}" aria-pressed="${!manual&&username===selected}">${icon('truck')}<span>${esc(username)}<small>Hasło zapamiętane na tym iPhonie</small></span>${!manual&&username===selected?icon('check'):icon('arrow')}</button><button type="button" class="backend-saved-remove" data-forget-login="${index}" aria-label="Usuń zapisane konto ${esc(username)}" title="Usuń login i hasło z tego iPhone’a">${icon('close')}</button></div>`).join('')}</section>`:'';
+  const fields=manual?`<label><span>Login</span><input id="backend-username" name="username" value="${esc(ui.username)}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="200" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="current-password" maxlength="1000" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${ui.remember?'checked':''}><span>Zapamiętaj login i hasło na tym iPhonie</span></label>`:'';
+  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="on"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>${manual?'Wpisz dane konta kierowcy Super Spedytora.':'Wybierz zapisane konto, aby zalogować się bez wpisywania hasła.'}</p>${problem?`<div class="backend-error" role="alert">${icon('info')} ${esc(problem)}</div>`:''}${accounts}${logins.length?`<button id="backend-other-account" class="backend-other-account" type="button">Inny użytkownik</button>`:''}${fields}<button type="submit">${icon('signal')} ${manual?'Połącz z Super Spedytorem':`Zaloguj jako ${esc(selected)}`}</button><div class="backend-security">${icon('check')} Hasła chroni Pęk kluczy tego iPhone’a. Wylogowanie kończy sesję; zapisane konto możesz usunąć z listy.</div></form>`;
+  const form=$('#backend-login',panel);
+  if(privacyPolicyUrl)form.insertAdjacentHTML('beforeend',privacyPolicyLink());
+  $$('[data-saved-login]',panel).forEach(button=>button.onclick=()=>{
+    ui.selected=logins[Number(button.dataset.savedLogin)];ui.manual=false;renderSavedDriverLogin(panel,error);
+  });
+  $$('[data-forget-login]',panel).forEach(button=>button.onclick=()=>{
+    button.disabled=true;driverBridge.backendForgetSavedAccount(logins[Number(button.dataset.forgetLogin)]);
+  });
+  const other=$('#backend-other-account',panel);
+  if(other)other.onclick=()=>{ui.manual=true;ui.username='';renderSavedDriverLogin(panel,error);$('#backend-username',panel)?.focus();};
+  const remember=$('#backend-remember',panel);
+  if(manual&&remember)remember.onchange=()=>{ui.remember=remember.checked;};
+  form.onsubmit=event=>{
+    event.preventDefault();
+    if(!manual){driverBridge.backendLoginSaved(selected);return;}
+    const username=$('#backend-username',panel).value.trim();
+    const password=$('#backend-password',panel).value;
+    ui.username=username;ui.remember=Boolean($('#backend-remember',panel)?.checked);
+    $('#backend-password',panel).value='';
+    driverBridge.backendLoginRemembered(username,password,ui.remember);
+  };
 }
 window.SuperSpedytorBackend={
   setActiveNav(nav){
