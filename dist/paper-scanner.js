@@ -4,7 +4,7 @@
   else{root.CmrPaperScanner=factory(root.SsDocumentScannerCore);root.CmrPaperScannerFactory=factory;}
 })(typeof globalThis!=='undefined'?globalThis:this,function(core){
   'use strict';
-  const VERSION='ss-driver-adc5c3b3b-2-color-normalized',MAX_EDGE=4200,MAX_PIXELS=11000000;
+  const VERSION='ss-driver-adc5c3b3b-3-paper-shadow',MAX_EDGE=4200,MAX_PIXELS=11000000;
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const area=q=>Math.abs(q.reduce((sum,p,i)=>{const n=q[(i+1)%q.length];return sum+p.x*n.y-n.x*p.y;},0))/2;
   function order(points){
@@ -182,27 +182,38 @@
     });
   }
   function normalizeColor(cv,image){
-    // Same fixed classical preset as Android. Its SCI illumination model runs
-    // natively; the browser uses this deterministic OpenCV fallback offline.
-    // Only the small illumination map is float RGB. Apply it in 128-row tiles
-    // so a full-resolution scan never needs a full float32 RGB gain image.
+    // Same edge-preserving paper estimator as native Android. Closing removes
+    // narrow ink from the background map; median filtering retains sharp fold
+    // shadows. Filled coloured panels receive one exposure gain, preserving hue.
+    // The original RGB pixels are corrected in bounded 128-row tiles.
     const {width,height,data}=image,owned=new Set();
     const keep=value=>{owned.add(value);return value;};
     const release=value=>{if(owned.delete(value))value.delete();};
     try{
       const rgba=keep(cv.matFromArray(height,width,cv.CV_8UC4,data)),rgb=keep(new cv.Mat());
       cv.cvtColor(rgba,rgb,cv.COLOR_RGBA2RGB);release(rgba);
-      const scale=Math.min(1,512/Math.max(width,height));
+      const scale=Math.min(1,1024/Math.max(width,height));
       const sw=Math.max(1,Math.round(width*scale)),sh=Math.max(1,Math.round(height*scale));
       const small=keep(new cv.Mat());
       cv.resize(rgb,small,new cv.Size(sw,sh),0,0,cv.INTER_AREA);
-      const edge=Math.max(sw,sh),kernel=2*Math.round(.0125*edge)+1;
-      const element=keep(cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(kernel,kernel)));
+      const element=keep(cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(7,7)));
       const paper=keep(new cv.Mat()),background=keep(new cv.Mat());
-      cv.dilate(small,paper,element,new cv.Point(-1,-1),1,cv.BORDER_REPLICATE,cv.morphologyDefaultBorderValue());
-      cv.GaussianBlur(paper,background,new cv.Size(0,0),.035*edge,.035*edge,cv.BORDER_REPLICATE);
+      cv.morphologyEx(small,paper,cv.MORPH_CLOSE,element,new cv.Point(-1,-1),1,cv.BORDER_REPLICATE,cv.morphologyDefaultBorderValue());
+      cv.medianBlur(paper,background,7);
       const gains=keep(new cv.Mat(sh,sw,cv.CV_32FC3)),values=gains.data32F,bg=background.data;
-      for(let i=0;i<values.length;i++)values[i]=Math.max(.65,Math.min(4,Math.pow(.96/Math.max(bg[i]/255,.08),.82)));
+      const histogram=new Uint32Array(256);let neutral=0;
+      for(let i=0;i<bg.length;i+=3){
+        const high=Math.max(bg[i],bg[i+1],bg[i+2]),low=Math.min(bg[i],bg[i+1],bg[i+2]);
+        if((high-low)/Math.max(high,1)<.30){histogram[high]++;neutral++;}
+      }
+      let reference=250;
+      if(neutral){let count=0;for(let v=0;v<256;v++){count+=histogram[v];if(count>=Math.ceil(neutral*.90)){reference=v;break;}}}
+      const exposure=Math.max(.65,Math.min(4,.98*255/Math.max(reference,1)));
+      for(let i=0;i<bg.length;i+=3){
+        const high=Math.max(bg[i],bg[i+1],bg[i+2]),low=Math.min(bg[i],bg[i+1],bg[i+2]);
+        const protection=Math.max(0,Math.min(1,((high-low)/Math.max(high,1)-.30)/.20));
+        for(let c=0;c<3;c++)values[i+c]=Math.max(.65,Math.min(4,(1-protection)*.98/Math.max(bg[i+c]/255,.08)+protection*exposure));
+      }
       release(background);release(paper);release(element);release(small);
       const normalized=keep(new cv.Mat(height,width,cv.CV_8UC3));
       const gainTile=keep(new cv.Mat()),floatTile=keep(new cv.Mat());
@@ -240,7 +251,7 @@
     const cropped=natural(cv,rgba,width,height,geometry.quad);
     const result=mode==='natural'?cropped:normalizeColor(cv,cropped);
     return {...result,version:VERSION,mode:mode==='natural'?'natural':'color',quad:geometry.quad,refined:geometry.refined,sourceEngine:core.sourceCommit,
-      enhancementEngine:mode==='natural'?'none':'opencv-classical-rgb-v1'};
+      enhancementEngine:mode==='natural'?'none':'opencv-paper-background-v2'};
   }
   return {VERSION,MAX_EDGE,MAX_PIXELS,order,area,validQuad,dimensions,detect,process};
 });
