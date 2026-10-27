@@ -256,7 +256,7 @@
   }
   async function updateCheckpoint(){
     const owner=currentScope(),token=epoch;
-    if(!ready||loading||syncing||!owner||problem)return false;
+    if(!ready||loading||syncing||!owner)return false;
     await ensure();await flush();
     return ready&&!loading&&!syncing&&!problem&&owner===currentScope()&&token===epoch&&!saving;
   }
