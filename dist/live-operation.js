@@ -20,8 +20,13 @@
   const has = value => value !== null && value !== undefined && String(value).trim() !== '';
   const text = value => (has(value) ? String(value).trim() : '');
   const number = value => {
+    if (!has(value) || !['number', 'string'].includes(typeof value)) return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  };
+  const massNumber = value => {
+    const parsed = number(value);
+    return parsed !== null && parsed >= 0 ? parsed : null;
   };
 
   const COUNTRY_NAMES = { PL: 'Polska', DE: 'Niemcy', FR: 'Francja', NL: 'Holandia', BE: 'Belgia', IT: 'Włochy', ES: 'Hiszpania', CZ: 'Czechy', SK: 'Słowacja', AT: 'Austria', DK: 'Dania', SE: 'Szwecja', CH: 'Szwajcaria', HU: 'Węgry', LU: 'Luksemburg' };
@@ -106,7 +111,7 @@
       cargoItemId: item.id,
       name: text(item.description) || `Sztuka ładunku ${index + 1}`,
       description: unloading ? `Rozładunek: ${unloading}` : '',
-      mass: number(item.weight),
+      mass: massNumber(item.weight),
       dimensions: '',
       // plomba przypięta w TMS = na pewno naklejona; bez plomby pamiętamy zaznaczenie kierowcy
       label: Boolean(seal) || Boolean(previous && previous.label),
@@ -128,7 +133,7 @@
       cargoItemId: item.id,
       name: text(item.description) || `Sztuka ładunku ${index + 1}`,
       description: '',
-      mass: number(item.weight),
+      mass: massNumber(item.weight),
       dimensions: '',
       label: true,
       seal: item.scanned ? (expected || 'ZESKANOWANA') : null,
@@ -285,7 +290,14 @@
   /** Dane zlecenia w kształcie `assignment` z makiety (nagłówki, travelView, cargoView). */
   function buildAssignment(point, record) {
     const items = record.items;
-    const mass = items.reduce((sum, item) => sum + (item.mass || 0), 0);
+    const completePieceMass = items.length > 0 && items.every(item => massNumber(item.mass) !== null)
+      ? items.reduce((sum, item) => sum + massNumber(item.mass), 0) : null;
+    const projectedCargo = point && point.order_cargo;
+    const orderCargo = projectedCargo && projectedCargo.scope === 'order'
+      && has(projectedCargo.offer_id) && String(projectedCargo.offer_id) === String(point.transport_offer)
+      && String(projectedCargo.offer_id) === String(record.live.offerId) ? projectedCargo : null;
+    const orderMass = massNumber(orderCargo && orderCargo.cargo_weight);
+    const mass = completePieceMass !== null ? completePieceMass : orderMass;
     const destinations = [...new Set(items.map(item => item.description.replace(/^Rozładunek: /, '')).filter(has))];
     const here = placeFromPoint(point);
     const unload = record.mode === 'unload';
@@ -295,10 +307,12 @@
       pickup: unload ? unknownPlace('Według zlecenia w Super Spedytorze') : here,
       delivery: unload ? here : unknownPlace(destinations.length ? destinations.join(' · ') : 'Według zlecenia w Super Spedytorze'),
       cargo: {
-        name: text(point && point.cargo_description) || text(point && point.cargo_summary) || 'Sztuki ładunku ze zlecenia',
+        name: text(orderCargo && orderCargo.description) || text(point && point.cargo_description) || text(point && point.cargo_summary) || 'Sztuki ładunku ze zlecenia',
         quantity: items.length,
         unit: items.length === 1 ? 'sztuka' : 'sztuki',
-        mass: Math.round(mass * 100) / 100,
+        mass: mass === null ? null : Math.round(mass * 100) / 100,
+        massScope: completePieceMass !== null ? 'pieces' : orderMass !== null ? 'order' : null,
+        ldm: massNumber(orderCargo && orderCargo.ldm),
         dimensions: '',
         demo: false,
       },
