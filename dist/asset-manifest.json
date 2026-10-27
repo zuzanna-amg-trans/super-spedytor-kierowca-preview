@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "775862f9e83f286f43e96d8f47e1b080624f6536",
+  "sourceCommit": "ab74e5e96f080f7696f093502bf3453ae6f6154b",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "516c8b320ae1752752e893f14bbab2ba0578ae9e0baa2621eeb47ed32122f18e",
+  "assetManifestSha256": "989dd1e9bfded97a2e23bc3d6bbcf76aaf8386e50ac96a3ce50045f8a9d68546",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -168,8 +168,8 @@
     },
     {
       "path": "offline.css",
-      "sha256": "35f14c879a86686140b85e70347a8237691ab32245e20342f19b2c329c6654a6",
-      "size": 1649
+      "sha256": "ce445da9acf438b743173c112c8d43976b9154f178bdb13a3be90926afea10ce",
+      "size": 1687
     },
     {
       "path": "operation-timing.js",
