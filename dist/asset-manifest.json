@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "52919044237aeaef3d49e4cb5bdc4e78ff976d51",
+  "sourceCommit": "fceab89dd6bd26e8ea85dc3c32cdecdfafdfb157",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "9665d6bc96c9a4d850aa216a890358d672e2e06487cb040e2b93262d566eec51",
+  "assetManifestSha256": "cfc38e2ac06cf90d4346cfe19f5be710205e769572b9d7d10e73594920364b44",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -148,13 +148,13 @@
     },
     {
       "path": "live-workspace.css",
-      "sha256": "ee0a692003abb019cff4a3a30721f8493a778b5562576fec54a644e7d0db1cd1",
-      "size": 6212
+      "sha256": "ed6a164fdd879c008def0cb68377c2db584b9319357ee814a3e936277ead2583",
+      "size": 6420
     },
     {
       "path": "live-workspace.js",
-      "sha256": "2b2de3dfe7e2db1a12c7ff7a7e827641c25e691a592ae864d8e546f5a8dfaebf",
-      "size": 60632
+      "sha256": "a314ce4c8b7491caf4e3fd88380082629ac9afd1c2427297b14f8f50773b53ee",
+      "size": 61133
     },
     {
       "path": "offline-store.js",

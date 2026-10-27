@@ -346,13 +346,14 @@
   }
   document.addEventListener('click',event=>{
     if(!enabled()||state().status!=='connected')return;
-    const nav=event.target.closest('[data-nav]'),workspace=event.target.closest('#workspace-choose'),designed=event.target.closest('[data-designed-view]');
+    const nav=event.target.closest('[data-nav]'),workspace=event.target.closest('#workspace-choose,[data-live-menu]'),designed=event.target.closest('[data-designed-view]');
     if(!nav&&!workspace&&!designed)return;
     const name=nav?.dataset.nav;
     if(name==='now'){close();return;}
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();
