@@ -386,7 +386,7 @@ function updateServiceNavIndicator(){
   if(!button)return;
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
     button.classList.remove('service-due');
-    button.setAttribute('aria-label','Serwis — historia ankiet i widoki testowe');
+    button.setAttribute('aria-label',driverBridge?.liveWorkflowsEnabled?.()===true?'Serwis — ankiety i zadania':'Serwis — historia ankiet i widoki testowe');
     return;
   }
   const due=!serviceCompletedToday();
@@ -3863,7 +3863,7 @@ function updateDriverWorkspaceBar(){
   bar.classList.toggle('testing',backendTestWorkspace);
   bar.innerHTML=backendTestWorkspace
     ?`<div><strong>Test widoków · dane przykładowe</strong><small>${browserBackend?'Zmiany zostają na tym urządzeniu':'Zmiany zostają na telefonie'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Widoki</button><button id="workspace-live">${devConnection?'Wróć do danych DEV':'Wróć do SS'}</button>`
-    :`<div><strong>${devConnection?'DEV · tylko odczyt':'Dane Super Spedytora'}</strong><small>${devConnection?'Profil, pojazd, trasa i historia ankiet':'Twoja trasa i historia ankiet'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">Testuj widoki</button>`;
+    :`<div><strong>${devConnection?'DEV · tylko odczyt':'Dane Super Spedytora'}</strong><small>${devConnection?'Profil, pojazd, trasa i historia ankiet':'Twoja trasa i historia ankiet'}${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small></div><button id="workspace-choose">${driverBridge?.liveWorkflowsEnabled?.()===true?'Moje sprawy':'Testuj widoki'}</button>`;
   $('#workspace-choose').onclick=()=>openModal('designed-views',{});
   if(productionScope){
     const note=bar.querySelector('small');

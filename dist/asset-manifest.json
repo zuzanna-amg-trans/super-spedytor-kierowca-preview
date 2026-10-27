@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "ead9a59ae143c92d5badff914b01cd1344b79d58",
+  "sourceCommit": "52919044237aeaef3d49e4cb5bdc4e78ff976d51",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "8f25de3ac1e33fd81e5c517010f08c94ead93e5f4057b98c60bd823ea311b90d",
+  "assetManifestSha256": "9665d6bc96c9a4d850aa216a890358d672e2e06487cb040e2b93262d566eec51",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "28f70e1f783134240f9b42953e9f8714af57ebb39cace4787ed3993935ca9d1e",
-      "size": 409658
+      "sha256": "200068d4e5fcf91fc8d2d144888a5d7842d5a5c0aee40a7818689a9619ed4d1b",
+      "size": 409800
     },
     {
       "path": "handover-v2.css",
@@ -138,13 +138,23 @@
     },
     {
       "path": "index.html",
-      "sha256": "c45c9222f07084a0bd66e1be404bb582aef4b321d6b7f6b298afae917dd34a05",
-      "size": 13977
+      "sha256": "4e88b90883e6d4856f5dee1d4c52861a8137e91ef4ae629b8b42ca90521d4766",
+      "size": 14119
     },
     {
       "path": "live-operation.js",
       "sha256": "c6d1edd67d5ee823fd8374685608e69608099d0dee2e35bb40d699e51f0fad36",
       "size": 22725
+    },
+    {
+      "path": "live-workspace.css",
+      "sha256": "ee0a692003abb019cff4a3a30721f8493a778b5562576fec54a644e7d0db1cd1",
+      "size": 6212
+    },
+    {
+      "path": "live-workspace.js",
+      "sha256": "2b2de3dfe7e2db1a12c7ff7a7e827641c25e691a592ae864d8e546f5a8dfaebf",
+      "size": 60632
     },
     {
       "path": "offline-store.js",
@@ -225,6 +235,11 @@
       "path": "tacho-day-summary.js",
       "sha256": "3d16eda1287f98605490b35fec42b7ed2b02c6330ae9999f91b4ac91cf0a18c6",
       "size": 1955
+    },
+    {
+      "path": "tacho-live-model.js",
+      "sha256": "2bcf9d218f58abd153a7a59120dbedacae0fde8a8a9591db78819d258f4484a7",
+      "size": 41061
     },
     {
       "path": "tacho.css",
