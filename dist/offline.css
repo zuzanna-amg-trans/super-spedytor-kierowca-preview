@@ -3,3 +3,6 @@
 .offline-details-panel{position:absolute;inset:100px 10px 80px;overflow:auto;z-index:220;background:white;color:#253026;border:1px solid #d6dfcf;border-radius:12px;padding:20px;box-shadow:0 10px 60px #0003;font-size:13px;line-height:1.55}.offline-details-panel h3{font-size:18px;margin:10px 30px 12px 0}.offline-details-panel article{padding:12px 0;border-top:1px solid #e6e8e2}.offline-details-panel article strong,.offline-details-panel article span{display:block}.offline-details-panel article span{color:#7a4b26;font-size:12px}.offline-details-panel p{margin:8px 0}.offline-details-panel>button:first-child{float:right}
 html.android-shell.backend-auth-gate .offline-status{display:none}
 .device.offline-restoring .app-scroll,.device.offline-restoring .app-action,.device.offline-restoring .bottom-nav{pointer-events:none;opacity:.6}
+
+/* Explicit display rules must still respect the live status visibility gate. */
+.offline-status[hidden]{display:none}
