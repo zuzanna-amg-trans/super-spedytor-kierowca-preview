@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "a0d00b0cfc5aebe00ead2b6e288b96e28c71dec9",
+  "sourceCommit": "9a6d3583d49643b405f7eb8c9bb5f0c24a8e07c5",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "651b32e71aaa48f50ecf138f10447821e5ce374f72180480985dfdc507bd0c4e",
+  "assetManifestSha256": "79b276293f7427033ebe31a73cb82e8e9a2799fa518eea9673b3d7f7f0b636ad",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -163,8 +163,8 @@
     },
     {
       "path": "offline-workspace.js",
-      "sha256": "df2834bb4cc00783596a0083da4125492b11dd71c7b1a766e43476d4a9a66933",
-      "size": 20682
+      "sha256": "06f85d831fa6c7cd6ccad74b8a058b586599072cced1da445a8a5154cbb24d5b",
+      "size": 20744
     },
     {
       "path": "offline.css",
