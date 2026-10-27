@@ -1,15 +1,15 @@
 {
   "protocol": 2,
-  "sourceCommit": "469cfa78d919844ca63cc1946f8ce912603d81a7",
+  "sourceCommit": "ead9a59ae143c92d5badff914b01cd1344b79d58",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "2b3b375d3692c25d2c2482e24fc356baefe97b59a4dcc11a3e514345a28a9daa",
+  "assetManifestSha256": "8f25de3ac1e33fd81e5c517010f08c94ead93e5f4057b98c60bd823ea311b90d",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
       "path": "android-shell.css",
-      "sha256": "c09190ccf15da03baa2cb8b67edd5ef2117f2fae713bbf809d6f36e7682b5a33",
-      "size": 24745
+      "sha256": "b33eeac7a0e4d3fd1d5d4e964c5104d1a6320d1799cfa9a6085fdb6a84532739",
+      "size": 25106
     },
     {
       "path": "assets/OFL.txt",
@@ -58,8 +58,8 @@
     },
     {
       "path": "cmr-inventory.js",
-      "sha256": "a0796ba9f1aab3d731cb4d402766da360a06a0dcd6dd3cb233f872b220bf2fa6",
-      "size": 17651
+      "sha256": "a30ec993b06bfacebf0aedfccf7da2f7335fb3d52d3d2cb5243fe1f5abee9c04",
+      "size": 18347
     },
     {
       "path": "demo-assets.js",
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "3e30d7576337446084801daeaeac47c416fdc267285422d7b449379c7b027634",
-      "size": 408705
+      "sha256": "28f70e1f783134240f9b42953e9f8714af57ebb39cace4787ed3993935ca9d1e",
+      "size": 409658
     },
     {
       "path": "handover-v2.css",
@@ -143,8 +143,8 @@
     },
     {
       "path": "live-operation.js",
-      "sha256": "034b78767fa6b7f1b2d6a97151207080c4824d9029d246f2200db9dc654e248e",
-      "size": 20174
+      "sha256": "c6d1edd67d5ee823fd8374685608e69608099d0dee2e35bb40d699e51f0fad36",
+      "size": 22725
     },
     {
       "path": "offline-store.js",
@@ -153,8 +153,8 @@
     },
     {
       "path": "offline-workspace.js",
-      "sha256": "ac7de5c980839244d66eaa9bffc552d8df4dbe2f06f9e6e13953f06098c67df0",
-      "size": 20354
+      "sha256": "df2834bb4cc00783596a0083da4125492b11dd71c7b1a766e43476d4a9a66933",
+      "size": 20682
     },
     {
       "path": "offline.css",

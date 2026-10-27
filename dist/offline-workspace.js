@@ -30,6 +30,10 @@
     const title=problem?'Nie zapisano na telefonie':!ready?'Otwieram zapis na telefonie…':saving?'Zapisuję na telefonie…':syncing?'Synchronizuję…':offline()?'Tryb offline':jobs.length?'Oczekuje na synchronizację':'Zapis na telefonie gotowy';
     const description=problem||(!ready?'Poczekaj na odtworzenie poprzedniej pracy.':jobs.length?`${jobs.length} do wysłania${uncertain?` · ${uncertain} do sprawdzenia`:''}`:offline()?'Pliki i postęp zapisują się bez internetu.':savedAt?`Ostatni zapis ${new Date(savedAt).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`:'Pliki i postęp są zapisywane automatycznie.');
     bar.classList.toggle('offline',offline());bar.classList.toggle('error',Boolean(problem||uncertain));
+    // Keep actionable offline/pending/error states; a healthy live route does not
+    // need an extra technical status strip above the designed phone interface.
+    bar.hidden=Boolean(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'
+      &&ready&&!offline()&&!problem&&!jobs.length&&!saving&&!syncing);
     bar.innerHTML=`<div><strong>${esc(title)}</strong><span>${esc(description)}</span></div><button type="button" id="offline-details">${jobs.length?'Kolejka':'Szczegóły'}</button>`;
     document.getElementById('offline-details').onclick=()=>{detailOpen=!detailOpen;details();};
     if(detailOpen)details();

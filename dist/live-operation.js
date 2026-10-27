@@ -46,14 +46,18 @@
 
   const emptyPhotos = () => ({ near: null, far: null, unload: null });
 
+  function operationMode(point) {
+    const type = text(point && point.operation_type).toLowerCase();
+    if (['loading', 'load', 'pickup'].includes(type)) return 'load';
+    if (['unloading', 'unload', 'delivery'].includes(type)) return 'unload';
+    return null;
+  }
+
   /** 'load' | 'unload' | null — czy punkt z karty nadaje się do kreatora. */
   function wizardMode(point) {
     if (!point || !has(point.id) || !has(point.transport_offer)) return null;
     if (text(point.status).toLowerCase() !== 'in_progress') return null;
-    const type = text(point.operation_type).toLowerCase();
-    if (type === 'loading') return 'load';
-    if (type === 'unloading') return 'unload';
-    return null;
+    return operationMode(point);
   }
 
   /** Ścieżka odczytu celów dla trybu — względem /api/. */
@@ -232,6 +236,50 @@
     return mode === 'unload'
       ? buildUnloadingRecord(point, targets, previous, mediaOrigin)
       : buildLoadingRecord(point, targets, previous);
+  }
+
+  function confirmedStartInstant(point) {
+    const arrival = text(point && point.actual_arrival_datetime);
+    return text(point && point.status).toLowerCase() === 'in_progress'
+      && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/.test(arrival)
+      && Number.isFinite(Date.parse(arrival)) ? Date.parse(arrival) : null;
+  }
+
+  /** The designed phone views use real route facts before and during a wizard.
+   * An absent targets response means details are not loaded, never demo cargo.
+   */
+  function buildRouteRecord(point, targets, previous, mediaOrigin) {
+    const mode = operationMode(point) || 'load';
+    const record = buildRecord(mode, point, targets || {}, previous, mediaOrigin);
+    if (targets == null && previous && previous.live) {
+      record.items = previous.items || [];
+      record.cmrItems = previous.cmrItems || [];
+    }
+    const inProgress = text(point && point.status).toLowerCase() === 'in_progress';
+    record.arrived = inProgress;
+    record.place = placeFromPoint(point);
+    record.orderId = text(point && point.order_number) || record.live.orderNumber;
+    record.operationLabel = text(point && point.operation_type_display)
+      || (mode === 'unload' ? 'Rozładunek' : operationMode(point) ? 'Załadunek' : 'Operacja');
+    record.optional = {
+      ref: text(point && point.reference_number),
+      instructions: text(point && point.notes),
+      contact: null, notes: [], photos: [],
+    };
+    record.live.pointStatus = text(point && point.status).toLowerCase();
+    record.live.routeOnly = !operationMode(point);
+    record.live.targetsReady = targets != null;
+    record.live.pointSequence = has(point && point.sequence) ? point.sequence : null;
+    record.live.totalPoints = has(point && point.__route && point.__route.total_points)
+      ? point.__route.total_points : null;
+    record.timing.offsetSeconds = 0;
+    // HH:mm alone is not a start instant. Never start a live timer at login.
+    record.timing.startedAt = confirmedStartInstant(point);
+    const steps = mode === 'unload' ? ['seals', 'info', 'photos', 'documents', 'review']
+      : ['info', 'photos', 'seals', 'documents', 'review'];
+    record.step = !inProgress || record.live.routeOnly ? 'travel'
+      : previous && steps.includes(previous.step) ? previous.step : steps[0];
+    return record;
   }
 
   /** Dane zlecenia w kształcie `assignment` z makiety (nagłówki, travelView, cargoView). */
@@ -415,12 +463,15 @@
   return {
     DOCUMENT_TYPES,
     ORDER_STATUS,
+    operationMode,
     wizardMode,
     targetsPath,
     absoluteMediaUrl,
     buildLoadingRecord,
     buildUnloadingRecord,
     buildRecord,
+    buildRouteRecord,
+    confirmedStartInstant,
     buildAssignment,
     placeFromPoint,
     assignBody,

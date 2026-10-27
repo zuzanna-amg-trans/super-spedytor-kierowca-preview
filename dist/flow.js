@@ -770,11 +770,11 @@ const currentStop=()=>state.routeStop==='transshipment'?transshipment():state.ro
 const stopDefinition=()=>state.routeStop?routeStopDefinitions[state.routeStop]:null;
 const cargoMode=()=>!state.routeStop;
 const isLoad=()=>state.operation==='load';
-const operationName=()=>isLoad()?'Załadunek':'Rozładunek';
+const operationName=()=>current()?.live&&current().operationLabel?current().operationLabel:isLoad()?'Załadunek':'Rozładunek';
 const operationGenitive=()=>isLoad()?'załadunku':'rozładunku';
 const cargoOrderId=()=>current().orderId||assignment.id;
 const currentPlace=()=>current().place||(isLoad()?assignment.pickup:assignment.delivery);
-const optional=()=>scenarios[state.scenario][state.operation];
+const optional=()=>current()?.live?(current().optional||{}):scenarios[state.scenario][state.operation];
 const count=()=>current().items.length;
 const photoRecords=operation=>operation.items.flatMap(item=>(operation.mode==='load'?[item.photos.near,item.photos.far]:[item.photos.unload]).filter(Boolean));
 const pieceReady=(item,operation=current())=>operation.mode==='load'?Boolean(item.label&&item.seal&&item.photos.near&&item.photos.far):Boolean(item.seal&&item.photos.unload);
@@ -800,6 +800,7 @@ const operationResponseOptions=()=>[
 ];
 function beginOperationTimer(record=current()){
   if(!record?.timing||record.finished)return;
+  if(record.live)return;
   if(!record.timing.startedAt){
     record.timing.startedAt=Date.now();
     record.timing.endedAt=null;
@@ -808,6 +809,7 @@ function beginOperationTimer(record=current()){
 }
 function finishOperationTimer(record=current()){
   if(!record?.timing||record.timing.endedAt)return;
+  if(record.live&&!record.timing.startedAt)return;
   beginOperationTimer(record);
   record.timing.endedAt=Date.now();
 }
@@ -826,13 +828,14 @@ function operationResponseRequired(record=current()){
 function operationTimerView(compact=false){
   const record=current();
   if(!record.arrived||record.finished)return '';
+  if(record.live&&!record.timing?.startedAt)return '';
   beginOperationTimer(record);
   const snapshot=operationTimerSnapshot(record),meta=operationTimerMeta[snapshot.stage],timing=record.timing;
   const showQuestion=snapshot.stage!=='normal';
   const answered=timing.response&&timing.acknowledgedThreshold>=snapshot.threshold;
   const stageLabel=answered?'Status zarejestrowany':meta.label;
   const stageDescription=answered?'Reakcja kierowcy została zapisana dla tego progu.':meta.description;
-  const previewControls=(previewMode||!androidShell)&&!compact?`<div class="operation-timer-preview"><span>PODGLĄD PROGÓW</span>${[0,20,40,60].map(minutes=>`<button type="button" data-timer-preview="${minutes}">${minutes} min</button>`).join('')}</div>`:'';
+  const previewControls=!record.live&&(previewMode||!androidShell)&&!compact?`<div class="operation-timer-preview"><span>PODGLĄD PROGÓW</span>${[0,20,40,60].map(minutes=>`<button type="button" data-timer-preview="${minutes}">${minutes} min</button>`).join('')}</div>`:'';
   const response=showQuestion?`<div class="operation-timer-response ${snapshot.requiresResponse?'required':''}"><div class="operation-timer-question">${icon(meta.icon)}<div><strong>${esc(meta.title)}</strong><small>${esc(stageDescription)}</small></div></div>${answered?`<div class="operation-response-saved">${icon('check')}<span><strong>${esc(timing.response)}</strong><small>Zarejestrowano w podglądzie o ${esc(timing.responseAt)} · nie wysłano do backendu</small></span></div>`:`<div class="operation-response-actions">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${esc(label)}</button>`).join('')}<button type="button" class="operation-response-chat" data-operation-response="chat">${icon('chat')} Czat</button></div>`}</div>`:'';
   return `<section class="operation-timer ${compact?'compact':''} ${snapshot.stage}" data-operation-timer><div class="operation-timer-top"><span class="operation-timer-icon">${icon(meta.icon)}</span><div><small>CZAS NA ${isLoad()?'ZAŁADUNKU':'ROZŁADUNKU'}</small><strong data-operation-elapsed>${operationTimingModel.formatDuration(snapshot.elapsedSeconds)}</strong></div><b data-operation-stage>${esc(stageLabel)}</b></div><div class="operation-timer-track"><span data-operation-progress style="width:${snapshot.progressPercent}%"></span><i class="at-20"></i><i class="at-40"></i></div><div class="operation-timer-thresholds"><span>20 min · status</span><span>40 min · alarm</span><span>60 min · limit</span></div>${response}${previewControls}</section>`;
 }
@@ -932,13 +935,15 @@ function cancelArrivalCountdown(showToast=false){
   if(showToast){render();toast('Potwierdzenie dotarcia zostało wycofane.');}
 }
 function startArrivalCountdown(){
+  if(liveReadOnly())return;
   cancelArrivalCountdown(false);
   const operation=state.routeStop||state.operation;
+  const routeKey=liveOperation?.routeKey;
   arrivalCountdown={operation,remaining:5,timer:null};
   render();
   arrivalCountdown.timer=setInterval(()=>{
     const activeOperation=state.routeStop||state.operation;
-    if(!arrivalCountdown||arrivalCountdown.operation!==operation||activeOperation!==operation||state.screen!=='travel'){
+    if(!arrivalCountdown||arrivalCountdown.operation!==operation||activeOperation!==operation||state.screen!=='travel'||routeKey!==liveOperation?.routeKey){
       cancelArrivalCountdown(false);
       return;
     }
@@ -946,6 +951,12 @@ function startArrivalCountdown(){
     if(arrivalCountdown.remaining<=0){
       clearInterval(arrivalCountdown.timer);
       arrivalCountdown=null;
+      if(liveMode()){
+        if(liveReadOnly()||String(liveOperation.point?.status)!=='pending')return;
+        requestLivePointAction('start');
+        render();
+        return;
+      }
       nativeConfirmArrival(operation);
       if(state.routeStop){
         currentStop().arrived=true;
@@ -965,6 +976,7 @@ function startArrivalCountdown(){
 
 function go(screen){
   if(productionScope&&screen==='chat')return;
+  if(liveReadOnly())return goLiveReadOnly(screen);
   if(backendTestWorkspace)backendActiveNav='now';
   if(arrivalCountdown)cancelArrivalCountdown(false);
   state.serviceOpen=false;
@@ -993,7 +1005,7 @@ function go(screen){
   closeModal(false);
   state.screen=screen;
   if(operationFlow().includes(screen))current().step=screen;
-  if(screen==='travel')current().arrived=false;
+  if(screen==='travel'&&!liveMode())current().arrived=false;
   if(screen==='info'){
     current().arrived=true;
     beginOperationTimer();
@@ -1060,9 +1072,19 @@ function switchScenario(value){
 function languageControl(){
   return `<label class="language-control"><span aria-hidden="true">${dictionary[state.language].flag}</span><select id="language-select" aria-label="Język nazw operacji">${Object.keys(dictionary).map(language=>`<option value="${language}" ${language===state.language?'selected':''}>${language.toUpperCase()}</option>`).join('')}</select></label>`;
 }
+function liveSessionTools(){
+  if(!current()?.live)return '';
+  return `<span class="live-session-tools"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></span>`;
+}
 function pageHeading(travel=false){
   const place=currentPlace();
-  return `<div class="operation-heading"><div><div class="overline">${esc(cargoOrderId())} · ${current().orderId?'ROZŁADUNEK PO PRZEŁADUNKU':`PUNKT ${isLoad()?'1':'2'}/2`}</div><h2>${travel?'Cel podróży':operationName()}</h2></div><div class="header-tools">${languageControl()}</div></div><div class="heading-status"><span class="badge ${travel?'orange':'green'}">${icon(travel?'route':'check')}${travel?'W drodze':'Jesteś na miejscu'}</span><span class="arrival-time">${place.country} · ${place.countryName}</span></div>`;
+  const live=current().live;
+  const pointLabel=live?(live.pointSequence!=null?`PUNKT ${live.pointSequence}${live.totalPoints!=null?`/${live.totalPoints}`:''}`:'')
+    :current().orderId?'ROZŁADUNEK PO PRZEŁADUNKU':`PUNKT ${isLoad()?'1':'2'}/2`;
+  const orderLabel=[cargoOrderId(),pointLabel].filter(has).map(esc).join(' · ');
+  const country=[place.country,place.countryName].filter(has).map(esc).join(' · ');
+  const sessionTools=liveSessionTools();
+  return `<div class="operation-heading"><div><div class="overline">${orderLabel}</div><h2>${esc(travel?'Cel podróży':operationName())}</h2></div><div class="header-tools">${languageControl()}${sessionTools}</div></div><div class="heading-status"><span class="badge ${travel?'orange':'green'}">${icon(travel?'route':'check')}${travel?'W drodze':'Jesteś na miejscu'}</span>${country?`<span class="arrival-time">${country}</span>`:''}</div>`;
 }
 function travelCargoView(){
   const title=isLoad()?'Co będziesz ładować':'Co będziesz rozładowywać';
@@ -1119,8 +1141,11 @@ function travelDestinationCard({place,operationLabel,access=[],timing='',actions
 }
 function travelView(){
   const place=currentPlace(),data=optional();
+  const live=current().live;
   const access=[has(data.gate)?`Brama ${data.gate}`:null,has(data.parking)?`Parking ${data.parking}`:null,has(data.ramp)?`Rampa ${data.ramp}`:null].filter(Boolean);
-  return `<div class="app-content travel-screen">${pageHeading(true)}${travelDestinationCard({place,operationLabel:isLoad()?'ZAŁADUNEK':'ROZŁADUNEK',access,timing:demoTravelTimingView(),actions:locationActionsView(place,'travel-goal-actions'),schematicLabel:`Punkt ${operationGenitive()}`,demoRoadLabels:true})}${unloadBeforeArrivalView()}${demoOperationPlanView()}</div>`;
+  const timing=live?backendDesignedTiming(liveOperation.point):demoTravelTimingView();
+  const plan=live?backendDesignedRoutePlan():demoOperationPlanView();
+  return `<div class="app-content travel-screen">${pageHeading(!live||!current().arrived)}${travelDestinationCard({place,operationLabel:live?operationName():isLoad()?'ZAŁADUNEK':'ROZŁADUNEK',access,timing,actions:locationActionsView(place,'travel-goal-actions'),schematicLabel:live&&current().live.routeOnly?'Punkt trasy':`Punkt ${operationGenitive()}`,demoRoadLabels:!live})}${unloadBeforeArrivalView()}${plan}${liveInventoryTasksView()}</div>`;
 }
 function placeView(){
   const place=currentPlace(),data=optional();
@@ -1153,12 +1178,14 @@ function infoView(){
   const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie z rozładunku.';
   const quantity=`${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'}`;
   const confirmation=isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Sprawdziłem, że do rozładowania są ${quantity} ładunku zgodne ze zleceniem.`;
-  const liveExit=liveMode()?`<button class="subpage-back live-exit" id="live-exit">${icon('back')} Najbliższa operacja · ${esc(assignment.id)}</button>`:'';
-  return `<div class="app-content">${liveExit}${pageHeading()}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section></div>`;
+  const liveExit=liveMode()&&!liveOperation.routeKey?`<button class="subpage-back live-exit" id="live-exit">${icon('back')} Najbliższa operacja · ${esc(assignment.id)}</button>`:'';
+  const details=current().live?liveDetailsNotice():'';
+  const tasks=liveInventoryTasksView();
+  return `<div class="app-content">${liveExit}${pageHeading()}${details}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section>${tasks}</div>`;
 }
 function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
-  return `<div class="stage-header"><button id="stage-back" aria-label="Wróć do poprzedniego ekranu">${icon('back')}</button><div><span>${operationName()} · ${cargoOrderId()}</span><b>KROK ${index+1} Z 3</b></div><button class="stage-chat" data-open-chat aria-label="Otwórz czat i dokumentację">${icon('chat')}</button></div>${operationTimerView(true)}<div class="stage-progress" aria-label="Postęp dokumentacji">${steps.map((step,stepIndex)=>`<span class="${stepIndex===index?'current':progress()[stepIndex]?'done':''}"></span>`).join('')}</div><h2 class="stage-title">${title}</h2><p class="stage-description">${description}</p>`;
+  return `<div class="stage-header"><button id="stage-back" aria-label="Wróć do poprzedniego ekranu">${icon('back')}</button><div><span>${esc(operationName())} · ${esc(cargoOrderId())}</span><b>KROK ${index+1} Z 3</b></div>${liveSessionTools()}<button class="stage-chat" data-open-chat aria-label="Otwórz czat i dokumentację">${icon('chat')}</button></div>${operationTimerView(true)}<div class="stage-progress" aria-label="Postęp dokumentacji">${steps.map((step,stepIndex)=>`<span class="${stepIndex===index?'current':progress()[stepIndex]?'done':''}"></span>`).join('')}</div><h2 class="stage-title">${title}</h2><p class="stage-description">${description}</p>`;
 }
 function sourceLabel(record){if(record.syncState&&record.syncState!=='confirmed')return 'Zapisano na telefonie · oczekuje na synchronizację';if(record.source==='transshipment')return 'Nowe zdjęcie po przeładunku';return record.source==='chat'?'Dodano z czatu':record.chatSynced?'Automatycznie w czacie':record.demo?'Dodano przykład':'Dodano z tego ekranu';}
 
@@ -1190,7 +1217,7 @@ function cmrSealView(){
   const evidence=load?`<div class="evidence-status">${icon('check')} Każda sztuka ładunku ma komplet zdjęć · ${count()}/${count()}</div>`:'';
   const scanLabel=current().cmrSeal?'Skanuj ponownie':load?'Skanuj QR':'Zeskanuj plombę';
   const afterScan=!load&&current().cmrSeal&&current().loadingDocuments.length?`<section class="prior-cmr-section"><div class="section-heading"><h3>CMR z załadunku</h3><span>Pokazany automatycznie</span></div><p class="prior-cmr-intro">Plomba jest zgodna. Poniżej znajduje się skan CMR wykonany podczas pierwszej operacji — załadunku.</p>${current().loadingDocuments.map((record,index)=>loadingDocumentRecordView(record,index)).join('')}</section>`:'';
-  return `<div class="app-content">${header}${evidence}<section class="panel cmr-seal-card"><div class="cmr-seal-illustration"><span>${icon('doc')}</span><span class="cmr-sticker">QR</span></div>${card}<div class="seal-code-row">${current().cmrSeal?`<strong>${esc(current().cmrSeal)}</strong>`:'<span>Kod plomby CMR nieodczytany</span>'}<button class="scan-button ${current().cmrSeal?'scanned':''}" id="scan-cmr-seal" ${load&&!current().cmrLabel?'disabled':''}>${icon(current().cmrSeal?'check':'qr')}${scanLabel}</button></div></section>${liveCmrSealRows()}${afterScan}${load?`<div class="shared-hint">${icon('info')} Po zapisaniu QR przejdziesz do skanu wypełnionego dokumentu CMR.</div>`:''}</div>`;
+  return `<div class="app-content">${header}${evidence}<section class="panel cmr-seal-card"><div class="cmr-seal-illustration"><span>${icon('doc')}</span><span class="cmr-sticker">QR</span></div>${card}<div class="seal-code-row">${current().cmrSeal?`<strong>${esc(current().cmrSeal)}</strong>`:'<span>Kod plomby CMR nieodczytany</span>'}<button class="scan-button ${current().cmrSeal?'scanned':''}" id="scan-cmr-seal" ${load&&!current().cmrLabel?'disabled':''}>${icon(current().cmrSeal?'check':'qr')}${scanLabel}</button></div></section>${liveCmrSealRows()}${afterScan}${load?`<div class="shared-hint">${icon('info')} Po zapisaniu QR przejdziesz do skanu wypełnionego dokumentu CMR.</div>`:''}${liveInventoryTasksView()}</div>`;
 }
 function demoDocument(page=1,operation=state.operation,orderId=cargoOrderId()){
   return `<div class="demo-document"><div class="document-paper"><h4>CMR</h4><p>MIĘDZYNARODOWY SAMOCHODOWY LIST PRZEWOZOWY</p><p>Magazyn demonstracyjny Alfa → Centrum demonstracyjne Beta</p><p>Zlecenie ${esc(orderId)}</p><div class="paper-grid"></div><div class="paper-signature">${operation==='load'?'Nadawca':'Odbiorca'} · ${page}</div></div><div class="demo-label">DOKUMENT DEMONSTRACYJNY</div></div>`;
@@ -1207,8 +1234,8 @@ function documentConfirmation(){
 function documentsView(){
   const records=current().documents;
   const title=isLoad()?'Skan dokumentu CMR':'Skan CMR po rozładunku';
-  const description=isLoad()?'Plomba dokumentu jest już zapisana. Teraz dołącz pełny, czytelny skan wypełnionego CMR.':'Plomba CMR i sztuki ładunku są już sprawdzone. Po rozładunku dołącz nowy, pełny i czytelny skan dokumentu CMR.';
-  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon('check')} ${isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'} · ${esc(current().cmrSeal)}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.syncState&&record.syncState!=='confirmed')?'Plik zapisano na telefonie — oczekuje na synchronizację.':records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index,!liveMode())).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Po synchronizacji w czacie</strong>Strony CMR i pliki PDF pojawią się w czacie zlecenia po potwierdzeniu wysyłki.</span></div></div>`;
+  const description=liveReadOnly()&&!cmrSealReady()?'Podgląd dokumentacji CMR. Plomba nie jest jeszcze potwierdzona w tej operacji.':isLoad()?'Plomba dokumentu jest już zapisana. Teraz dołącz pełny, czytelny skan wypełnionego CMR.':'Plomba CMR i sztuki ładunku są już sprawdzone. Po rozładunku dołącz nowy, pełny i czytelny skan dokumentu CMR.';
+  return `<div class="app-content">${stepHeader('documents',title,description)}<div class="evidence-status">${icon(cmrSealReady()?'check':'info')} ${cmrSealReady()?(isLoad()?'Plomba na pustym tyle ostatniej strony CMR':'Plomba CMR zgodna z załadunkiem'):'Plomba CMR niepotwierdzona'}${current().cmrSeal?` · ${esc(current().cmrSeal)}`:''}</div>${records.length?`<div class="evidence-status ${documentReady()?'ready':'pending'}">${icon(documentReady()?'check':'info')}${records.some(record=>record.syncState&&record.syncState!=='confirmed')?'Plik zapisano na telefonie — oczekuje na synchronizację.':records.some(record=>record.source==='chat')?'CMR dodany z czatu — jest również tutaj.':'CMR dodany do zlecenia i automatycznie do czatu.'}</div>`:''}<section class="panel document-panel">${records.length?records.map((record,index)=>documentRecordView(record,index,!liveMode())).join(''):`<button class="document-placeholder" id="add-document">${icon('camera')}<strong>${isLoad()?'Zeskanuj dokument CMR':'Zeskanuj CMR po rozładunku'}</strong><small>Wszystkie strony, czytelny tekst i podpisy</small></button>`}${records.length?`<button class="secondary-button" id="add-document">${icon('plus')} Dodaj stronę lub plik</button>`:''}<p class="document-hints">Sprawdź cały dokument: krawędzie stron, numery, ostrość tekstu i podpisy.</p></section><div class="document-assertion">${documentConfirmation()}</div><div class="auto-chat-hint">${icon('chat')}<span><strong>Po synchronizacji w czacie</strong>Strony CMR i pliki PDF pojawią się w czacie zlecenia po potwierdzeniu wysyłki.</span></div></div>`;
 }
 function cmrRetentionView(){
   if(isLoad()||liveMode())return '';
@@ -1216,9 +1243,13 @@ function cmrRetentionView(){
   return `<section class="panel cmr-retention-panel"><div class="section-kicker">${icon('qr')} PRZED ODJAZDEM</div><h3>CMR z plombą zostaje u Ciebie</h3><p>Po podpisaniu odbierz ten dokument od rozładowcy. Zeskanuj ponownie plombę na jego odwrocie.</p><strong class="retained-seal">${esc(current().cmrSeal)}</strong><button class="scan-button" id="scan-cmr-return">${icon(scanned?'check':'qr')}${scanned?'Plomba sprawdzona · skanuj ponownie':'Skanuj plombę CMR po rozładunku'}</button><label class="check-row"><input id="cmr-retained" type="checkbox" ${current().cmrRetained?'checked':''} ${scanned?'':'disabled'}><span>Mam przy sobie CMR z tą plombą. Dokument zostaje u mnie w aucie.</span></label></section>`;
 }
 function reviewView(){
-  const photoTotal=count()*(isLoad()?2:1),cargoDetail=isLoad()?'Każda ma plombę, QR oraz zdjęcie z bliska i z daleka':'Każda ma zgodny skan plomby oraz zdjęcie z rozładunku',photoDetail=isLoad()?'Dwa osobne ujęcia każdej pozycji':'Jedno zdjęcie z rozładunku każdej pozycji',cmrDetail=isLoad()?'Plomba na pustym tyle ostatniej strony':'Numer zgodny z plombą zapisaną przy załadunku';
+  const photoTotal=count()*(isLoad()?2:1),actualPhotos=photoRecords(current()).length;
+  const cargoDone=cargoReady(),sealDone=cmrSealReady(),documentDone=documentReady(),ready=allReady();
+  const cargoDetail=isLoad()?'Każda ma plombę, QR oraz zdjęcie z bliska i z daleka':'Każda ma zgodny skan plomby oraz zdjęcie z rozładunku';
+  const photoDetail=isLoad()?'Dwa osobne ujęcia każdej pozycji':'Jedno zdjęcie z rozładunku każdej pozycji';
+  const cmrDetail=isLoad()?'Plomba na pustym tyle ostatniej strony':'Numer zgodny z plombą zapisaną przy załadunku';
   const sequence=isLoad()?'sztuki ładunku → plomba CMR → skan CMR':'plomba CMR → sztuki ładunku → skan CMR po rozładunku';
-  return `<div class="app-content"><button class="subpage-back" id="review-back">${icon('back')} Wróć do skanu CMR</button><div class="overline">SPRAWDŹ PRZED ZAKOŃCZENIEM</div><h2 class="stage-title">Dokumentacja gotowa</h2><p class="stage-description">Wymagana kolejność została wykonana dla zlecenia ${cargoOrderId()}.</p>${operationTimerView(true)}${cmrRetentionView()}<section class="panel review-checklist"><div>${icon('check')}<span>Sztuki ładunku<small>${cargoDetail}</small></span><b>${count()}/${count()}</b></div><div>${icon('check')}<span>Zdjęcia sztuk ładunku<small>${photoDetail}</small></span><b>${photoTotal}/${photoTotal}</b></div><div>${icon('check')}<span>Plomba CMR<small>${cmrDetail} · ${esc(current().cmrSeal)}</small></span><b>1/1</b></div><div>${icon('check')}<span>Pełny skan dokumentu CMR<small>${current().documents.length} ${current().documents.length===1?'plik':'pliki'} · kompletność potwierdzona</small></span><b>OK</b></div></section><p class="small-note">Zakończenie jest dostępne dopiero po wykonaniu całej sekwencji: ${sequence}.</p></div>`;
+  return `<div class="app-content"><button class="subpage-back" id="review-back">${icon('back')} Wróć do skanu CMR</button>${liveSessionTools()}<div class="overline">SPRAWDŹ PRZED ZAKOŃCZENIEM</div><h2 class="stage-title">${ready?'Dokumentacja gotowa':'Dokumentacja w trakcie'}</h2><p class="stage-description">${ready?'Wymagana kolejność została wykonana':'Aktualny stan dokumentacji'} dla zlecenia ${esc(cargoOrderId())}.</p>${operationTimerView(true)}${cmrRetentionView()}<section class="panel review-checklist"><div>${icon(cargoDone?'check':'info')}<span>Sztuki ładunku<small>${cargoDetail}</small></span><b>${completedPieces()}/${count()}</b></div><div>${icon(actualPhotos===photoTotal&&photoTotal>0?'check':'info')}<span>Zdjęcia sztuk ładunku<small>${photoDetail}</small></span><b>${actualPhotos}/${photoTotal}</b></div><div>${icon(sealDone?'check':'info')}<span>Plomba CMR<small>${cmrDetail}${current().cmrSeal?` · ${esc(current().cmrSeal)}`:''}</small></span><b>${sealDone?'1/1':'0/1'}</b></div><div>${icon(documentDone?'check':'info')}<span>Pełny skan dokumentu CMR<small>${current().documents.length} ${current().documents.length===1?'plik':'pliki'} · ${documentDone?'kompletność potwierdzona':'kompletność niepotwierdzona'}</small></span><b>${documentDone?'OK':'Brak'}</b></div></section><p class="small-note">Zakończenie jest dostępne dopiero po wykonaniu całej sekwencji: ${sequence}.</p></div>`;
 }
 function chatMessagesView(messages){
   return messages.map(message=>`<div class="chat-message-own"><p>${esc(message.text)}</p><small>Kierowca · ${esc(message.time)}</small></div>`).join('');
@@ -1229,11 +1260,11 @@ function chatComposerView(){
 function chatView(){
   const record=current(),photos=photoRecords(record),autoCount=[...photos,...record.documents].filter(item=>item.chatSynced).length,photoTarget=count()*(isLoad()?2:1),sides=isLoad()?['near','far']:['unload'];
   const instruction=allReady()?'Dokumentacja wszystkich sztuk, plomba CMR i skan CMR są kompletne.':isLoad()?'Najpierw udokumentuj każdą sztukę, następnie plombę CMR, a na końcu dołącz skan CMR.':'Najpierw zeskanuj plombę CMR, następnie udokumentuj każdą sztukę, a na końcu dołącz skan CMR po rozładunku.';
-  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${cargoOrderId()} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie z rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${esc(cargoOrderId())} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie z rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
 }
 function successView(){
   const photoTotal=count()*(isLoad()?2:1);
-  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('check')}</span><h2>${operationName()} zakończony</h2><p>${esc(currentPlace().company)}<br>Dokumentacja jest kompletna w tym podglądzie.</p><div class="summary-line">${icon('check')} Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')} ${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')} Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')} Pełny skan CMR <b>OK</b></div></section><p class="small-note">To demonstracja. Żadne pliki ani wiadomości nie zostały wysłane do rzeczywistego systemu.</p></div>`;
+  return `<div class="app-content"><section class="panel completion-panel"><span class="success-icon">${icon('check')}</span><h2>${esc(operationName())} zakończony</h2><p>${esc(currentPlace().company)}<br>Dokumentacja jest kompletna w tym podglądzie.</p><div class="summary-line">${icon('check')} Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')} ${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')} Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')} Pełny skan CMR <b>OK</b></div></section><p class="small-note">To demonstracja. Żadne pliki ani wiadomości nie zostały wysłane do rzeczywistego systemu.</p></div>`;
 }
 function stopMapCard(){
   const stop=stopDefinition();
@@ -1644,6 +1675,13 @@ function stopDesignNotes(){
   return `<h2>Tankowanie i przerwa.<br>Jedna świadoma decyzja.</h2><p class="note-description">Sugestia pojawia się po dotarciu, a po zapisaniu wydatku jest liczona ponownie. Przerwa zaczyna się dopiero po potwierdzeniu przez kierowcę.</p><div class="design-progress"><div class="design-progress-title">TANKOWANIE<span>${Math.min(activeIndex+1,steps.length)}/${steps.length}</span></div>${steps.map(([screen,label],index)=>`<div class="design-step ${index<activeIndex?'done':index===activeIndex?'current':''}"><span class="design-step-num">${index<activeIndex?icon('check'):String(index+1).padStart(2,'0')}</span><span>${label}</span></div>`).join('')}</div><div class="design-shared"><strong>Progi: 15 / 30 / 45 min</strong><p>1:00–2:00 jazdy sugeruje 15 min. Po 2:00 bez piętnastki — 45 min. Po potwierdzonej piętnastce, od 3:30 lub godzinę przed granicą — 30 min.</p></div>`;
 }
 function actionView(){
+  if(liveReadOnly()){
+    const screens=current().arrived&&!current().live.routeOnly?operationFlow():['travel'];
+    const index=Math.max(0,screens.indexOf(state.screen));
+    const labels={info:'informacje',photos:'sztuki ładunku',seals:'plomba CMR',documents:'skan CMR',review:'podsumowanie'};
+    const next=screens[index+1]||screens[0],disabled=screens.length===1;
+    return `<div class="flow-actions">${index>0?`<button class="flow-back" data-back="${screens[index-1]}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button" id="main-action" data-action="readonly-next" ${disabled?'disabled':''}>${icon('arrow')}${disabled?(current().live.routeOnly?'Dotarłem do celu':`Dotarłem na ${isLoad()?'załadunek':'rozładunek'}`):index===screens.length-1?'Wróć do informacji':`Dalej: ${labels[next]}`}</button></div><p class="action-caption">Podgląd tylko do odczytu · bez zapisywania zmian w TMS.</p>`;
+  }
   const screen=state.screen;
   let text='',action='',disabled=false,back=null,caption='';
   if(screen==='travel'){
@@ -1651,6 +1689,11 @@ function actionView(){
     text=countdown?`Cofnij potwierdzenie · ${countdown.remaining} s`:`Dotarłem na ${isLoad()?'załadunek':'rozładunek'}`;
     action=countdown?'cancel-arrival':'start-arrival';
     caption=countdown?'Dotarcie zostanie potwierdzone automatycznie. Naciśnij przycisk, aby wycofać.':'Po naciśnięciu masz 5 sekund na wycofanie potwierdzenia.';
+    if(liveMode())disabled=Boolean(backendPointActionPending)||!(backendState.write_capabilities||[]).includes('start');
+    if(liveMode()&&current().live.routeOnly){
+      if(current().arrived){text='Zakończ operację';action='complete-point';disabled=Boolean(backendPointActionPending)||!(backendState.write_capabilities||[]).includes('complete');caption='Potwierdź dopiero po rzeczywistym zakończeniu operacji.';}
+      else if(!countdown)text='Dotarłem do celu';
+    }
   }
   if(screen==='info'){
     text=current().started?'Przejdź do dokumentacji':isLoad()?'Załadunek wykonany · dalej':'Rozpocznij dokumentowanie rozładunku';
@@ -1672,6 +1715,7 @@ function actionView(){
     disabled=true;
     caption='Eskalacja czasu operacji wymaga odpowiedzi kierowcy. Wybierz status w liczniku powyżej.';
   }
+  if(liveMode()&&current().arrived&&!current().live.routeOnly&&!current().live.targetsReady){disabled=true;caption=current().live.detailsLoading?'Pobieranie danych zlecenia…':'Szczegóły zlecenia są niedostępne. Spróbuj ponownie.';}
   const actionIcon=action==='chat-attach'?'clip':action==='finish'?'check':action==='cancel-arrival'?'close':'arrow';
   return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
 }
@@ -2270,74 +2314,210 @@ const nativeCall=invoke=>new Promise((resolve,reject)=>{
   try{invoke(id);}catch(error){pendingRequests.delete(id);reject(error);}
 });
 const nativeRequest=(method,path,body)=>{
+  if(backendState?.read_only===true&&!backendTestWorkspace&&String(method).toUpperCase()!=='GET')return Promise.resolve(readOnlyResult());
   const send=()=>nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,method,path,body?JSON.stringify(body):''));
   return window.SuperSpedytorOfflineWorkspace?.request(method,path,body,send)||send();
 };
 const nativeUpload=(path,token,fields)=>{
+  if(backendState?.read_only===true&&!backendTestWorkspace)return Promise.resolve(readOnlyResult());
   const send=()=>nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,path,token,JSON.stringify(fields||{})));
   return window.SuperSpedytorOfflineWorkspace?.upload(path,token,fields,send)||send();
 };
 function queuePointAction(pointId,action){
+  if(backendState?.read_only===true&&!backendTestWorkspace){toast(readOnlyResult().message);return;}
   if(window.SuperSpedytorOfflineWorkspace)window.SuperSpedytorOfflineWorkspace.point(pointId,action).catch(()=>{backendPointActionPending=null;toast('Nie zapisano statusu. Sprawdź pamięć telefonu i spróbuj ponownie.');});
   else driverBridge?.backendPointAction(pointId,action);
 }
-const nativeCapturePhoto=()=>nativeCall(id=>window.SuperSpedytorNative.capturePhoto(id));
-const nativeScanDocument=()=>window.CmrEnhancement?.available()&&window.SuperSpedytorScanner?.scanForUpload
+const nativeCapturePhoto=()=>backendReadOnly()?Promise.resolve(readOnlyResult()):nativeCall(id=>window.SuperSpedytorNative.capturePhoto(id));
+const nativeScanDocument=()=>backendReadOnly()?Promise.resolve(readOnlyResult()):window.CmrEnhancement?.available()&&window.SuperSpedytorScanner?.scanForUpload
   ?window.SuperSpedytorScanner.scanForUpload():nativeCall(id=>window.SuperSpedytorNative.scanDocument(id));
-const nativeScanCode=()=>nativeCall(id=>window.SuperSpedytorNative.scanCode(id));
+const nativeScanCode=()=>backendReadOnly()?Promise.resolve(readOnlyResult()):nativeCall(id=>window.SuperSpedytorNative.scanCode(id));
 const nativeReleaseFile=token=>{try{if(token&&!window.SuperSpedytorOfflineWorkspace?.retains(token))window.SuperSpedytorNative?.releaseFile(token);}catch{}};
 const liveTargetsPath=()=>liveOperationModel.targetsPath(liveOperation.mode,liveOperation.pointId);
 let liveScanManual=false;
 let liveBusy=false;
+let liveRouteEpoch=0;
+let liveRouteLoad=null;
+const settledPointWrites=new Set();
+function readOnlyResult(){return {status:403,message:'Podgląd tylko do odczytu. Zmiany nie są zapisywane w TMS.'};}
+function backendReadOnly(){return Boolean(!backendTestWorkspace&&backendState?.read_only===true);}
+function liveReadOnly(){return Boolean(liveMode()&&backendReadOnly());}
+function requestLivePointAction(action){
+  if(!liveMode()||backendTestWorkspace||backendReadOnly()||backendState?.status!=='connected'||backendPointActionPending)return false;
+  const expected=action==='start'?'pending':action==='complete'?'in_progress':'';
+  if(!expected||liveOperation.point?.status!==expected||!(backendState.write_capabilities||[]).includes(action))return false;
+  const previous=backendState.write;
+  if(previous?.id&&previous.status!=='pending')settledPointWrites.add(`${liveOperation.ownerKey}|${previous.id}:${previous.status}`);
+  backendPointActionPending={pointId:liveOperation.pointId,action,previousWriteId:String(backendState?.write?.id||'')};
+  try{queuePointAction(liveOperation.pointId,action);return true;}
+  catch{backendPointActionPending=null;toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');return false;}
+}
+function liveRouteSelection(){
+  if(!backendMode||backendTestWorkspace||backendState?.status!=='connected'||backendState?.profile?.id==null)return null;
+  const plan=backendDriverOperationPlan(backendState.route_status?.active_routes||[]),point=plan.nearest;
+  if(!point||!has(point.id))return null;
+  const ownerKey=`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
+  const key=[ownerKey,point.id,point.transport_offer,point.order_number,point.status,point.operation_type,backendState.read_only===true?'readonly':'write'].join('|');
+  return {point,ownerKey,key};
+}
+function cancelLiveRouteRead(){
+  liveRouteEpoch++;
+  liveRouteLoad=null;
+  liveBusy=false;
+  if(liveMode()&&current()?.live?.detailsLoading){current().live.detailsLoading=false;current().live.targetsRequested=false;}
+}
+function detachLiveOperation(){
+  cancelLiveRouteRead();
+  cancelArrivalCountdown(false);
+  if(!liveMode())return;
+  const mode=liveOperation.mode,record=state.operations[mode];
+  [...(record?.items||[]).flatMap(item=>[item.photos?.near,item.photos?.far,item.photos?.unload]),...(record?.documents||[])]
+    .filter(Boolean).forEach(item=>nativeReleaseFile(item.token));
+  liveOperation=null;
+  assignment=demoAssignment;
+  state.operations[mode]=fresh(mode);
+  closeModal(false);
+}
+function synchronizeDesignedOperation(){
+  if(!backendMode||backendTestWorkspace)return false;
+  const selected=liveRouteSelection();
+  if(liveMode()&&(!selected||liveOperation.ownerKey&&liveOperation.ownerKey!==selected.ownerKey||String(liveOperation.pointId)!==String(selected.point.id))){
+    detachLiveOperation();
+  }
+  if(backendActiveNav!=='now'){
+    if(liveRouteLoad)cancelLiveRouteRead();
+    return false;
+  }
+  if(!selected)return false;
+  backendLastNearest=selected.point;
+  // Owner-scoped offline restoration can replace the live record asynchronously.
+  // Wait for that restoration before starting an API read, then validate its point.
+  if(window.SuperSpedytorOfflineWorkspace&&!window.SuperSpedytorOfflineWorkspace.ready())return false;
+  const mode=liveOperationModel.operationMode(selected.point)||'load';
+  const sameRoute=liveMode()&&liveOperation.routeKey===selected.key&&current()?.live;
+  if(!sameRoute){
+    const restored=liveMode()&&!liveOperation.routeKey&&String(liveOperation.pointId)===String(selected.point.id)&&liveOperation.mode===mode?current():null;
+    if(!restored)detachLiveOperation();
+    const record=liveOperationModel.buildRouteRecord(selected.point,null,restored,backendState.backend_origin);
+    record.live.targetsRequested=false;
+    state.operations[mode]=record;
+    liveOperation={pointId:String(selected.point.id),point:selected.point,mode,ownerKey:selected.ownerKey,routeKey:selected.key,finishing:false};
+    assignment=liveOperationModel.buildAssignment(selected.point,record);
+    state.operation=mode;state.routeStop=null;state.serviceOpen=false;state.screen=record.step;
+    state.manualLanguage=true;state.language='pl';
+    closeModal(false);
+  }else{
+    liveOperation.point=selected.point;
+    current().place=liveOperationModel.placeFromPoint(selected.point);
+    current().operationLabel=String(selected.point.operation_type_display||current().operationLabel);
+    current().optional.instructions=String(selected.point.notes||'');
+    current().arrived=String(selected.point.status).toLowerCase()==='in_progress';
+    current().timing.startedAt=liveOperationModel.confirmedStartInstant(selected.point);
+    current().timing.offsetSeconds=0;
+  }
+  const record=current();
+  if(liveOperationModel.wizardMode(selected.point)&&!record.live.targetsRequested&&!record.live.targetsReady){
+    record.live.targetsRequested=true;
+    if(backendState.refreshing){record.live.targetsRequested=false;record.live.detailsLoading=true;}
+    else if(window.SuperSpedytorNative?.backendRequest)enterLiveOperation(selected.point,{selected});
+    else record.live.detailsError='Szczegóły sztuk są dostępne w aplikacji na telefonie.';
+  }
+  return true;
+}
+function liveDetailsNotice(){
+  const detail=current().live;
+  if(detail?.detailsLoading)return '<section class="panel" role="status"><p>Pobieranie sztuk i dokumentacji zlecenia…</p></section>';
+  if(detail?.detailsError)return `<section class="panel" role="alert"><p>${esc(detail.detailsError)}</p><button type="button" class="secondary-button" id="live-details-retry">Spróbuj ponownie</button></section>`;
+  return '';
+}
+function goLiveReadOnly(screen){
+  const screens=current()?.arrived&&!current().live.routeOnly?operationFlow():['travel'];
+  if(!screens.includes(screen))return;
+  closeModal(false);state.screen=screen;current().step=screen;
+  render();$('#app-scroll').scrollTop=0;
+}
+function bindLiveReadOnlyView(){
+  // Read-only means the same screens with inspection/navigation, never camera,
+  // QR, file selection, local confirmations or a queued native mutation.
+  $$('input,textarea,select,button',$('#app')).forEach(control=>{control.disabled=true;});
+  bindLiveSessionControls();
+  bindInventoryCards();
+  const screens=current().arrived&&!current().live.routeOnly?operationFlow():['travel'];
+  const index=Math.max(0,screens.indexOf(state.screen));
+  const retry=$('#live-details-retry');
+  if(retry){retry.disabled=false;retry.onclick=()=>{current().live.targetsRequested=false;current().live.detailsError='';render();};}
+  const stageBack=$('#stage-back');
+  if(stageBack&&index>0){stageBack.disabled=false;stageBack.onclick=()=>goLiveReadOnly(screens[index-1]);}
+  $$('[data-back]').forEach(button=>button.onclick=()=>goLiveReadOnly(button.dataset.back));
+  const main=$('#main-action');
+  if(main)main.onclick=()=>goLiveReadOnly(screens[index+1]||screens[0]);
+}
+function bindLiveSessionControls(){
+  const refresh=$('#backend-refresh'),logout=$('#backend-logout'),retry=$('#live-details-retry');
+  if(refresh){refresh.disabled=false;refresh.onclick=()=>{
+    if(liveMode()&&current()?.live){current().live.targetsRequested=false;current().live.targetsReady=false;}
+    driverBridge?.backendRefresh();
+  };}
+  if(logout){logout.disabled=false;logout.onclick=()=>{detachLiveOperation();driverBridge?.backendLogout();};}
+  if(retry){retry.disabled=false;retry.onclick=()=>{current().live.targetsRequested=false;current().live.detailsError='';render();};}
+}
 function liveFailure(result,fallback){
   const message=liveOperationModel.errorMessage(result,fallback);
   toast(message);
   return message;
 }
-async function enterLiveOperation(point){
-  if(!liveOperationModel||!window.SuperSpedytorNative||liveBusy)return;
+async function enterLiveOperation(point,{selected=liveRouteSelection()}={}){
+  if(!liveOperationModel||!window.SuperSpedytorNative?.backendRequest||!selected||String(point.id)!==String(selected.point.id))return;
   const mode=liveOperationModel.wizardMode(point);
-  if(!mode){toast('Kreator otwiera się po rozpoczęciu załadunku lub rozładunku ze zleceniem.');return;}
+  if(!mode||liveRouteLoad?.key===selected.key)return;
+  const epoch=++liveRouteEpoch;
+  liveRouteLoad={key:selected.key,epoch};
   liveBusy=true;
-  toast('Pobieram sztuki i plomby ze zlecenia…');
+  if(liveMode()&&liveOperation.routeKey===selected.key)current().live.detailsLoading=true;
   try{
     const result=await nativeRequest('GET',liveOperationModel.targetsPath(mode,point.id));
-    if(!liveOperationModel.isSuccess(result)){liveFailure(result,mode==='unload'?'Nie udało się pobrać sztuk do rozładunku.':'Nie udało się pobrać celów oklejania.');return;}
-    const record=liveOperationModel.buildRecord(mode,point,result.body,null,backendState?.backend_origin);
-    liveOperation={pointId:String(point.id),point,mode,finishing:false};
+    if(epoch!==liveRouteEpoch||liveRouteSelection()?.key!==selected.key||backendActiveNav!=='now'||backendTestWorkspace)return;
+    if(!liveOperationModel.isSuccess(result)){
+      if(liveMode()&&liveOperation.routeKey===selected.key)current().live.detailsError=liveOperationModel.errorMessage(result,'Nie udało się pobrać szczegółów zlecenia.');
+      return;
+    }
+    const previous=liveMode()&&liveOperation.routeKey===selected.key?current():null;
+    const record=liveOperationModel.buildRouteRecord(point,result.body,previous,backendState?.backend_origin);
+    record.live.targetsRequested=true;
+    liveOperation={pointId:String(point.id),point,mode,ownerKey:selected.ownerKey,routeKey:selected.key,finishing:false};
     state.operations[mode]=record;
     assignment=liveOperationModel.buildAssignment(point,record);
-    state.scenario='basic';
     state.routeStop=null;
     state.serviceOpen=false;
     state.operation=mode;
     state.screen=record.step;
     beginOperationTimer(record);
     closeModal(false);
-    render();
-    $('#app-scroll').scrollTop=0;
-  }catch(error){toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');}
-  finally{liveBusy=false;}
+  }catch(error){
+    if(epoch===liveRouteEpoch&&liveMode()&&liveOperation.routeKey===selected.key)current().live.detailsError='Nie udało się pobrać szczegółów zlecenia. Spróbuj ponownie.';
+  }finally{
+    if(epoch===liveRouteEpoch){
+      liveRouteLoad=null;liveBusy=false;
+      if(liveMode()&&liveOperation.routeKey===selected.key)current().live.detailsLoading=false;
+      render();
+    }
+  }
 }
 async function refreshLiveTargets(){
   if(!liveMode())return false;
+  const operation=liveOperation,record=current();
   const result=await nativeRequest('GET',liveTargetsPath());
-  if(!liveMode())return false;
+  if(!liveMode()||liveOperation!==operation||current()!==record)return false;
   if(!liveOperationModel.isSuccess(result)){liveFailure(result,'Nie udało się odświeżyć plomb.');return false;}
   const mode=liveOperation.mode;
-  state.operations[mode]=liveOperationModel.buildRecord(mode,liveOperation.point,result.body,state.operations[mode],backendState?.backend_origin);
+  state.operations[mode]=liveOperationModel.buildRouteRecord(liveOperation.point,result.body,state.operations[mode],backendState?.backend_origin);
   assignment=liveOperationModel.buildAssignment(liveOperation.point,state.operations[mode]);
   render();
   return true;
 }
 function exitLiveOperation(message){
   if(!liveMode())return;
-  const mode=liveOperation.mode,record=state.operations[mode];
-  [...record.items.flatMap(item=>[item.photos.near,item.photos.far,item.photos.unload]),...record.documents]
-    .filter(Boolean).forEach(item=>nativeReleaseFile(item.token));
-  liveOperation=null;
-  assignment=demoAssignment;
-  state.operations[mode]=fresh(mode);
+  detachLiveOperation();
   state.operation='load';
   state.screen='info';
   backendActiveNav='now';
@@ -2346,6 +2526,7 @@ function exitLiveOperation(message){
   if(message)toast(message);
 }
 async function liveAssign(target,code){
+  if(backendReadOnly()){toast(readOnlyResult().message);return;}
   const unload=current().mode==='unload';
   const body=unload?liveOperationModel.scanBody(code,liveScanManual):liveOperationModel.assignBody(current(),target,code);
   if(!body){$('#qr-error').textContent='Nie ma do czego przypiąć tej plomby. Odśwież ekran.';return;}
@@ -2372,6 +2553,7 @@ async function liveAssign(target,code){
   }finally{if(button)button.disabled=false;}
 }
 async function liveAttach(target){
+  if(backendReadOnly()){toast(readOnlyResult().message);return;}
   if(liveBusy)return;
   const record=current(),cmr=target.kind==='cmr';
   liveBusy=true;
@@ -2407,6 +2589,7 @@ async function liveAttach(target){
   }finally{liveBusy=false;}
 }
 function liveFinish(){
+  if(backendReadOnly()){toast(readOnlyResult().message);return;}
   if(!liveMode()||liveOperation.finishing)return;
   if(!liveOperationModel.sealsSatisfyGate(current())){toast(current().mode==='unload'?'Super Spedytor wymaga zeskanowania plomby każdej sztuki, która tu schodzi.':'Super Spedytor wymaga plomby na każdej sztuce i na CMR przed zakończeniem.');return;}
   liveOperation.finishing=true;
@@ -2414,20 +2597,24 @@ function liveFinish(){
   toast(current().mode==='unload'?'Zamykam rozładunek w Super Spedytorze…':'Zamykam załadunek w Super Spedytorze…');
   queuePointAction(liveOperation.pointId,'complete');
 }
-function liveWriteFeedback(write){
-  if(!liveMode()||!write||String(write.point_id||'')!==liveOperation.pointId)return;
-  if(write.status==='pending')return;
-  liveOperation.finishing=false;
-  if(write.status==='confirmed'&&write.action==='complete'){
-    finishOperationTimer();
-    const point=liveOperation.point;
-    exitLiveOperation(liveOperation.mode==='unload'?'Rozładunek zakończony i potwierdzony w Super Spedytorze.':'Załadunek zakończony i potwierdzony w Super Spedytorze.');
-    liveOrderStatus(point,'complete');
-    return;
+function settleBackendPointWrite(write,previousWriteKey,context){
+  if(!write?.id||write.status==='pending'||`${write.id}:${write.status}`===previousWriteKey)return;
+  const owner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
+  if(!owner||owner!==context.owner||backendState.status!=='connected'||backendTestWorkspace)return;
+  const key=`${owner}|${write.id}:${write.status}`;
+  if(settledPointWrites.has(key))return;
+  settledPointWrites.add(key);
+  if(settledPointWrites.size>128)settledPointWrites.delete(settledPointWrites.values().next().value);
+  const point=context.point;
+  if(write.status==='confirmed'&&point&&String(point.id)===String(write.point_id)&&!backendReadOnly()){
+    if(write.action==='complete'&&liveMode()&&String(liveOperation.pointId)===String(point.id))finishOperationTimer();
+    if(['start','complete'].includes(write.action))liveOrderStatus(point,write.action);
   }
+  if(liveMode()&&String(liveOperation.pointId)===String(write.point_id))liveOperation.finishing=false;
   if(write.message)toast(write.message);
 }
 async function liveOrderStatus(point,action){
+  if(backendReadOnly())return;
   // Status zlecenia jak w przeglądarce (usePointStatusUpdate): po starcie at_loading/at_unloading,
   // po zakończeniu załadunku en_route_to_unloading. Błąd nie blokuje — punkt jest już zapisany.
   const update=liveOperationModel?.orderStatusAfterWrite(point,action);
@@ -2450,6 +2637,7 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  synchronizeDesignedOperation();
   window.SuperSpedytorOfflineWorkspace?.changed();
   window.SuperSpedytorTranslator?.refresh(backendState);
   updateDriverWorkspaceBar();
@@ -2458,7 +2646,7 @@ function render(){
   if(backendTestWorkspace&&backendActiveNav==='tacho'){window.SuperSpedytorTacho?.open?.();return;}
   const scroll=$('#app-scroll').scrollTop;
   const backendOperationActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='now'&&!liveMode();
-  const backendServiceActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='service'&&!liveMode();
+  const backendServiceActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='service';
   $('.device')?.classList.toggle('backend-operation-mode',backendOperationActive);
   if(backendOperationActive){
     renderBackendOperationScreen(0);
@@ -2835,10 +3023,12 @@ function updateOperationTimerDom(){
 }
 
 function bindView(){
+  if(liveReadOnly()){bindLiveReadOnlyView();return;}
+  if(liveMode()){bindLiveSessionControls();bindInventoryCards();}
   bindOperationTimer();
   if($('#language-select'))$('#language-select').onchange=event=>{state.language=event.target.value;state.manualLanguage=true;render();};
   if($('#physical-confirm'))$('#physical-confirm').onchange=event=>{current().physicalConfirmed=event.target.checked;$('#app-action').innerHTML=actionView();bindView();};
-  if($('#report-cargo-mismatch'))$('#report-cargo-mismatch').onclick=()=>openModal('cwp-contact');
+  if($('#report-cargo-mismatch'))$('#report-cargo-mismatch').onclick=()=>openModal(liveMode()?'live-help':'cwp-contact');
   if($('#add-cargo-piece'))$('#add-cargo-piece').onclick=()=>openModal('piece-form',{index:null});
   if($('#remove-last-piece'))$('#remove-last-piece').onclick=()=>removePiece(count()-1);
   $$('[data-edit-piece]').forEach(button=>button.onclick=()=>openModal('piece-form',{index:Number(button.dataset.editPiece)}));
@@ -2888,6 +3078,10 @@ function bindView(){
     const action=$('#main-action').dataset.action;
     if(action==='start-arrival')startArrivalCountdown();
     if(action==='cancel-arrival')cancelArrivalCountdown(true);
+    if(action==='complete-point'&&liveMode()&&!backendReadOnly()){
+      if(!window.confirm('Potwierdzasz, że ta operacja została faktycznie zakończona?'))return;
+      requestLivePointAction('complete');render();
+    }
     if(action==='start'){
       if(!count()||(!isLoad()&&!cmrSealReady()))return;
       if(!current().physicalConfirmed){
@@ -3062,11 +3256,11 @@ function openModal(type,target){
   if(type==='copy'){title='Numer referencyjny';body=`<input class="text-input" value="${esc(optional().ref)}" readonly aria-label="Numer referencyjny">`;}
   if(type==='cwp-contact'){
     title='Zgłoś rozbieżność spedytorowi';
-    body=`<p>Towar lub jego liczba nie zgadza się ze zleceniem ${cargoOrderId()}. Wybierz sposób kontaktu ze spedytorem.</p><div class="cwp-contact-options"><button id="cwp-chat">${icon('chat')}<span><strong>Napisz na czacie</strong><small>Otwórz czat tego zlecenia</small></span>${icon('arrow')}</button><a href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}" aria-label="Zadzwoń do spedytora testowego">${icon('phone')}<span><strong>Zadzwoń do spedytora</strong><small>${esc(dispatcher.phone)}${dispatcher.demo?' · numer demonstracyjny':''}</small></span>${icon('arrow')}</a></div><p class="small-note">Prototyp: czat i numer telefonu są demonstracyjne.</p>`;
+    body=`<p>Towar lub jego liczba nie zgadza się ze zleceniem ${esc(cargoOrderId())}. Wybierz sposób kontaktu ze spedytorem.</p><div class="cwp-contact-options"><button id="cwp-chat">${icon('chat')}<span><strong>Napisz na czacie</strong><small>Otwórz czat tego zlecenia</small></span>${icon('arrow')}</button><a href="tel:${dispatcher.phone.replace(/[^+0-9]/g,'')}" aria-label="Zadzwoń do spedytora testowego">${icon('phone')}<span><strong>Zadzwoń do spedytora</strong><small>${esc(dispatcher.phone)}${dispatcher.demo?' · numer demonstracyjny':''}</small></span>${icon('arrow')}</a></div><p class="small-note">Prototyp: czat i numer telefonu są demonstracyjne.</p>`;
   }
   if(type==='help'){
     title='Pomoc przy zleceniu';
-    body=`<p>${cargoOrderId()} · ${esc(currentPlace().company)}</p><div class="help-options"><button id="help-chat">${icon('chat')}Otwórz czat ze spedytorem</button>${optional().contact?.phone?`<a class="help-contact-link" href="tel:${optional().contact.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Kontakt na miejscu: ${esc(optional().contact.name)}</a>`:''}</div>`;
+    body=`<p>${esc(cargoOrderId())} · ${esc(currentPlace().company)}</p><div class="help-options"><button id="help-chat">${icon('chat')}Otwórz czat ze spedytorem</button>${optional().contact?.phone?`<a class="help-contact-link" href="tel:${optional().contact.phone.replace(/[^+0-9]/g,'')}">${icon('phone')}Kontakt na miejscu: ${esc(optional().contact.name)}</a>`:''}</div>`;
   }
   if(type==='route-help'){
     const stop=stopDefinition();
@@ -3662,7 +3856,7 @@ const designedDriverViews=[
 function updateDriverWorkspaceBar(){
   const bar=$('#driver-workspace-bar');
   if(!bar)return;
-  bar.hidden=!backendMode||backendState?.status!=='connected';
+  bar.hidden=!backendMode||backendState?.status!=='connected'||!backendTestWorkspace;
   if(bar.hidden)return;
   const devConnection=backendState?.read_only===true&&backendState?.backend_environment==='dev';
   updateServiceNavIndicator();
@@ -3683,9 +3877,9 @@ function enterTestingWorkspace(viewId,renderView=true){
   if(productionScope)return false;
   if(!backendMode||backendState?.status!=='connected')return false;
   if(liveBusy||liveOperation?.finishing||backendPointActionPending||backendState?.write?.status==='pending'||pendingRequests.size>0){toast('Poczekaj na zakończenie bieżącej operacji.');return false;}
+  backendTestWorkspace=true;
   if(liveMode())exitLiveOperation();
   if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen){cmrInventoryScreen.close();cmrInventoryScreen=null;}
-  backendTestWorkspace=true;
   document.documentElement.classList.add('backend-testing');
   driverBridge?.backendTestingMode?.(true);
   $('.device')?.classList.remove('backend-operation-mode');
@@ -3853,25 +4047,6 @@ const backendDayLabel=(day,dates={})=>{
   if(day==='tomorrow')return `JUTRO${dates.tomorrow?` · ${backendDateLabel(dates.tomorrow)}`:''}`;
   return 'POZOSTAŁE';
 };
-const backendOperationGroups=(points,dates={},options={})=>{
-  const order=['today','tomorrow','other'];
-  const groups=new Map();
-  points.forEach(point=>{
-    const key=point?.day==='today'||point?.day==='tomorrow'?point.day:'other';
-    if(!groups.has(key))groups.set(key,[]);
-    groups.get(key).push(point);
-  });
-  return order.filter(key=>groups.has(key)).map(key=>{
-    const items=groups.get(key);
-    const cards=items.map(point=>backendPointCard(point,backendDayLabel(key,dates),{
-      future:!options.history,
-      history:Boolean(options.history),
-      mapPins:!options.history,
-      allowNavigation:false
-    })).join('');
-    return `<section class="backend-operation-day"><header><strong>${esc(backendDayLabel(key,dates))}</strong><span>${items.length}</span></header>${cards}</section>`;
-  }).join('');
-};
 const backendUpcomingCaption=(points,dates={})=>{
   const today=points.filter(point=>point?.day==='today').length;
   const tomorrow=points.filter(point=>point?.day==='tomorrow').length;
@@ -3879,62 +4054,6 @@ const backendUpcomingCaption=(points,dates={})=>{
   if(today)parts.push(`Dziś ${today}${dates.today?` · ${backendDateLabel(dates.today)}`:''}`);
   if(tomorrow)parts.push(`jutro ${tomorrow}${dates.tomorrow?` · ${backendDateLabel(dates.tomorrow)}`:''}`);
   return parts.join(' · ')||(points.length?'Miejsca, terminy i pinezki punktów trasy':'Brak kolejnych niezakończonych operacji');
-};
-const backendCargoLabel=point=>{
-  if(point?.order_cargo?.scope==='order')return 'ŁADUNEK ZE ZLECENIA';
-  const operation=String(point?.operation_type_display||point?.operation_type||'').toLowerCase();
-  if(/unload|delivery|rozład/.test(operation))return 'CO ROZŁADOWUJESZ';
-  if(/load|pickup|załad/.test(operation))return 'CO ŁADUJESZ';
-  return 'TOWAR DLA TEJ OPERACJI';
-};
-const backendPointActions=(point,options={})=>{
-  const statusCode=String(point?.status||'').toLowerCase();
-  const pointId=has(point.id)?String(point.id):'';
-  const write=backendState?.write||{};
-  const writeForPoint=pointId&&String(write.point_id||'')===pointId;
-  const writePending=writeForPoint&&write.status==='pending';
-  const capabilities=backendState?.read_only===true?[]:Array.isArray(backendState?.write_capabilities)?backendState.write_capabilities:[];
-  const action=statusCode==='pending'?'start':statusCode==='in_progress'?'complete':'';
-  const wizardMode=backendState?.read_only!==true&&options.nearest&&window.SuperSpedytorNative?.backendRequest?liveOperationModel?.wizardMode(point):null;
-  const wizard=Boolean(wizardMode);
-  const actionAllowed=Boolean(options.nearest&&pointId&&action&&capabilities.includes(action))&&!wizard;
-  const actionLabel=action==='start'?'Dotarłem · rozpocznij operację':'Zakończ operację';
-  const actionIcon=action==='start'?'pin':'check';
-  const wizardButton=wizard?`<button type="button" class="${options.designed?'primary-button live-operation-action':'backend-point-action wizard'}" data-backend-open-wizard="${esc(pointId)}" ${writePending?'disabled':''}>${icon('box')} ${writePending?'Zapisywanie w Super Spedytorze…':`Kreator ${wizardMode==='unload'?'rozładunku':'załadunku'} · plomby, zdjęcia, CMR`}</button>`:'';
-  const actionButton=actionAllowed?`<button type="button" class="${options.designed?'primary-button live-operation-action':`backend-point-action ${action}`}" data-backend-point-action="${action}" data-point-id="${esc(pointId)}" ${writePending?'disabled':''}>${icon(actionIcon)} ${writePending?'Zapisywanie w Super Spedytorze…':actionLabel}</button>`:wizardButton;
-  const writeFeedback=writeForPoint&&['error','uncertain'].includes(write.status)?`<div class="backend-write-feedback ${esc(write.status)}" role="alert">${icon('warning')}<span>${esc(write.message||'Nie udało się potwierdzić zapisu.')}</span></div>`:'';
-  return {actionButton,writeFeedback};
-};
-const backendPointCard=(point,label,options={})=>{
-  if(!point)return `<section class="backend-point backend-point-empty"><small>${esc(label)}</small><strong>Brak punktu w odpowiedzi backendu</strong></section>`;
-  const place=backendPointPlace(point);
-  const plannedTime=point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start||'';
-  const historyTime=point.actual_end_datetime||point.actual_arrival_datetime||plannedTime;
-  const time=options.history?historyTime:plannedTime;
-  const timeClock=backendClock(time),appointmentClock=backendClock(point.time_window_start);
-  const arrivalBy=options.firstOperation&&appointmentClock?operationTimingModel.subtractMinutesFromClock(appointmentClock,15):'';
-  const status=point.status_display||point.status||'';
-  const statusCode=String(point.status||'').toLowerCase();
-  const operation=point.operation_type_display||point.operation_type||'';
-  const cargo=backendCargoText(point);
-  const cargoRelevant=has(cargo)||/load|unload|pickup|delivery|załad|rozład/i.test(String(operation));
-  const hasLocation=(has(place.latitude)&&has(place.longitude))||has(place.address);
-  const canNavigate=options.allowNavigation!==false&&hasLocation;
-  const canShowMap=hasLocation&&(canNavigate||options.mapPins);
-  const plannedTimestamp=Date.parse(plannedTime);
-  const late=statusCode==='pending'&&!Number.isNaN(plannedTimestamp)&&plannedTimestamp<Date.now();
-  const pointClass=['backend-point',options.nearest?'backend-point-nearest':'',options.future?'backend-point-future':'',options.history?'backend-point-history':'',late?'backend-point-late':''].filter(Boolean).join(' ');
-  const scheduleLabel=options.history?(point.actual_end_datetime?'ZAKOŃCZONO':'RZECZYWISTY PRZYJAZD'):options.nearest?'PLAN / AKTUALNE ETA':'PLANOWANY CZAS';
-  const schedule=arrivalBy?`<div class="backend-operation-time first"><small>BĄDŹ NA MIEJSCU</small><strong>${esc(arrivalBy)}</strong><span>Operacja o ${esc(appointmentClock)} · 15 min wcześniej</span></div>`:timeClock?`<div class="backend-operation-time"><small>${scheduleLabel}</small><strong>${esc(timeClock)}</strong><span>${options.history?'Według odczytu TMS':'Aktualne ETA lub początek okna z TMS'}</span></div>`:'';
-  const timeWindow=has(point.time_window_start)||has(point.time_window_end)?`<div class="backend-time-window"><small>OKNO CZASOWE</small><strong>${esc(backendClock(point.time_window_start)||'—')}–${esc(backendClock(point.time_window_end)||'—')}</strong></div>`:'';
-  const operationFacts=[point.planned_stay_minutes?`Planowany postój ${point.planned_stay_minutes} min`:null,point.actual_arrival_datetime?`Przyjazd ${backendClock(point.actual_arrival_datetime)}`:null].filter(Boolean);
-  const cargoCard=cargoRelevant?`<div class="backend-point-cargo${cargo?'':' missing'}">${icon('box')}<span><small>${backendCargoLabel(point)}</small><strong>${esc(cargo||'Opis ładunku jest niedostępny — odśwież dane')}</strong></span></div>`:'';
-  const statusText=late?'SPÓŹNIENIE':status;
-  const {actionButton,writeFeedback}=backendPointActions(point,options);
-  const translatorButton=window.SuperSpedytorTranslator?.button(point,backendState)||'';
-  const mapActions=canShowMap||canNavigate?`<div class="backend-map-actions${canNavigate?'':' pin-only'}">${canShowMap?`<a class="backend-show-map" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')} Pinezka</a>`:''}${canNavigate?`<a class="backend-navigate" href="${navigationUrl(place)}" target="_blank" rel="noopener">${icon('nav')} Nawiguj</a>`:''}</div>`:'';
-  if(options.destination)return `<section class="${pointClass} backend-point-destination"><div class="backend-point-heading"><span>${icon('pin')}</span><div><small>${esc(operation||label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${esc(place.company)}</strong></div></div>${place.address?`<p>${esc(place.address)}</p>`:''}${schedule}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
-  return `<section class="${pointClass}"><div class="backend-point-heading"><span>${icon(options.nearest?'pin':'route')}</span><div><small>${esc(label)}${statusText?` · ${esc(statusText)}`:''}</small><strong>${operation?`${esc(operation)} · `:''}${esc(place.company)}</strong></div></div>${schedule}${timeWindow}${place.address?`<p>${esc(place.address)}</p>`:''}<div class="backend-point-meta">${point.__route_name?`<span>${esc(point.__route_name)}</span>`:''}${place.country?`<span>${esc(place.country)}${place.countryName?` · ${esc(place.countryName)}`:''}</span>`:''}${point.order_number?`<span>${esc(point.order_number)}</span>`:''}${has(point.transport_offer)?`<span>Oferta ${esc(point.transport_offer)}</span>`:''}</div>${operationFacts.length?`<div class="backend-operation-facts">${operationFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:''}${cargoCard}${point.notes?`<div class="backend-point-note">${icon('info')}<span><small>NOTATKA DO OPERACJI</small><strong>${esc(point.notes)}</strong></span></div>`:''}${mapActions}${translatorButton}${actionButton}${writeFeedback}</section>`;
 };
 let surveyRegisterScreen=null;
 let cmrInventoryTasks=[];
@@ -3962,8 +4081,11 @@ async function refreshInventoryTasks(force=false){
 function inventoryTaskCards(){
   return cmrInventoryTasks.map(task=>`<button class="cmri-task" data-cmr-inventory-open="${Number(task.id)}"><strong>${task.overdue?'⚠ Zaległe zadanie':'Zinwentaryzuj zamknięte CMR-y'}</strong><span>${esc(task.driver_name)} · ${task.packed} z ${task.expected} koszulek w kopercie${task.issues?' · wymaga CWP: '+task.issues:''}</span></button>`).join('');
 }
+function liveInventoryTasksView(){
+  return current().live?`<div id="cmri-tasks">${inventoryTaskCards()}</div>`:'';
+}
 function bindInventoryCards(){
-  document.querySelectorAll('[data-cmr-inventory-open]').forEach(button=>button.onclick=()=>openInventory(Number(button.dataset.cmrInventoryOpen)));
+  document.querySelectorAll('[data-cmr-inventory-open]').forEach(button=>{button.disabled=false;button.onclick=()=>openInventory(Number(button.dataset.cmrInventoryOpen));});
 }
 function openInventory(id){
   if(!window.SuperSpedytorNative?.backendRequest)return;
@@ -3971,7 +4093,7 @@ function openInventory(id){
   const owner=String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??'');
   if(!window.SuperSpedytorCmrInventory)return;
   cmrInventoryScreen=new window.SuperSpedytorCmrInventory.Screen({
-    id,host:document.querySelector('.device'),request:inventoryRequest,
+    id,host:document.querySelector('.device'),request:inventoryRequest,isReadOnly:backendReadOnly,
     upload:async(path,token,fields)=>{const result=await nativeUpload(path,token,fields);if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Zdjęcie nie zostało potwierdzone.'));return {...result.body,queued:result.queued===true};},
     prepare:()=>window.SuperSpedytorOfflineWorkspace?.prepare(),
     pendingUploads:()=>window.SuperSpedytorOfflineWorkspace?.inventoryUploads(id)||[],
@@ -4000,12 +4122,6 @@ function backendDesignedTiming(point,{firstOperation=false,history=false}={}){
   const facts=actualFacts.length?`<div class="travel-access live-operation-facts">${actualFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:'';
   return timing+window+facts;
 }
-function backendDesignedCargo(point){
-  const cargo=backendCargoText(point);
-  const notes=point.notes;
-  if(!cargo&&!notes)return '';
-  return `<section class="panel live-operation-details">${cargo?`<div class="travel-cargo-heading"><span>${icon('box')}</span><div><small>${backendCargoLabel(point)}</small><strong>${esc(cargo)}</strong></div></div>`:''}${notes?`<div class="additional-info-row guidance-row"><span class="additional-info-icon">${icon('info')}</span><div><small>Instrukcje od spedytora</small><p>${esc(notes)}</p></div></div>`:''}</section>`;
-}
 function backendDesignedPlanItem(point,{history=false,current=false}={}){
   const place=backendPointPlace(point),cargo=backendCargoText(point);
   const clock=backendClock(history?(point.actual_end_datetime||point.actual_arrival_datetime||point.planned_at||point.time_window_start):(point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start));
@@ -4014,49 +4130,32 @@ function backendDesignedPlanItem(point,{history=false,current=false}={}){
 }
 function backendDesignedPlanGroups(points,dates={},options={}){
   const groups=['today','tomorrow','other'].map(day=>({day,points:points.filter(point=>(point.day==='today'||point.day==='tomorrow'?point.day:'other')===day)})).filter(group=>group.points.length);
-  return groups.map(group=>`<section class="live-operation-day"><div class="section-heading"><h3>${esc(backendDayLabel(group.day,dates))}</h3><span>${group.points.length}</span></div><div class="operation-plan-list">${group.points.map(point=>backendDesignedPlanItem(point,{...options,current:point===backendLastNearest})).join('')}</div></section>`).join('');
+  return groups.map(group=>`<section class="live-operation-day"><div class="section-heading"><h3>${esc(backendDayLabel(group.day,dates))}</h3><span>${group.points.length}</span></div><div class="operation-plan-list">${group.points.map(point=>backendDesignedPlanItem(point,{...options,current:String(point.id)===String(backendLastNearest?.id)})).join('')}</div></section>`).join('');
 }
-function backendOperationView(){
-  const profile=backendState.profile||{};
-  const vehicle=backendState.vehicle||profile.driver_profile?.current_vehicle||null;
-  const routeStatus=backendState.route_status||{};
-  const activeRoutes=Array.isArray(routeStatus.active_routes)?routeStatus.active_routes:[];
-  const operationsDates=routeStatus.operations_dates||{};
-  const operationPlan=backendDriverOperationPlan(activeRoutes);
-  backendLastNearest=operationPlan.nearest||null;
-  const point=operationPlan.nearest;
-  const route=point?.__route||activeRoutes[0]||null;
-  const driverName=routeStatus.driver_name||`${profile.first_name||''} ${profile.last_name||''}`.trim()||profile.username||'Kierowca';
-  const vehicleRegistration=vehicle?.registration_number||route?.vehicle||'';
-  const routeLabel=route?.route_name||route?.route_id&&`Trasa ${route.route_id}`||'Brak aktywnej trasy';
-  const travelling=String(point?.status||'').toLowerCase()==='pending';
-  const readOnly=backendState.read_only===true;
-  const devConnection=readOnly&&backendState.backend_environment==='dev';
-  const connectionLabel=backendState.offline?'OFFLINE · ZAPIS NA TELEFONIE':devConnection?'DEV · tylko odczyt':readOnly?'POŁĄCZONO · TYLKO ODCZYT':'POŁĄCZONO · ZAPIS SS';
-  const session=`<div class="live-driver-session"><div><small>${icon('signal')} ${connectionLabel}</small><strong>${esc(driverName)}${vehicleRegistration?` · ${esc(vehicleRegistration)}`:''}</strong></div><div class="live-session-controls"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></div></div>`;
-  const tasks=`<div id="cmri-tasks">${inventoryTaskCards()}</div>`;
-  if(!point)return `<div class="app-content travel-screen live-designed-screen">${session}${tasks}<div class="operation-heading"><div><div class="overline">${esc(routeLabel)}</div><h2>${route?'Trasa zakończona':'Brak aktywnej trasy'}</h2></div></div><section class="panel"><p>${route?'Nie ma kolejnej niezakończonej operacji. Odśwież plan, jeśli spedytor dodał nowe zadanie.':'Super Spedytor nie zwrócił aktywnej trasy dla Twojego konta.'}</p></section></div>`;
-  const place=backendPointPlace(point);
-  const operationLabel=point.operation_type_display||point.operation_type||'Operacja';
-  const heading=`<div class="operation-heading"><div><div class="overline">${esc(point.order_number||routeLabel)}</div><h2>${travelling?'Cel podróży':esc(operationLabel)}</h2></div></div><div class="heading-status"><span class="badge ${travelling?'orange':'green'}">${icon(travelling?'route':'check')}${travelling?'W drodze':esc(point.status_display||'Operacja w toku')}</span>${place.country?`<span class="arrival-time">${esc(place.country)} · ${esc(place.countryName)}</span>`:''}</div>`;
-  const {actionButton,writeFeedback}=backendPointActions(point,{nearest:true,designed:true});
-  const destination=travelDestinationCard({place,operationLabel,timing:backendDesignedTiming(point,{firstOperation:operationPlan.source==='legacy'&&Number(route.completed_points||0)===0}),actions:locationActionsView(place,'travel-goal-actions'),schematicLabel:'Schemat celu · otwórz mapę'});
-  const translatorButton=window.SuperSpedytorTranslator?.button(point,backendState)||'';
-  const currentDetails=travelling?'':backendDesignedCargo(point);
-  const actionPanel=actionButton?`<div class="live-operation-controls">${actionButton}${writeFeedback}</div>`:writeFeedback;
-  const planPoints=[point,...operationPlan.upcoming];
-  const historySection=operationPlan.history.length?`<details class="live-history-details"><summary>Zakończone i pominięte · ${operationPlan.history.length}</summary>${backendDesignedPlanGroups(operationPlan.history,operationsDates,{history:true})}</details>`:'';
-  const routeProgress=has(route.progress_percentage)?Number(route.progress_percentage):NaN;
-  const routeCounts=has(route.completed_points)&&has(route.total_points)&&Number.isFinite(Number(route.completed_points))&&Number.isFinite(Number(route.total_points))?`${Number(route.completed_points)} z ${Number(route.total_points)} punktów`:'';
-  const routeFacts=[routeCounts,Number.isFinite(routeProgress)?`${routeProgress}% trasy`:null].filter(Boolean);
-  const plan=`<details class="operation-plan operation-plan-preview backend-upcoming-details"><summary><span class="operation-plan-summary-icon">${icon('pin')}</span><span><strong>Podgląd najbliższych operacji</strong><small>${esc(backendUpcomingCaption(planPoints,operationsDates))}</small></span><span class="operation-plan-chevron">${icon('arrow')}</span></summary><div class="operation-plan-body"><div class="live-route-context"><small>AKTYWNA TRASA</small><strong>${esc(routeLabel)}</strong>${routeFacts.length?`<span>${routeFacts.map(esc).join(' · ')}</span>`:''}</div>${backendDesignedPlanGroups(planPoints,operationsDates)}${historySection}</div></details>`;
-  const modeNote=readOnly?`<p class="live-mode-note">${devConnection?'Dane z wersji DEV.':'Połączenie tylko do odczytu.'} Podgląd nie zapisuje zmian w TMS.</p>`:'';
-  return `<div class="app-content travel-screen live-designed-screen">${session}${heading}${destination}${translatorButton}${currentDetails}${actionPanel}${tasks}${plan}${modeNote}</div>`;
+function backendDesignedRoutePlan(){
+  const routeStatus=backendState.route_status||{},plan=backendDriverOperationPlan(routeStatus.active_routes||[]);
+  const point=plan.nearest;
+  if(!point)return '';
+  const route=point.__route||{},dates=routeStatus.operations_dates||{};
+  const label=route.route_name||route.route_id&&`Trasa ${route.route_id}`||'Trasa kierowcy';
+  const facts=[];
+  if(has(route.completed_points)&&has(route.total_points))facts.push(`${route.completed_points} z ${route.total_points} punktów`);
+  if(has(route.progress_percentage)&&Number.isFinite(Number(route.progress_percentage)))facts.push(`${Number(route.progress_percentage)}% trasy`);
+  const points=[point,...plan.upcoming];
+  const history=plan.history.length?`<details class="live-history-details"><summary>Zakończone i pominięte · ${plan.history.length}</summary>${backendDesignedPlanGroups(plan.history,dates,{history:true})}</details>`:'';
+  return `<details class="operation-plan operation-plan-preview"><summary><span class="operation-plan-summary-icon">${icon('pin')}</span><span><strong>Podgląd najbliższych operacji</strong><small>${esc(backendUpcomingCaption(points,dates))}</small></span><span class="operation-plan-chevron">${icon('arrow')}</span></summary><div class="operation-plan-body"><div class="live-route-context"><small>AKTYWNA TRASA</small><strong>${esc(label)}</strong>${facts.length?`<span>${facts.map(esc).join(' · ')}</span>`:''}</div>${backendDesignedPlanGroups(points,dates)}${history}</div></details>`;
+}
+function backendOperationFallbackView(){
+  const routes=backendState.route_status?.active_routes||[];
+  const point=backendDriverOperationPlan(routes).nearest;
+  const title=point?'Pobieranie danych zlecenia…':routes.length?'Trasa zakończona':'Brak aktywnej trasy';
+  const message=point?'Poczekaj na otwarcie danych kierowcy.':routes.length?'Nie ma kolejnej niezakończonej operacji. Odśwież plan, jeśli spedytor dodał nowe zadanie.':'Super Spedytor nie zwrócił aktywnej trasy dla Twojego konta.';
+  return `<div class="app-content"><div class="operation-heading"><h2>${title}</h2><div class="header-tools"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></div></div><section class="panel" role="status"><p>${message}</p></section><div id="cmri-tasks">${inventoryTaskCards()}</div></div>`;
 }
 function renderBackendOperationScreen(scroll=0){
   if(typeof surveyRegisterScreen!=='undefined')surveyRegisterScreen?.destroy();
   window.SuperSpedytorTranslator?.refresh(backendState);
-  $('#app').innerHTML=backendOperationView();
+  $('#app').innerHTML=backendOperationFallbackView();
   $('#app-action').innerHTML='';
   $('#design-context').innerHTML='';
   $('#preview-label').textContent=backendState?.read_only===true&&backendState?.backend_environment==='dev'?'OPERACJA / DEV · TYLKO ODCZYT':'OPERACJA / SUPER SPEDYTOR';
@@ -4065,30 +4164,8 @@ function renderBackendOperationScreen(scroll=0){
   $('#scenario-select').disabled=true;
   $('#mobile-scenario').disabled=true;
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='now'));
-  $('#backend-refresh').onclick=()=>driverBridge?.backendRefresh();
-  $('#backend-logout').onclick=()=>driverBridge?.backendLogout();
+  bindLiveSessionControls();
   bindInventoryCards();
-  $$('[data-backend-open-wizard]').forEach(button=>button.onclick=()=>{
-    const point=backendLastNearest;
-    if(point&&String(point.id)===button.dataset.backendOpenWizard)enterLiveOperation(point);
-  });
-  $$('[data-backend-point-action]').forEach(button=>button.onclick=()=>{
-    if(backendPointActionPending||backendTestWorkspace||backendState?.read_only===true||backendState?.status!=='connected')return;
-    const action=button.dataset.backendPointAction;
-    const pointId=button.dataset.pointId;
-    const question=action==='start'
-      ?'Potwierdzasz, że jesteś na miejscu i rozpoczynasz tę operację?'
-      :'Potwierdzasz, że ta operacja została faktycznie zakończona?';
-    if(!window.confirm(question))return;
-    backendPointActionPending={pointId,action,previousWriteId:String(backendState?.write?.id||'')};
-    button.disabled=true;
-    try{queuePointAction(pointId,action);}
-    catch{
-      backendPointActionPending=null;
-      button.disabled=false;
-      toast('Warstwa natywna nie odpowiada. Spróbuj ponownie.');
-    }
-  });
   $('#app-scroll').scrollTop=scroll;
 }
 function renderBackendServiceHistoryScreen(scroll=0){
@@ -4203,8 +4280,11 @@ window.SuperSpedytorBackend={
   },
   receive(raw){
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
+    const previousContext={point:liveOperation?.point||backendLastNearest,owner:backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`};
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    const receivedOwner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
+    if(receivedOwner!==previousContext.owner)backendPointActionPending=null;
     window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;
     if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen?.options?.isActive&&!cmrInventoryScreen.options.isActive())cmrInventoryScreen.close();
@@ -4224,16 +4304,9 @@ window.SuperSpedytorBackend={
     }
     if(backendState?.status==='connected')refreshInventoryTasks();
     else {cmrInventoryTasks=[];if(cmrInventoryScreen)cmrInventoryScreen.close();}
+    settleBackendPointWrite(backendState?.write,previousWriteKey,previousContext);
     renderBackendPanel();
     if(backendState?.remember_error)toast(backendState.remember_error);
-    const write=backendState?.write;
-    const writeKey=`${write?.id||''}:${write?.status||''}`;
-    if(liveMode()){if(write?.id&&writeKey!==previousWriteKey)liveWriteFeedback(write);}
-    else if(write?.id&&writeKey!==previousWriteKey&&write.status!=='pending'){
-      if(write.message)toast(write.message);
-      // AA10: po potwierdzonym 'Dotarłem' zlecenie dostaje status at_loading/at_unloading
-      if(!backendTestWorkspace&&write.status==='confirmed'&&write.action==='start'&&backendLastNearest&&String(backendLastNearest.id)===String(write.point_id||''))liveOrderStatus(backendLastNearest,'start');
-    }
   },
   // AA9: odpowiedź mostka na backendRequest/backendUpload/capturePhoto/scanDocument/scanCode
   receiveResult(requestId,result){
@@ -4264,6 +4337,7 @@ if(previewMode){
 }
 
 if(backendMode){
+  window.addEventListener('pagehide',cancelLiveRouteRead);
   const chip=$('.driver-chip');
   if(chip){
     chip.textContent='SUPER SPEDYTOR';

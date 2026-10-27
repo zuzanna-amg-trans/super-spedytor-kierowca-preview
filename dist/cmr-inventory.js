@@ -58,6 +58,10 @@
       });
     }
     path(action) { return 'documents/cmr-inventory/' + this.options.id + '/' + (action ? action + '/' : ''); }
+    readOnly() { return this.options.readOnly === true || this.options.isReadOnly?.() === true; }
+    assertWritable() {
+      if (this.readOnly()) throw new Error('Podgląd tylko do odczytu. Zmiany nie są zapisywane w TMS.');
+    }
     async start() { await this.run(async()=>{await this.options.prepare?.();await this.read();}); }
     pendingPhotos(){return this.options.pendingUploads?.()||[];}
     async refreshQueuedPhotos(){
@@ -107,9 +111,11 @@
       }
     }
     async mutate(action, body) {
+      this.assertWritable();
       await this.options.request('POST', this.path(action), body); await this.read();
     }
     async scan(replacement) {
+      this.assertWritable();
       const code = await this.options.scan();
       if (!code) return;
       if (!this.pendingScan || this.pendingScan.code !== code || this.pendingScan.replacement !== replacement) {
@@ -118,11 +124,12 @@
       await this.mutate('scan', this.pendingScan); this.pendingScan = null;
     }
     async photo(side) {
+      this.assertWritable();
       const attempt = activeAttempt(this.data);
       if(!attempt||attempt['has_'+side]||this.pendingPhotos().length)return;
       const file = this.files[side] || await this.options.capture();
       if (!file) return;
-      if(this.disposed||this.options.isActive&&!this.options.isActive()){this.options.release(file.token);return;}
+      if(this.disposed||this.readOnly()||this.options.isActive&&!this.options.isActive()){this.options.release(file.token);return;}
       this.files[side] = {...file, attemptId: attempt.id};
       const result=await this.options.upload(this.path('photo'), file.token, {side, attempt_id: String(attempt.id),file_sha256:file.sha256});
       if(result?.queued||result?.offline_queued){
@@ -197,13 +204,17 @@
       }
       this.root.innerHTML = '<header class="cmri-header"><button data-action="close" aria-label="Zamknij inwentaryzację">←</button><h2>Zamknięte CMR-y</h2><button data-action="refresh" aria-label="Odśwież zadanie">↻</button></header><div class="cmri-body">' +
         (this.error ? '<p class="cmri-error" role="alert">' + esc(this.error) + '</p>' : '') +
-        (this.busy ? '<p class="cmri-note" role="status">Zapisywanie i sprawdzanie stanu…</p>' : '') + content + '</div>';
-      this.root.querySelectorAll('button, input').forEach(el => { if (el.dataset.action !== 'close') el.disabled = this.busy; });
+        (this.readOnly() ? '<p class="cmri-note" role="status">Podgląd tylko do odczytu · bez zapisywania zmian w TMS.</p>' : '') +
+        (this.busy ? '<p class="cmri-note" role="status">Pobieranie i sprawdzanie stanu…</p>' : '') + content + '</div>';
+      this.root.querySelectorAll('button, input').forEach(el => {
+        if (el.dataset.action !== 'close') el.disabled = this.busy || this.readOnly() && el.dataset.action !== 'refresh';
+      });
       this.root.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {
         const action = button.dataset.action;
         if (action === 'close') { this.close(); return; }
+        if (this.readOnly() && action !== 'refresh') return;
         this.run(async () => {
-          if (action === 'refresh') { await this.options.request('POST', this.path('refresh')); await this.read(); return; }
+          if (action === 'refresh') { if (!this.readOnly()) await this.options.request('POST', this.path('refresh')); await this.read(); return; }
           if (action === 'scan' || action === 'replacement') {
             if (action === 'replacement' && !window.confirm('Naklej nową, nieużytą plombę na pustym rewersie ostatniej strony CMR. Następnie zeskanuj jej kod.')) return;
             await this.scan(action === 'replacement'); return;
@@ -217,6 +228,7 @@
         });
       });
       this.root.querySelectorAll('[data-missing]').forEach(button => button.onclick = () => this.run(async () => {
+        if (this.readOnly()) return;
         if (window.confirm('Zgłosić brak tego kompletu dokumentów do CWP?')) {
           await this.mutate('report', {item_id: Number(button.dataset.missing), note: 'Kierowca zgłosił brak kompletu podczas inwentaryzacji.'});
         }
@@ -237,6 +249,7 @@
       const form = this.root.querySelector('#cmri-confirm');
       if (form) form.onsubmit = event => {
         event.preventDefault();
+        if (this.readOnly()) return;
         if (!form.reportValidity()) return;
         const values = {}; Object.keys(checks).forEach(key => { values[key] = form.elements[key].checked; });
         this.run(() => this.mutate('confirm', {attempt_id: activeAttempt(this.data).id, checks: values, matches: form.elements.documents_match.checked}));
