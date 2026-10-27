@@ -754,3 +754,11 @@ html.android-shell.backend-connected.production-scope:not(.backend-testing) .bot
 .production-scope #help-stop-chat,
 .production-scope #cwp-chat { display: none !important; }
 .backend-privacy-link { display: block; margin: 16px 0; text-align: center; text-decoration: underline; }
+
+/* AA28: expose only authenticated, GET-only Tacho in the production shell. */
+html.android-shell.backend-connected.production-scope.tacho-readonly-capable:not(.backend-testing) .bottom-nav {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+html.android-shell.backend-connected.production-scope.tacho-readonly-capable:not(.backend-testing) .bottom-nav [data-nav="tacho"] {
+  display:flex !important;
+}

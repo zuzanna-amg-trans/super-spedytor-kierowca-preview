@@ -39,7 +39,14 @@ const transshipmentModel=window.SuperSpedytorTransshipment;
 const liveOperationModel=window.SuperSpedytorLiveOperation;
 document.documentElement.classList.toggle('backend-mode',backendMode);
 document.documentElement.classList.toggle('production-scope',productionScope);
-if(productionScope)$$('[data-nav="tacho"],[data-nav="chat"],[data-nav="service"]').forEach(button=>{button.hidden=true;button.disabled=true;});
+function tachoReadOnlyAvailable(){
+  try{return backendMode&&!previewMode&&driverBridge?.tachoReadOnlyEnabled?.()===true;}catch{return false;}
+}
+document.documentElement.classList.toggle('tacho-readonly-capable',tachoReadOnlyAvailable());
+if(productionScope)$$('[data-nav="tacho"],[data-nav="chat"],[data-nav="service"]').forEach(button=>{
+  if(button.dataset.nav==='tacho'&&tachoReadOnlyAvailable())return;
+  button.hidden=true;button.disabled=true;
+});
 const routePointIds={load:'demo-loading-1',unload:'demo-unloading-1',collection:'demo-document-collection-1',transshipment:'demo-transshipment-1',parking:'demo-parking-1',fueling:'demo-fueling-1'};
 const nativeHasArrival=stopId=>{
   try{return androidShell&&Boolean(driverBridge?.hasArrival(stopId));}catch{return false;}
@@ -2466,7 +2473,7 @@ function bindLiveSessionControls(){
     if(liveMode()&&current()?.live){current().live.targetsRequested=false;current().live.targetsReady=false;}
     driverBridge?.backendRefresh();
   };}
-  if(logout){logout.disabled=false;logout.onclick=()=>{detachLiveOperation();driverBridge?.backendLogout();};}
+  if(logout){logout.disabled=false;logout.onclick=()=>{closeBackendReadOnlyTacho(false);detachLiveOperation();driverBridge?.backendLogout();};}
   if(retry){retry.disabled=false;retry.onclick=()=>{current().live.targetsRequested=false;current().live.detailsError='';render();};}
 }
 function liveFailure(result,fallback){
@@ -2645,6 +2652,12 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  if(typeof tachoReadonlyScreen!=='undefined'&&tachoReadonlyScreen?.isOpen()){
+    if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='tacho'){
+      updateDriverWorkspaceBar();return;
+    }
+    closeBackendReadOnlyTacho(false);
+  }
   synchronizeDesignedOperation();
   window.SuperSpedytorOfflineWorkspace?.changed();
   window.SuperSpedytorTranslator?.refresh(backendState);
@@ -3800,6 +3813,11 @@ $$('.screen-list [data-screen]').forEach(button=>button.onclick=()=>state.routeS
 $('#scenario-select').onchange=event=>switchScenario(event.target.value);
 $('#mobile-scenario').onchange=event=>switchScenario(event.target.value);
 $$('[data-nav]').forEach(button=>button.onclick=event=>{
+  if(button.dataset.nav==='tacho'&&openBackendReadOnlyTacho()){event?.stopImmediatePropagation();return;}
+  if(typeof tachoReadonlyScreen!=='undefined'&&tachoReadonlyScreen?.isOpen()){
+    closeBackendReadOnlyTacho(button.dataset.nav==='now');
+    if(button.dataset.nav==='now'){event?.stopImmediatePropagation();return;}
+  }
   if(productionScope&&!['now','help'].includes(button.dataset.nav)){event?.stopImmediatePropagation();return;}
   if(backendTestWorkspace)backendActiveNav=button.dataset.nav==='service'?'service':'now';
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
@@ -3853,6 +3871,7 @@ let backendState={status:'disconnected',message:'Zaloguj się kontem kierowcy Su
 let backendPointActionPending=null;
 let backendActiveNav='now';
 let backendLastNearest=null;
+let tachoReadonlyScreen=null;
 const designedDriverViews=[
   {id:'scanner',title:'Skaner CMR',icon:'camera',description:'Obrys kartki na żywo, automatyczny skan i kolor'},
   {id:'load',title:'Załadunek',icon:'box',description:'Mapa, sztuki, plomby, zdjęcia i skan CMR'},
@@ -4326,8 +4345,96 @@ function renderSavedDriverLogin(panel,error){
     driverBridge.backendLoginRemembered(username,password,ui.remember);
   };
 }
+// AA28: a separate GET-only Tacho surface; no offline request cache or demo fallback.
+function positiveTachoId(value){
+  if(typeof value==='number')return Number.isSafeInteger(value)&&value>0?String(value):'';
+  if(typeof value==='string'&&/^[1-9]\d*$/.test(value)){
+    const number=Number(value);return Number.isSafeInteger(number)?String(number):'';
+  }
+  return '';
+}
+function tachoSessionKey(session){
+  if(session?.status!=='connected')return '';
+  const user=positiveTachoId(session.profile?.id);
+  const profile=session.profile;
+  if(!profile||typeof profile!=='object'||Array.isArray(profile))return '';
+  const directPresent=Object.prototype.hasOwnProperty.call(profile,'driver_id');
+  const nestedPresent=Object.prototype.hasOwnProperty.call(profile,'driver_profile');
+  const nested=profile.driver_profile;
+  if(nestedPresent&&(!nested||typeof nested!=='object'||Array.isArray(nested)||!Object.prototype.hasOwnProperty.call(nested,'id')))return '';
+  const directId=directPresent?positiveTachoId(profile.driver_id):'';
+  const nestedId=nestedPresent?positiveTachoId(nested.id):'';
+  if(directPresent&&!directId||nestedPresent&&!nestedId||directId&&nestedId&&directId!==nestedId)return '';
+  const driver=directId||nestedId;
+  let origin='';
+  try{
+    const url=new URL(session.backend_origin);
+    if(url.protocol!=='https:'||url.username||url.password||url.port||url.pathname!=='/'||url.search||url.hash
+      ||!['dev.amg-trans.eu','tms.amg.eco'].includes(url.hostname))return '';
+    origin=url.origin;
+  }catch{return '';}
+  return user&&driver?`${origin}|${user}|${driver}`:'';
+}
+async function backendTachoMe(){
+  const owner=tachoSessionKey(backendState);
+  if(!owner||!tachoReadOnlyAvailable())throw new Error('Odczyt Tacho wymaga połączenia z kontem kierowcy.');
+  // Intentionally bypass nativeRequest / SuperSpedytorOfflineWorkspace.
+  const result=browserBackend
+    ?await driverBridge.backendTachoMe()
+    :await nativeCall(id=>driverBridge.backendRequest(id,'GET','vehicles/vehicles/tacho/me/',''));
+  if(owner!==tachoSessionKey(backendState))throw new Error('Sesja kierowcy zmieniła się.');
+  if(result?.cached===true||result?.status!==200||!result.body||typeof result.body!=='object'||Array.isArray(result.body))
+    throw new Error(result?.status===404?'Brak danych Tacho dla tego konta.':result?.status===401?'Sesja wygasła. Zaloguj się ponownie.':'Nie udało się odczytać aktualnych danych Tacho.');
+  const expected=owner.slice(owner.lastIndexOf('|')+1);
+  if(positiveTachoId(result.body.driver?.id)!==expected)throw new Error('Odpowiedź Tacho nie jest przypisana do zalogowanego kierowcy.');
+  return result;
+}
+function closeBackendReadOnlyTacho(restore=false){
+  try{driverBridge?.tachoScreenVisible?.(false);}catch{}
+  tachoReadonlyScreen?.close();tachoReadonlyScreen=null;
+  if(backendActiveNav==='tacho')backendActiveNav='now';
+  if(restore)render();
+}
+function openBackendReadOnlyTacho(){
+  if(!backendMode||backendTestWorkspace||driverBridge?.liveWorkflowsEnabled?.()===true)return false;
+  if(!tachoReadOnlyAvailable()){
+    toast('Ta wersja aplikacji nie udostępnia rzeczywistego odczytu Tacho.');return true;
+  }
+  if(backendState?.status!=='connected'){
+    toast('Zaloguj się kontem kierowcy, aby odczytać Tacho.');return true;
+  }
+  if(!tachoSessionKey(backendState)){
+    toast('Brak jednoznacznego profilu kierowcy dla Tacho. Odśwież dane lub zaloguj się ponownie.');return true;
+  }
+  if(liveBusy||liveOperation?.finishing||backendState?.write?.status==='pending'){
+    toast('Poczekaj na zakończenie bieżącej operacji.');return true;
+  }
+  if(!window.SuperSpedytorReadOnlyTacho?.create){
+    toast('Panel Tacho nie został załadowany. Otwórz aplikację ponownie.');return true;
+  }
+  window.SuperSpedytorTacho?.close?.();
+  backendActiveNav='tacho';
+  updateDriverWorkspaceBar();
+  $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='tacho'));
+  if(!tachoReadonlyScreen)tachoReadonlyScreen=window.SuperSpedytorReadOnlyTacho.create({
+    getSession:()=>backendState,
+    request:backendTachoMe,
+    onClose:()=>closeBackendReadOnlyTacho(true)
+  });
+  tachoReadonlyScreen.open();
+  if(tachoReadonlyScreen.isOpen()){
+    try{driverBridge?.tachoScreenVisible?.(true);}catch{}
+  }else closeBackendReadOnlyTacho(false);
+  return true;
+}
 window.SuperSpedytorBackend={
+  closeTachoReadOnly(){
+    if(!tachoReadonlyScreen?.isOpen())return false;
+    closeBackendReadOnlyTacho(true);return true;
+  },
   setActiveNav(nav){
+    if(nav==='tacho'&&openBackendReadOnlyTacho())return false;
+    if(typeof tachoReadonlyScreen!=='undefined'&&tachoReadonlyScreen?.isOpen()&&nav!=='tacho')closeBackendReadOnlyTacho(false);
     if(productionScope&&!['now','help'].includes(nav))return false;
     if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return false;
     backendActiveNav=nav==='service'?'service':nav==='tacho'?'tacho':'now';
@@ -4335,11 +4442,13 @@ window.SuperSpedytorBackend={
     return true;
   },
   receive(raw){
+    const previousTachoOwner=tachoSessionKey(backendState);
     const previousWriteKey=`${backendState?.write?.id||''}:${backendState?.write?.status||''}`;
     const previousContext={point:liveOperation?.point||backendLastNearest,owner:backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`};
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
     const receivedOwner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
+    if(tachoReadonlyScreen&&(!previousTachoOwner||previousTachoOwner!==tachoSessionKey(backendState)))closeBackendReadOnlyTacho(false);
     if(receivedOwner!==previousContext.owner)backendPointActionPending=null;
     window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;

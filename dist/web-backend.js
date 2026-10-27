@@ -13,7 +13,7 @@
     :!originValid?'Odczyt danych DEV jest dostępny wyłącznie pod adresem https://dev.amg-trans.eu/driver-app/.':'';
   const readonlyState=next=>({...next,backend_environment:'dev',backend_origin:BACKEND_ORIGIN,read_only:true,write_capabilities:[]});
   const authPaths=new Set(['token/','token/refresh/','logout/']);
-  const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/','driver-tasks/survey-history/']);
+  const readPaths=new Set(['users/me/','users/me/current-vehicle/','routes/driver/status/','driver-tasks/history/','driver-tasks/survey-history/','vehicles/vehicles/tacho/me/']);
   const isSurveyRegisterPath=path=>/^driver-tasks\/survey-history\/(\?month=[0-9]{4}-(0[1-9]|1[0-2]))?$/.test(path);
   const allowedRequest=(method,path)=>method==='POST'?authPaths.has(path):method==='GET'&&(readPaths.has(path)||isSurveyRegisterPath(path)||/^documents\/transport\/[1-9]\d*\/$/.test(path)||/^driver-tasks\/[1-9]\d*\/$/.test(path));
   const MAX_BYTES=2*1024*1024;
@@ -271,6 +271,7 @@
 
   window.SuperSpedytorWeb={
     backendEnabled:()=>true,
+    tachoReadOnlyEnabled:()=>true,
     backendState:()=>JSON.stringify(current),
     getAppVersion:()=>String(build.androidRuntimeVersion||build.androidSourceVersion||''),
     getUiSourceCommit:()=>String(build.sourceCommit||''),
@@ -320,6 +321,34 @@
       const gen=generation;
       publish({...current,write:{id:crypto.randomUUID(),status:'error',message:'Podgląd DEV jest tylko do odczytu. Operacja nie została wysłana.'}},gen);
       return Promise.resolve();
+    },
+    async backendTachoMe(){
+      const gen=generation;
+      const positive=value=>typeof value==='number'&&Number.isSafeInteger(value)&&value>0?String(value)
+        :typeof value==='string'&&/^[1-9]\d*$/.test(value)&&Number.isSafeInteger(Number(value))?String(Number(value)):'';
+      const owner=()=>{
+        if(current.status!=='connected')throw new SessionError('Zaloguj się kontem kierowcy',401);
+        const profile=current.profile,user=positive(profile?.id);
+        if(!plain(profile))throw new SessionError('Brak jednoznacznego konta kierowcy',403);
+        const directPresent=Object.prototype.hasOwnProperty.call(profile,'driver_id');
+        const nestedPresent=Object.prototype.hasOwnProperty.call(profile,'driver_profile');
+        const nested=profile.driver_profile;
+        if(nestedPresent&&(!plain(nested)||!Object.prototype.hasOwnProperty.call(nested,'id')))throw new SessionError('Brak jednoznacznego konta kierowcy',403);
+        const a=directPresent?positive(profile.driver_id):'',b=nestedPresent?positive(nested.id):'';
+        if(!user||directPresent&&!a||nestedPresent&&!b||a&&b&&a!==b||!(a||b))throw new SessionError('Brak jednoznacznego konta kierowcy',403);
+        return `${user}|${a||b}`;
+      };
+      const expected=owner();
+      try{
+        const body=await getObject('vehicles/vehicles/tacho/me/',gen);alive(gen);
+        if(owner()!==expected)throw new StaleSession();
+        if(positive(body.driver?.id)!==expected.slice(expected.lastIndexOf('|')+1))throw new SessionError('Odpowiedź Tacho nie jest przypisana do zalogowanego kierowcy',403);
+        return {status:200,body};
+      }catch(error){
+        alive(gen);
+        if(error?.status===401)publish({status:'error',message:'Sesja wygasła. Zaloguj się ponownie.',can_retry:false},gen);
+        throw error;
+      }
     },
     async backendSurveyRegister(month=''){
       const gen=generation;
