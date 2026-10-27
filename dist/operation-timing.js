@@ -36,8 +36,9 @@
     const stage = stageForElapsed(elapsedSeconds);
     const threshold = thresholdForStage(stage);
     const acknowledged = normalizeSeconds(acknowledgedThreshold);
-    const requiresResponse = (stage === 'urgent' || stage === 'limit')
-      && acknowledged < threshold;
+    // Time escalation is advisory; it never gates navigation or completion.
+    // Keep the legacy field for existing consumers, always non-blocking.
+    const requiresResponse = false;
     const invitesResponse = stage !== 'normal' && acknowledged < threshold;
     const remainingSeconds = Math.max(0, thresholds.limitSeconds - elapsedSeconds);
 

@@ -790,8 +790,8 @@ const completedPieces=()=>current().items.filter(item=>pieceReady(item)).length;
 const operationTimerMeta={
   normal:{label:'W normie',title:'Operacja trwa',description:'Do 20 minut bez dodatkowej akcji.',icon:'clock'},
   'check-in':{label:'Pytanie o status',title:'Minęło 20 minut',description:'Biuro pyta, co dzieje się na miejscu.',icon:'chat'},
-  urgent:{label:'Reakcja wymagana',title:'Minęło 40 minut',description:'Odpowiedz teraz. Aplikacja uruchamia dźwięk i wibrację eskalacji.',icon:'bell'},
-  limit:{label:'Przekroczono 60 min',title:'Maksymalny czas przekroczony',description:'Zgłoś przyczynę i skontaktuj się ze spedytorem.',icon:'warning'}
+  urgent:{label:'Wydłużony czas',title:'Minęło 40 minut',description:'Możesz kontynuować operację i przekazać spedytorowi aktualny status.',icon:'bell'},
+  limit:{label:'Przekroczono 60 min',title:'Maksymalny czas przekroczony',description:'Możesz kontynuować dokumentowanie i przekazać spedytorowi przyczynę opóźnienia.',icon:'warning'}
 };
 const operationResponseOptions=()=>[
   ...(current().physicalConfirmed?[["documenting",isLoad()?"Załadunek wykonany — dokumentuję":"Rozładunek wykonany — dokumentuję"]]:[]),
@@ -800,7 +800,7 @@ const operationResponseOptions=()=>[
   ['problem','Problem na miejscu']
 ];
 function operationStatusPromptView(){
-  return `<p>Licznik przekroczył próg wymagający odpowiedzi. Wybierz aktualny etap operacji.</p><div class="operation-response-actions operation-status-options">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${icon(value==='documenting'?'check':'clock')}<span>${esc(label)}</span>${icon('arrow')}</button>`).join('')}</div><p class="small-note">Odpowiedź zapisuje się na tym telefonie. Zakończenie punktu potwierdzisz po uzupełnieniu dokumentacji. Spedytora powiadomisz przez Czat.</p>`;
+  return `<p>Jeśli chcesz uzupełnić status, wybierz aktualny etap operacji. Możesz też kontynuować dokumentowanie bez odpowiedzi.</p><div class="operation-response-actions operation-status-options">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${icon(value==='documenting'?'check':'clock')}<span>${esc(label)}</span>${icon('arrow')}</button>`).join('')}</div><p class="small-note">Odpowiedź zapisuje się na tym telefonie. Zakończenie punktu potwierdzisz po uzupełnieniu dokumentacji. Spedytora powiadomisz przez Czat.</p>`;
 }
 function beginOperationTimer(record=current()){
   if(!record?.timing||record.finished)return;
@@ -826,8 +826,8 @@ function operationElapsedSeconds(record=current()){
 function operationTimerSnapshot(record=current()){
   return operationTimingModel.describe(operationElapsedSeconds(record),record?.timing?.acknowledgedThreshold||0);
 }
-function operationResponseRequired(record=current()){
-  return Boolean(record?.arrived&&!record.finished&&operationTimerSnapshot(record).requiresResponse);
+function operationResponseSuggested(record=current()){
+  return Boolean(record?.arrived&&!record.finished&&operationTimerSnapshot(record).invitesResponse);
 }
 function operationTimerView(compact=false){
   const record=current();
@@ -840,7 +840,7 @@ function operationTimerView(compact=false){
   const stageLabel=answered?(record.live?'Status potwierdzony':'Status zarejestrowany'):meta.label;
   const stageDescription=answered?'Odpowiedź kierowcy została zapisana na tym telefonie.':meta.description;
   const previewControls=!record.live&&(previewMode||!androidShell)&&!compact?`<div class="operation-timer-preview"><span>PODGLĄD PROGÓW</span>${[0,20,40,60].map(minutes=>`<button type="button" data-timer-preview="${minutes}">${minutes} min</button>`).join('')}</div>`:'';
-  const response=showQuestion?`<div class="operation-timer-response ${snapshot.requiresResponse?'required':''}"><div class="operation-timer-question">${icon(meta.icon)}<div><strong>${esc(meta.title)}</strong><small>${esc(stageDescription)}</small></div></div>${answered?`<div class="operation-response-saved">${icon('check')}<span><strong>${esc(timing.response)}</strong><small>${record.live?'Potwierdzono na tym telefonie':'Zarejestrowano w podglądzie'} o ${esc(timing.responseAt)}</small></span></div>`:`<div class="operation-response-actions">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${esc(label)}</button>`).join('')}<button type="button" class="operation-response-chat" data-operation-response="chat">${icon('chat')} Czat</button></div>`}</div>`:'';
+  const response=showQuestion?`<div class="operation-timer-response ${snapshot.invitesResponse?'requested':''}"><div class="operation-timer-question">${icon(meta.icon)}<div><strong>${esc(meta.title)}</strong><small>${esc(stageDescription)}</small></div></div>${answered?`<div class="operation-response-saved">${icon('check')}<span><strong>${esc(timing.response)}</strong><small>${record.live?'Potwierdzono na tym telefonie':'Zarejestrowano w podglądzie'} o ${esc(timing.responseAt)}</small></span></div>`:`<div class="operation-response-actions">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${esc(label)}</button>`).join('')}<button type="button" class="operation-response-chat" data-operation-response="chat">${icon('chat')} Czat</button></div>`}</div>`:'';
   return `<section class="operation-timer ${compact?'compact':''} ${snapshot.stage}" data-operation-timer><div class="operation-timer-top"><span class="operation-timer-icon">${icon(meta.icon)}</span><div><small>CZAS NA ${isLoad()?'ZAŁADUNKU':'ROZŁADUNKU'}</small><strong data-operation-elapsed>${operationTimingModel.formatDuration(snapshot.elapsedSeconds)}</strong></div><b data-operation-stage>${esc(stageLabel)}</b></div><div class="operation-timer-track"><span data-operation-progress style="width:${snapshot.progressPercent}%"></span><i class="at-20"></i><i class="at-40"></i></div><div class="operation-timer-thresholds"><span>20 min · status</span><span>40 min · alarm</span><span>60 min · limit</span></div>${response}${previewControls}</section>`;
 }
 const collection=()=>state.routeStops.collection;
@@ -1722,13 +1722,10 @@ function actionView(){
   if(screen==='review'){text=`Zakończ ${isLoad()?'załadunek':'rozładunek'}`;action='finish';disabled=!finishReady();back='documents';}
   if(screen==='chat'){text='Załącz dokumenty';action='chat-attach';caption='Możesz pisać od razu. Zdjęcia są przypisane do konkretnych sztuk, a CMR pozostaje osobnym dokumentem.';}
   if(screen==='success'){text='Kolejny punkt na trasie';action='next-point';}
-  if(!['travel','chat','success'].includes(screen)&&operationResponseRequired()){
-    action='operation-status';text='Podaj status operacji';disabled=false;
-    caption='Minął próg czasu. Naciśnij przycisk i wybierz aktualny status, aby przejść dalej.';
-  }
   if(liveMode()&&current().arrived&&!current().live.routeOnly&&!current().live.targetsReady){disabled=true;caption=current().live.detailsLoading?'Pobieranie danych zlecenia…':'Szczegóły zlecenia są niedostępne. Spróbuj ponownie.';}
+  const statusLink=!['travel','chat','success'].includes(screen)&&operationResponseSuggested()?'<button type="button" class="operation-status-optional" data-operation-status-open>Podaj status · opcjonalnie</button>':'';
   const actionIcon=action==='chat-attach'?'clip':action==='finish'?'check':action==='cancel-arrival'?'close':'arrow';
-  return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}`;
+  return `<div class="flow-actions">${back?`<button class="flow-back" data-back="${back}" aria-label="Wróć do poprzedniego kroku">${icon('back')}</button>`:''}<button class="primary-button ${action==='cancel-arrival'?'countdown-active':''}" id="main-action" data-action="${action}" ${disabled?'disabled':''}>${icon(actionIcon)}${text}</button></div>${caption?`<p class="action-caption ${action==='cancel-arrival'?'countdown-caption':''}">${caption}</p>`:''}${statusLink}`;
 }
 
 function designNotes(){
@@ -3002,7 +2999,7 @@ function acknowledgeOperationTimer(value){
   }
   render();
   $('#main-action')?.focus({preventScroll:true});
-  toast(record.live?'Status potwierdzony na telefonie. Możesz przejść dalej.':'Status zapisano w podglądzie. Nie wysłano go do backendu.');
+  toast(record.live?'Odpowiedź zapisano na tym telefonie.':'Status zapisano w podglądzie. Nie wysłano go do backendu.');
 }
 
 function setOperationTimerPreview(minutes){
@@ -3021,6 +3018,7 @@ function setOperationTimerPreview(minutes){
 }
 
 function bindOperationTimer(){
+  $$('[data-operation-status-open]').forEach(button=>button.onclick=()=>openModal('operation-status'));
   $$('[data-operation-response]').forEach(button=>button.onclick=()=>acknowledgeOperationTimer(button.dataset.operationResponse));
   $$('[data-timer-preview]').forEach(button=>button.onclick=()=>setOperationTimerPreview(button.dataset.timerPreview));
 }
@@ -3093,7 +3091,7 @@ function bindView(){
   if($('#copy-reference'))$('#copy-reference').onclick=async()=>{try{await navigator.clipboard.writeText(optional().ref);toast('REF został skopiowany.');}catch{openModal('copy');}};
   $('#main-action').onclick=()=>{
     const action=$('#main-action').dataset.action;
-    if(action==='operation-status'||!['start-arrival','cancel-arrival','complete-point','chat-attach','next-point'].includes(action)&&operationResponseRequired()){openModal('operation-status');return;}
+    if(action==='operation-status'){openModal('operation-status');return;}
     if(action==='start-arrival')startArrivalCountdown();
     if(action==='cancel-arrival')cancelArrivalCountdown(true);
     if(action==='complete-point'&&liveMode()&&!backendReadOnly()){
@@ -3169,7 +3167,7 @@ function openModal(type,target){
     if(!allowed)return;
   }
   if(type==='finish'&&!finishReady())return;
-  if(type==='operation-status'&&(liveReadOnly()||!operationResponseRequired()))return;
+  if(type==='operation-status'&&(liveReadOnly()||!operationResponseSuggested()))return;
   if(!state.modal)focusBeforeModal=document.activeElement;
   state.modal={type,target};
   let title='',body='';

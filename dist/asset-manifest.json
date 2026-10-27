@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "6635faabac676a221c067c579e2427c41d0b8066",
+  "sourceCommit": "a0d00b0cfc5aebe00ead2b6e288b96e28c71dec9",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "21e9de672aeb51cc42af74d304ac5ad07e69e697ec59a8554b8004df492874b7",
+  "assetManifestSha256": "651b32e71aaa48f50ecf138f10447821e5ce374f72180480985dfdc507bd0c4e",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -118,13 +118,13 @@
     },
     {
       "path": "flow.css",
-      "sha256": "0d9e20adac338f4b86f2693331ae7c603396a9c85b4302bef8acce8fa2463e5c",
-      "size": 99676
+      "sha256": "7bfa2f85c61ac05badee63f729b2538ee8e76205d5d580e55a943a8f46c9e276",
+      "size": 99915
     },
     {
       "path": "flow.js",
-      "sha256": "112e85b60d80b3886741104e91293f15631b8bf1841fc77f9c3e7e89b2a45ff3",
-      "size": 412266
+      "sha256": "1bac9d9f6860852fcdc7b4e042077d2abaff0ccef45542aa13c9fca767f73c01",
+      "size": 412271
     },
     {
       "path": "handover-v2.css",
@@ -173,8 +173,8 @@
     },
     {
       "path": "operation-timing.js",
-      "sha256": "fb1a0318f34842e9efce767136ed2a57bad3594395f69b79c00808fc506585fc",
-      "size": 2727
+      "sha256": "488019005bac80ec22e482215ae98fef9a9d684dfc0bb9e98f8fb33fcd9b4651",
+      "size": 2808
     },
     {
       "path": "paper-scanner.js",
