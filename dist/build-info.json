@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "8a8cbe58f16af378e80b7d091f7bce68af372ff6",
+  "sourceCommit": "a77f36b23264466e5d97244982b799b54ba5ad1f",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-27T17:06:46.564Z",
+  "builtAt": "2026-10-27T17:32:16.343Z",
   "assetManifestSha256": "2b3b375d3692c25d2c2482e24fc356baefe97b59a4dcc11a3e514345a28a9daa",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "8a8cbe58f16af378e80b7d091f7bce68af372ff6",
-    "initialIntegrationSha": "71fcdfe8114f17f3a9542cb0d0e3563e6a82a0c7",
+    "candidateSha": "a77f36b23264466e5d97244982b799b54ba5ad1f",
+    "initialIntegrationSha": "8a8cbe58f16af378e80b7d091f7bce68af372ff6",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "71fcdfe8114f17f3a9542cb0d0e3563e6a82a0c7",
+    "baseSha": "8a8cbe58f16af378e80b7d091f7bce68af372ff6",
     "branches": [
       {
         "name": "main",
@@ -66,7 +66,7 @@
       },
       {
         "name": "codex/scanner-fold-shadows",
-        "sha": "eb3f30ee70ca5bfbe853d59da296b1f91bd3ef6c"
+        "sha": "a603afa492a4473e0820b0119a37d85609ad47a9"
       },
       {
         "name": "codex/shared-preview-parity",
@@ -91,7 +91,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-8a8cbe58f16af378e80b7d091f7bce68af372ff6/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-a77f36b23264466e5d97244982b799b54ba5ad1f/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
