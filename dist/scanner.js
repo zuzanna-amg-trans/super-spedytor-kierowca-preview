@@ -452,5 +452,5 @@
     if(event.shiftKey&&(document.activeElement===first||document.activeElement.classList.contains('scanner-sheet'))){event.preventDefault();last?.focus();}
     else if(!event.shiftKey&&(document.activeElement===last||document.activeElement.classList.contains('scanner-sheet'))){event.preventDefault();first?.focus();}
   });
-  window.SuperSpedytorScanner={open,close,receive,scanQr,scanForUpload,available,release,receiveExport:result=>window.CmrDocumentExport?.receive(result)};
+  window.SuperSpedytorScanner={isBusy:()=>Boolean(session||pending||qrPending),open,close,receive,scanQr,scanForUpload,available,release,receiveExport:result=>window.CmrDocumentExport?.receive(result)};
 })();

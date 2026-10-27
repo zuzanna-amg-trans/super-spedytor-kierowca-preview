@@ -214,7 +214,7 @@
     return {state:Number(result.status)>0&&Number(result.status)<500?'blocked':'uncertain',message:result.message||'Sprawdź wynik w Super Spedytorze przed ponowieniem.'};
   }
   async function sync(){
-    if(syncing||!ready||!writable()||offline()||backendState.offline)return;
+    if(window.SuperSpedytorUpdates?.paused()||syncing||!ready||!writable()||offline()||backendState.offline)return;
     const token=epoch,activeQueue=queue;syncing=true;banner();
     try{
       // Owner readback can settle a previously ambiguous point without repeating its POST.
@@ -254,7 +254,16 @@
       }
     }
   }
-  window.SuperSpedytorOfflineWorkspace={changed,flush,request,upload,point,receive,
+  async function updateCheckpoint(){
+    const owner=currentScope(),token=epoch;
+    if(!ready||loading||syncing||!owner||problem)return false;
+    await ensure();await flush();
+    return ready&&!loading&&!syncing&&!problem&&owner===currentScope()&&token===epoch&&!saving;
+  }
+  function updateRescue(){
+    return {jobs:clone(queue?.list()||[]),materials:{operations:state.operations,serviceSurvey:state.serviceSurvey,serviceArchive}};
+  }
+  window.SuperSpedytorOfflineWorkspace={updateCheckpoint,updateRescue,changed,flush,request,upload,point,receive,
     prepare:ensure,inventoryUploads,reconcileInventory,
     subscribeInventory(listener){inventoryListeners.add(listener);return()=>inventoryListeners.delete(listener);},ready:()=>ready,retains:token=>Boolean(queue?.list().some(job=>job.token===token)||Object.values(state.operations).some(operation=>allEvidence(operation).some(record=>record.token===token&&record.syncState&&record.syncState!=='confirmed')))};
   document.addEventListener('input',()=>setTimeout(changed,0));

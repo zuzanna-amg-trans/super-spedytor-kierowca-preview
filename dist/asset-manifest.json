@@ -1,15 +1,20 @@
 {
   "protocol": 2,
-  "sourceCommit": "e64a60ffceb2879dbaf687260f7eb94bff202eb4",
+  "sourceCommit": "b6f6a91bf0f3152cfc92ce11be5516b11c4ef979",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "670317890c437393354ec108c6a0bab73437bd85f80f091358b8b68b7ccb53f8",
+  "assetManifestSha256": "73e43c5ba9ee1ce32760b637cc632df2ced72d5d3ae001126d586768cbf13e97",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
       "path": "android-shell.css",
       "sha256": "b33eeac7a0e4d3fd1d5d4e964c5104d1a6320d1799cfa9a6085fdb6a84532739",
       "size": 25106
+    },
+    {
+      "path": "app-updates.js",
+      "sha256": "5fbc6764430816b8b869d10abb2cdd3ed08692f9e6202c8fa64df53e87ad0d54",
+      "size": 6375
     },
     {
       "path": "assets/OFL.txt",
@@ -138,8 +143,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "4e88b90883e6d4856f5dee1d4c52861a8137e91ef4ae629b8b42ca90521d4766",
-      "size": 14119
+      "sha256": "a8e90dd802640f8347b1424dc0eb8cba7314893b58821a17ba0426476019f42c",
+      "size": 14160
     },
     {
       "path": "live-operation.js",
@@ -163,8 +168,8 @@
     },
     {
       "path": "offline-workspace.js",
-      "sha256": "06f85d831fa6c7cd6ccad74b8a058b586599072cced1da445a8a5154cbb24d5b",
-      "size": 20744
+      "sha256": "7af086a2b0bd0ac044c95da582c656369435fd81405ff12c80d02618c40d80e2",
+      "size": 21255
     },
     {
       "path": "offline.css",
@@ -198,8 +203,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "e5aa24ca9cb3db899ed715ea36071d64138fcc683a6a30b0a7dbd5be9f97bec9",
-      "size": 42568
+      "sha256": "d031284b94515cfb1d68704e3156e72162e8696e5deb1124475ee4fa71618ac2",
+      "size": 42616
     },
     {
       "path": "service-register.js",
