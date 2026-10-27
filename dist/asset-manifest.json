@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "c5ced2e5b02e6f064765edbe61a688913a001c00",
+  "sourceCommit": "09dc98d9b618922b683a4cd5c56b085db6f4dd88",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "28652de58779dee1451efd599d0c1d2cec4aaf9b74412756112c324eb9c05148",
+  "assetManifestSha256": "9d35c0cc88d80e73f9f580cbe611585817980c292dd2294466bc0d36e30b2045",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -112,6 +112,11 @@
       "size": 13312
     },
     {
+      "path": "document-preview.js",
+      "sha256": "6e406a778fd242152452b15b6ae09ce7ce214d1860978bb55faff2d6e3d282ce",
+      "size": 3014
+    },
+    {
       "path": "document-processing.js",
       "sha256": "1319cedaab28a1452d7426dc696a984bc4b50c736b56b97fcca09105e81009d1",
       "size": 4485
@@ -123,13 +128,13 @@
     },
     {
       "path": "flow.css",
-      "sha256": "7bfa2f85c61ac05badee63f729b2538ee8e76205d5d580e55a943a8f46c9e276",
-      "size": 99915
+      "sha256": "6ea8bbe2037c8c808ca8342df4f87e263f57147309ffc228b010ad2625c42890",
+      "size": 101190
     },
     {
       "path": "flow.js",
-      "sha256": "1b109e676ef7576fe80a3c3e2ebcfa515e4e58a4d6a6be428cbcb6f81955331a",
-      "size": 422663
+      "sha256": "7cd380ff023e1f2c60ddd4de81fe8220001575b9105ef0b11688d6198c10fa63",
+      "size": 422521
     },
     {
       "path": "handover-v2.css",
@@ -143,8 +148,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "45d07f6fc818c528f5dd85fce016ea60c787ec9422f5eae0f64e5dfa8a439221",
-      "size": 14306
+      "sha256": "fa27a8a5212ae063ec2d1e38449d1ae72ee685662cd1b200abf25a6f3d612839",
+      "size": 14366
     },
     {
       "path": "live-operation.js",

@@ -1,0 +1,42 @@
+(function(root,factory){
+  const api=factory();
+  if(typeof module==='object'&&module.exports)module.exports=api;
+  else root.CmrDocumentPreview=api;
+  if(root.document?.addEventListener){
+    const settle=(event,failed)=>{
+      const image=event.target;
+      if(!image?.matches?.('[data-cmr-page-preview]'))return;
+      const frame=image.closest('.cmr-pdf-page');
+      frame?.classList.add(failed?'preview-failed':'preview-loaded');
+    };
+    root.document.addEventListener('load',event=>settle(event,false),true);
+    root.document.addEventListener('error',event=>settle(event,true),true);
+  }
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function safeSource(value){
+    if(typeof value!=='string'||value.length>4000)return null;
+    try{
+      const url=new URL(value,'https://preview.invalid/');
+      return ['https:','blob:','ssfile:','ssmedia:','content:'].includes(url.protocol)?value:null;
+    }catch{return null;}
+  }
+  function markup(record,{native=null}={}){
+    const source=safeSource(record?.url);
+    if(!source)return '<p class="cmr-preview-error" role="status">Brak dostępnego pliku do podglądu. Odśwież dokumenty zlecenia.</p>';
+    const name=escape(record.name||'CMR.pdf'),href=escape(source);
+    const count=Number.isInteger(record.pages)&&record.pages>0?Math.min(20,record.pages):null;
+    const open=`<a href="${href}" target="_blank" rel="noopener" class="cmr-open-document"><strong>${name}</strong><span>Otwórz i powiększ cały PDF${count?' · '+count+' '+(count===1?'strona':'stron'):''} ›</span></a>`;
+    if(typeof native?.documentPreviewUrl==='function'){
+      const pages=Array.from({length:count||1},(_,page)=>{
+        let url='';try{url=native.documentPreviewUrl(source,page);}catch{}
+        if(typeof url!=='string'||!url.startsWith('sspreview://local/pdf?'))return '';
+        return `<figure class="cmr-pdf-page"><figcaption>Strona ${page+1}${count?' z '+count:''}</figcaption><a href="${href}" target="_blank" rel="noopener" aria-label="Powiększ stronę ${page+1} dokumentu ${name}"><img data-cmr-page-preview src="${escape(url)}" alt="Skan CMR, strona ${page+1}" ${page?'loading="lazy"':''} decoding="async"></a><p class="cmr-preview-loading" role="status">Ładuję podgląd strony…</p><p class="cmr-preview-error" role="status">Nie udało się wyświetlić tej strony. Otwórz pełny PDF, aby sprawdzić dokument.</p></figure>`;
+      }).join('');
+      return `<div class="cmr-pdf-preview">${pages}${open}</div>`;
+    }
+    return `<div class="cmr-pdf-preview"><object class="cmr-pdf-embedded" data="${href}${source.includes('#')?'':'#page=1&view=FitH'}" type="application/pdf" aria-label="Podgląd skanu ${name}"><p>Ta przeglądarka nie wyświetla PDF wewnątrz strony. Użyj przycisku poniżej, aby obejrzeć dokument.</p></object>${open}</div>`;
+  }
+  return {markup,safeSource};
+});
