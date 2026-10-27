@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "04bf5fa8b00e0516967d056c792b87ef8eb02d53",
+  "sourceCommit": "66bde68f4809bc8333a5051b12a4524cb1a66369",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "aedef98f4e757e9538f96e8d3e0662805a7377d87831b1fdeea2f0d6a7a25226",
+  "assetManifestSha256": "9c0f9676eb8c746aea17ff7907cd1c866718ef8722b079e90ef51a300db19f04",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -268,8 +268,8 @@
     },
     {
       "path": "translator/app.js",
-      "sha256": "0634dd90939c7eb00cfe154ea553d004a2adfc1f2e84ed52f4f164db25641461",
-      "size": 223865
+      "sha256": "5290e96b838e1bd67503f64e9930caacde2ae6469aec2852bde4334cd20ed93f",
+      "size": 225223
     },
     {
       "path": "translator/index.html",
