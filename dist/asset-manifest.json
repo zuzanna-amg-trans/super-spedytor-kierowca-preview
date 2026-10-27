@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "9a6d3583d49643b405f7eb8c9bb5f0c24a8e07c5",
+  "sourceCommit": "47dd97f0b1e98260b763be052bfcdd374fca0cf7",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "79b276293f7427033ebe31a73cb82e8e9a2799fa518eea9673b3d7f7f0b636ad",
+  "assetManifestSha256": "670317890c437393354ec108c6a0bab73437bd85f80f091358b8b68b7ccb53f8",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -123,8 +123,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "1bac9d9f6860852fcdc7b4e042077d2abaff0ccef45542aa13c9fca767f73c01",
-      "size": 412271
+      "sha256": "15a67112416861d0237813a994637812701548f0c994face69795ab9e342f2d7",
+      "size": 412265
     },
     {
       "path": "handover-v2.css",

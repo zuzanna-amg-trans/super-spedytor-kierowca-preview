@@ -1707,7 +1707,7 @@ function actionView(){
     }
   }
   if(screen==='info'){
-    text=current().started?'Przejdź do dokumentacji':isLoad()?'Załadunek wykonany · dalej':'Rozpocznij dokumentowanie rozładunku';
+    text=isLoad()?'Dalej: sztuki ładunku':current().started?'Przejdź do dokumentacji':'Rozpocznij dokumentowanie rozładunku';
     action='start';
     disabled=!count()||(!isLoad()&&!cmrSealReady());
     caption=current().started
