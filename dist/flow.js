@@ -3455,7 +3455,8 @@ function openModal(type,target){
     closeModal(false);render();$('#app-scroll').scrollTop=0;toast('Brak odnotowany. Do koperty trafią tylko odebrane dokumenty.');
   };
   if($('#open-cmr-scanner'))$('#open-cmr-scanner').onclick=()=>openCmrScanner(target);
-  if(['scan','collection-scan','transshipment-scan'].includes(type)&&typeof driverBridge?.scanQr==='function'){
+  // LIVE already owns its QR action and validation; do not add a second reader.
+  if(['scan','collection-scan','transshipment-scan'].includes(type)&&!$('#live-scan-code')&&typeof driverBridge?.scanQr==='function'){
     const camera=$('.scan-camera');
     if(camera){
       const button=document.createElement('button');button.type='button';button.className='primary-button scanner-qr-button';button.innerHTML=`${icon('qr')}Odczytaj QR aparatem`;
@@ -3483,16 +3484,24 @@ function openModal(type,target){
   if($('#fuel-break-check'))$('#fuel-break-check').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'CHECK_TACHOGRAPH');
   $$('[data-attachment-kind]').forEach(button=>button.onclick=()=>openModal('attachment',{kind:button.dataset.attachmentKind,pieceIndex:button.dataset.attachmentPiece!==undefined?Number(button.dataset.attachmentPiece):undefined,source:'chat'}));
   if($('#save-piece'))$('#save-piece').onclick=()=>savePiece(target.index);
-  if($('#live-scan-code'))$('#live-scan-code').onclick=async()=>{
-    const button=$('#live-scan-code');button.disabled=true;
-    try{
-      const scan=await nativeScanCode();
-      if(!$('#qr-code'))return;
-      if(scan?.status==='ok'&&scan.code){$('#qr-code').value=scan.code;liveScanManual=false;saveQR(target,scan.code);}
-      else if(scan?.status==='error')$('#qr-error').textContent=scan.message||'Skaner nie odczytał kodu.';
-    }catch{if($('#qr-error'))$('#qr-error').textContent='Skaner jest niedostępny. Wpisz numer plomby ręcznie.';}
-    finally{if(button.isConnected)button.disabled=false;}
-  };
+  if($('#live-scan-code')){
+    const button=$('#live-scan-code'),modal=state.modal,operation=liveOperation,record=current();
+    const selected=liveRouteSelection(),owner=tachoSessionKey(backendState);
+    const active=()=>state.modal===modal&&liveOperation===operation&&current()===record
+      &&owner&&tachoSessionKey(backendState)===owner
+      &&selected&&operation?.routeKey===selected.key&&liveRouteSelection()?.key===selected.key;
+    button.onclick=async()=>{
+      if(button.disabled||!active())return;
+      button.disabled=true;
+      try{
+        const scan=await nativeScanCode();
+        if(!active()||!$('#qr-code'))return;
+        if(scan?.status==='ok'&&scan.code){$('#qr-code').value=scan.code;liveScanManual=false;saveQR(target,scan.code);}
+        else if(scan?.status==='error'||scan?.status===403)$('#qr-error').textContent=scan.message||'Skaner nie odczytał kodu.';
+      }catch{if(active()&&$('#qr-error'))$('#qr-error').textContent='Skaner jest niedostępny. Wpisz numer plomby ręcznie.';}
+      finally{if(button.isConnected&&state.modal===modal)button.disabled=false;}
+    };
+  }
   if($('#choose-file'))$('#choose-file').onclick=()=>{
     if(liveMode()){liveAttach(target);return;}
     uploadTarget=target.routeStop?{...target}:{operation:state.operation,...target};
