@@ -33,6 +33,8 @@
 .lw-tacho-designed .tacho-heading{margin-bottom:18px}
 .lw-tacho-designed .tacho-heading h2{font-size:26px}
 .lw-tacho-designed .tacho-counter-label{display:block;font-size:16px;font-weight:650;margin-top:18px}
+.lw-tacho-designed .tacho-active-badge{font-size:14px;line-height:1.5}
+.lw-tacho-designed .tacho-progress-labels>span{color:#536047}
 .lw-tacho-designed .tacho-elapsed{font-size:clamp(32px,10vw,46px);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lw-tacho-designed .tacho-section-heading{gap:12px;margin:22px 0 12px;align-items:flex-start}
 .lw-tacho-designed .tacho-section-heading h3{font-size:19px}

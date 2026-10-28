@@ -728,7 +728,7 @@ html.android-shell .backend-panel {
 .live-operation-day .operation-plan-list { padding: 4px 16px; }
 .operation-plan-body .live-route-context,.operation-plan-body .live-operation-day>.section-heading { padding: 14px 16px; margin: 0; }
 .live-operation-facts { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 14px 16px; color: #4b5842; }
-.live-operation-facts span { font-size: 16px; line-height: 1.5; font-weight: 650; }
+.live-operation-facts span { font-size: 16px; line-height: 1.5; font-weight: 700; color: #43543a; background: #eef3e8; }
 .operation-plan-body .operation-plan-time small { color: #536047; font-size: 12px; }
 .operation-plan-body .operation-plan-detail>p,.operation-plan-body .operation-plan-detail em { color: #536047; font-size: 14px; line-height: 1.55; }
 .operation-plan-body .operation-plan-cargo strong { font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
