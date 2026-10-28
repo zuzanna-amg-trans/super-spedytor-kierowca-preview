@@ -923,7 +923,13 @@ function revokePiece(piece){revoke(piece.photos.near);revoke(piece.photos.far);r
 function openService(panel=(!serviceCompletedToday()?'survey':state.servicePanel||'survey')){
   if(productionScope)return;
   if(backendTestWorkspace)backendActiveNav='service';
-  if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&panel!=='history'&&!enterTestingWorkspace('survey',false))return;
+  if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
+    if(!['survey','history','inventory','handover'].includes(panel))return;
+    backendServicePanel=panel;backendActiveNav='service';
+    state.serviceOpen=false;
+    if(panel!=='history')state.serviceHistorySelectedId=null;
+    cancelArrivalCountdown(false);closeModal(false);render();$('#app-scroll').scrollTop=0;return;
+  }
   cancelArrivalCountdown(false);
   closeModal(false);
   if(panel!=='history')state.serviceHistorySelectedId=null;
@@ -985,8 +991,23 @@ function startArrivalCountdown(){
   },1000);
 }
 
+function handleConnectedBackendNavigation(nav){
+  if(!backendMode||backendTestWorkspace||backendState?.status!=='connected')return false;
+  if(productionScope&&!['now','help'].includes(nav))return false;
+  if(nav==='help'){openModal('live-help',{});return true;}
+  if(!['now','chat','service'].includes(nav))return false;
+  closeModal(false);
+  if(arrivalCountdown)cancelArrivalCountdown(false);
+  backendActiveNav=nav;
+  if(nav==='service')backendServicePanel='history';
+  else state.serviceHistorySelectedId=null;
+  state.serviceOpen=false;
+  render();$('#app-scroll').scrollTop=0;
+  return true;
+}
 function go(screen){
   if(productionScope&&screen==='chat')return;
+  if(screen==='chat'&&handleConnectedBackendNavigation('chat'))return;
   if(liveReadOnly())return goLiveReadOnly(screen);
   if(backendTestWorkspace)backendActiveNav='now';
   if(arrivalCountdown)cancelArrivalCountdown(false);
@@ -1026,6 +1047,7 @@ function go(screen){
 }
 function goStop(screen){
   if(productionScope)return;
+  if(screen==='chat'&&handleConnectedBackendNavigation('chat'))return;
   if(arrivalCountdown)cancelArrivalCountdown(false);
   state.serviceOpen=false;
   const stop=currentStop();
@@ -1192,12 +1214,14 @@ function piecesManager(){
 }
 function infoView(){
   const afterConfirm=isLoad()?'Po potwierdzeniu przejdziesz przez każdą sztukę: nakleisz plombę, zeskanujesz jej QR oraz zrobisz zdjęcie z bliska i z daleka.':'Plomba CMR jest już sprawdzona. Po potwierdzeniu porównasz każdą sztukę ze zdjęciami z załadunku, zeskanujesz jej plombę i zrobisz zdjęcie z rozładunku.';
-  const quantity=`${count()} ${count()===1?'sztuka':count()<5?'sztuki':'sztuk'}`;
-  const confirmation=isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Sprawdziłem, że do rozładowania są ${quantity} ładunku zgodne ze zleceniem.`;
+  const pieceCount=Array.isArray(current()?.items)?current().items.length:0;
+  const pieceWord=pieceCount===1?'sztukę':pieceCount%10>=2&&pieceCount%10<=4&&(pieceCount%100<12||pieceCount%100>14)?'sztuki':'sztuk';
+  const quantity=pieceCount?`${pieceCount} ${pieceWord}`:'';
+  const confirmation=!pieceCount?'Najpierw pobierz lub uzupełnij rzeczywistą listę sztuk ładunku.':isLoad()?`Potwierdzam, że załadowałem ${quantity} ładunku zgodnie ze zleceniem.`:`Potwierdzam, że sprawdziłem ${quantity} ładunku do rozładunku zgodnie ze zleceniem.`;
   const liveExit=liveMode()&&!liveOperation.routeKey?`<button class="subpage-back live-exit" id="live-exit">${icon('back')} Najbliższa operacja · ${esc(assignment.id)}</button>`:'';
   const details=current().live?liveDetailsNotice():'';
   const tasks=liveInventoryTasksView();
-  return `<div class="app-content">${liveExit}${pageHeading()}${details}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${current().physicalConfirmed?'checked':''}><span>${confirmation}</span></label><p>${afterConfirm}</p></section>${tasks}</div>`;
+  return `<div class="app-content">${liveExit}${pageHeading()}${details}${operationTimerView()}${placeView()}<div class="section-heading"><h3>${isLoad()?'Co odbierasz':'Do rozładowania'}</h3><span>Każda sztuka osobno</span></div>${cargoView()}<button class="cargo-mismatch-button" id="report-cargo-mismatch">${icon('chat')}<span><strong>Towar lub jego liczba nie zgadza się ze zleceniem?</strong><small>Zgłoś spedytorowi</small></span>${icon('arrow')}</button>${destinationView()}${optionalView()}<section class="panel loading-confirmation"><div class="section-kicker">${isLoad()?'PO FIZYCZNYM ZAŁADUNKU':'PRZED ROZŁADUNKIEM'}</div><label class="check-row"><input id="physical-confirm" type="checkbox" ${pieceCount&&current().physicalConfirmed?'checked':''} ${pieceCount?'':'disabled'}><span>${confirmation}<small>Wymagane przed przejściem do dokumentacji.</small></span></label><p>${afterConfirm}</p></section>${tasks}</div>`;
 }
 function stepHeader(screen,title,description){
   const steps=documentationSteps(),index=steps.indexOf(screen);
@@ -1768,7 +1792,7 @@ function serviceTaskCard(key,index){
   const valueField=key==='dpf'?'':`<label class="service-value-field" for="service-${key}"><span>${key==='serviceDistance'?'Pozostało do przeglądu':'Wpisz poziom'} *</span><span class="service-value-control"><input id="service-${key}" data-service-value="${key}" type="number" min="0" ${meta.max!==undefined?`max="${meta.max}"`:''} step="1" inputmode="numeric" value="${esc(state.serviceSurvey[key])}" placeholder="${esc(meta.placeholder)}"><b>${meta.unit}</b></span><small>${key==='serviceDistance'?'Kilometry pozostałe do przeglądu':'Zakres od 0 do 100'}</small></label>`;
   return `<section class="panel service-task-card ${done?'complete':''}" data-service-task="${key}"><div class="service-task-heading"><span class="service-task-number">${done?icon('check'):index+1}</span><span class="service-task-icon">${icon(meta.icon)}</span><div><h3 id="service-step-title" tabindex="-1">${esc(meta.title)}</h3><p>${esc(meta.description)}</p></div><b class="service-task-status">${done?'Gotowe':'Wymagane'}</b></div><div class="service-task-body">${photo}${valueField}</div></section>`;
 }
-function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&typeof driverBridge?.backendServiceSurvey==='function';}
+function serviceHistoryIsLive(){return backendMode&&!backendTestWorkspace&&backendState?.status==='connected';}
 function serviceHistoryRecords(){
   const model=window.SuperSpedytorServiceRegister;
   if(!serviceHistoryIsLive())return previewServiceHistory();
@@ -1846,7 +1870,7 @@ function serviceHistoryView(){
   const complete=!live||model.validRegistry(backendState.service_registry),totals=model.summary(records);
   const loading=live&&String(backendState.service_history_loading_id??'')===String(state.serviceHistorySelectedId??'');
   const error=live?(backendState.service_history_detail_error||backendState.service_history_error||''):'';
-  const historyUnavailable=live&&!complete&&Boolean(backendState.service_history_error);
+  const historyUnavailable=live&&!complete&&(Boolean(backendState.service_history_error)||!Array.isArray(backendState.service_history));
   const title=selected?'Szczegóły ankiety':'Rejestr serwisów';
   const filter=state.serviceHistoryFilter||'all';
   const shown=records.filter(record=>filter==='missing'?record.status==='not_submitted':filter==='done'?record.status==='completed':true);
@@ -1880,8 +1904,8 @@ function bindServiceHistoryView(){
   if($('#service-register-refresh'))$('#service-register-refresh').onclick=()=>driverBridge?.backendRefresh?.();
   $$('[data-service-history-id]').forEach(button=>button.onclick=()=>{
     state.serviceHistorySelectedId=button.dataset.serviceHistoryId;
-    if(serviceHistoryIsLive()){
-      driverBridge?.backendServiceSurvey?.(Number(button.dataset.serviceHistoryId));
+    if(serviceHistoryIsLive()&&typeof driverBridge?.backendServiceSurvey==='function'){
+      driverBridge.backendServiceSurvey(Number(button.dataset.serviceHistoryId));
       return;
     }
     render();
@@ -2668,6 +2692,7 @@ function render(){
   const scroll=$('#app-scroll').scrollTop;
   const backendOperationActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='now'&&!liveMode();
   const backendServiceActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='service';
+  const backendChatActive=backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='chat';
   $('.device')?.classList.toggle('backend-operation-mode',backendOperationActive);
   if(backendOperationActive){
     renderBackendOperationScreen(0);
@@ -2677,6 +2702,7 @@ function render(){
     renderBackendServiceHistoryScreen(scroll);
     return;
   }
+  if(backendChatActive){renderBackendChatScreen(scroll);return;}
   ensureServiceSurveyToday();
   updateServiceNavIndicator();
   if(state.serviceOpen){
@@ -3004,9 +3030,9 @@ function acknowledgeOperationTimer(value){
   if(state.modal?.type==='operation-status')closeModal(false);
   if(value==='chat'||value==='problem'){
     if(record.live){
-      render();
-      window.SuperSpedytorLiveWorkspace?.open('chat');
-      toast('Odpowiedź zapisano na telefonie. Przekaż szczegóły spedytorowi w Czacie.');
+      if(window.SuperSpedytorLiveWorkspace?.open){render();window.SuperSpedytorLiveWorkspace.open('chat');}
+      else handleConnectedBackendNavigation('chat');
+      toast('Odpowiedź zapisano na telefonie. Nie wysłano wiadomości do spedytora.');
     }else{toast('Status zapisano w podglądzie. Uzupełnij szczegóły w czacie.');go('chat');}
     return;
   }
@@ -3055,7 +3081,7 @@ function bindView(){
   if(liveMode()){bindLiveSessionControls();bindInventoryCards();}
   bindOperationTimer();
   if($('#language-select'))$('#language-select').onchange=event=>{state.language=event.target.value;state.manualLanguage=true;render();};
-  if($('#physical-confirm'))$('#physical-confirm').onchange=event=>{current().physicalConfirmed=event.target.checked;$('#app-action').innerHTML=actionView();bindView();};
+  if($('#physical-confirm'))$('#physical-confirm').onchange=event=>{current().physicalConfirmed=event.target.checked&&count()>0;$('#app-action').innerHTML=actionView();bindView();};
   if($('#report-cargo-mismatch'))$('#report-cargo-mismatch').onclick=()=>openModal(liveMode()?'live-help':'cwp-contact');
   if($('#add-cargo-piece'))$('#add-cargo-piece').onclick=()=>openModal('piece-form',{index:null});
   if($('#remove-last-piece'))$('#remove-last-piece').onclick=()=>removePiece(count()-1);
@@ -3822,15 +3848,10 @@ $$('[data-nav]').forEach(button=>button.onclick=event=>{
   if(backendTestWorkspace)backendActiveNav=button.dataset.nav==='service'?'service':'now';
   if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'){
     event?.stopImmediatePropagation();
-    if(button.dataset.nav==='chat'){showDesignedView('chat');return;}
-    if(button.dataset.nav==='tacho'){showDesignedView('tacho');return;}
-    if(button.dataset.nav==='help'){openModal('live-help',{});return;}
-    if(button.dataset.nav==='service'&&typeof driverBridge?.backendServiceSurvey!=='function'){showDesignedView('history');return;}
-    backendActiveNav=button.dataset.nav==='service'?'service':'now';
-    if(backendActiveNav!=='service')state.serviceHistorySelectedId=null;
-    state.serviceOpen=false;
-    state.routeStop=null;
-    render();
+    // Authenticated navigation must never enter the example workspace implicitly.
+    // The real Tacho overlay is handled above; unsupported tabs keep their own
+    // designed shell and an honest unavailable state instead of sample records.
+    handleConnectedBackendNavigation(button.dataset.nav);
     return;
   }
   if(button.dataset.nav==='service'){openService();return;}
@@ -3870,6 +3891,7 @@ let backendState={status:'disconnected',message:'Zaloguj się kontem kierowcy Su
 // isolated from test data throughout that asynchronous gap as well.
 let backendPointActionPending=null;
 let backendActiveNav='now';
+let backendServicePanel='history';
 let backendLastNearest=null;
 let tachoReadonlyScreen=null;
 const designedDriverViews=[
@@ -4206,9 +4228,31 @@ function renderBackendOperationScreen(scroll=0){
   bindInventoryCards();
   $('#app-scroll').scrollTop=scroll;
 }
+function renderBackendChatScreen(scroll=0){
+  surveyRegisterScreen?.destroy();surveyRegisterScreen=null;
+  const point=liveRouteSelection()?.point,order=String(point?.order_number||'');
+  $('#app').innerHTML=`<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${order?esc(order):'Wiadomości Twojego konta'}</small></span><span class="badge orange">Niedostępne</span></div><section class="panel service-history-empty" role="status">${icon('chat')}<h3>Czat nie jest jeszcze dostępny</h3><p>Ta wersja aplikacji nie udostępnia jeszcze wiadomości tego konta. Dokumentację zlecenia możesz kontynuować w Operacji.</p></section><div class="chat-composer"><input disabled placeholder="Czat nie jest dostępny w tej wersji" aria-label="Wiadomość do spedytora"><button disabled aria-label="Wyślij wiadomość">${icon('arrow')}</button></div></div>`;
+  $('#app-action').innerHTML='';$('#design-context').innerHTML='';
+  $('#preview-label').textContent='CZAT / SUPER SPEDYTOR';
+  $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='chat'));
+  $('#chat-back').onclick=()=>handleConnectedBackendNavigation('now');
+  $('#app-scroll').scrollTop=scroll;
+}
+function renderBackendServiceUnavailableScreen(panel,scroll=0){
+  const labels={survey:['CODZIENNA KONTROLA','Ankieta serwisowa','Ta wersja aplikacji nie udostępnia jeszcze bieżącej ankiety Twojego konta.'],inventory:['STAN POJAZDU I WYPOSAŻENIA','Inwentaryzacja','Ta wersja aplikacji nie udostępnia jeszcze przypisanej inwentaryzacji Twojego konta.'],handover:['AUTO I WYPOSAŻENIE','Przekazanie auta','Ta wersja aplikacji nie udostępnia jeszcze protokołu przekazania Twojego konta.']};
+  const [caption,title,message]=labels[panel]||labels.survey;
+  $('#app').innerHTML=serviceModuleSwitch(panel)+`<div class="app-content service-screen"><div class="service-page-header"><button id="backend-service-back" aria-label="Wróć do rejestru serwisów">${icon('back')}</button><div><span>${caption}</span><h2>${title}</h2></div><b class="service-state-badge">Niedostępne</b></div><section class="panel service-history-empty" role="status">${icon(panel==='survey'?'service':panel==='inventory'?'clipboard':'truck')}<h3>Ten protokół nie jest jeszcze dostępny</h3><p>${message}</p><p>Nie potwierdzono braku zadań ani zakończenia kontroli. Rejestr wykonanych ankiet pozostaje dostępny.</p></section>${serviceHistoryEntryButton()}</div>`;
+  $('#app-action').innerHTML='';$('#design-context').innerHTML='';
+  $('#preview-label').textContent=`SERWIS / ${title.toUpperCase()}`;
+  $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='service'));
+  $$('[data-service-panel]').forEach(button=>button.onclick=()=>openService(button.dataset.servicePanel));
+  $('#backend-service-back').onclick=()=>openService('history');
+  $('#app-scroll').scrollTop=scroll;
+}
 function renderBackendServiceHistoryScreen(scroll=0){
   surveyRegisterScreen?.destroy();
   surveyRegisterScreen=null;
+  if(backendServicePanel!=='history'){renderBackendServiceUnavailableScreen(backendServicePanel,scroll);return;}
   // A bridge is not proof that this backend supports the monthly register.
   // Keep own completed history available when the snapshot reports an error.
   const monthlyAvailable=window.SuperSpedytorServiceRegister?.validRegistry(backendState?.service_registry)===true;
@@ -4267,7 +4311,7 @@ function renderBackendPanel(){
   const chip=$('.driver-chip');
   if(chip&&!backendTestWorkspace)chip.textContent=devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR';
   if(!connected&&status!=='connecting'){
-    backendActiveNav='now';
+    backendActiveNav='now';backendServicePanel='history';
     state.serviceHistorySelectedId=null;
   }
   document.documentElement.classList.toggle('backend-connected',connected);
@@ -4436,7 +4480,8 @@ window.SuperSpedytorBackend={
     if(nav==='tacho'&&openBackendReadOnlyTacho())return false;
     if(typeof tachoReadonlyScreen!=='undefined'&&tachoReadonlyScreen?.isOpen()&&nav!=='tacho')closeBackendReadOnlyTacho(false);
     if(productionScope&&!['now','help'].includes(nav))return false;
-    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace&&!enterTestingWorkspace('tacho',false))return false;
+    if(backendMode&&backendState?.status==='connected'&&nav==='tacho'&&!backendTestWorkspace)return false;
+    if(handleConnectedBackendNavigation(nav))return false;
     backendActiveNav=nav==='service'?'service':nav==='tacho'?'tacho':'now';
     updateDriverWorkspaceBar();
     return true;
@@ -4449,7 +4494,7 @@ window.SuperSpedytorBackend={
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
     const receivedOwner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
     if(tachoReadonlyScreen&&(!previousTachoOwner||previousTachoOwner!==tachoSessionKey(backendState)))closeBackendReadOnlyTacho(false);
-    if(receivedOwner!==previousContext.owner)backendPointActionPending=null;
+    if(receivedOwner!==previousContext.owner){backendPointActionPending=null;backendServicePanel='history';}
     window.SuperSpedytorTranslator?.refresh(backendState);
     const pointWrite=backendState?.write;
     if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen?.options?.isActive&&!cmrInventoryScreen.options.isActive())cmrInventoryScreen.close();

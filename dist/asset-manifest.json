@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "1db08853609117f98b9a135ee19cefe6f516acf2",
+  "sourceCommit": "05bf8f4ba8a31eb5d8a45c2e9d10226f0191d5be",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "2e9657d4e72510d30e6ff395255e50634dd283bf8e63648f7251a00489ba7937",
+  "assetManifestSha256": "d745f805313ad1d0173f5e5be5844376994bd3a9799b97bdc42614275a95f4c3",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -133,8 +133,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "7cd380ff023e1f2c60ddd4de81fe8220001575b9105ef0b11688d6198c10fa63",
-      "size": 422521
+      "sha256": "750e954b4605c9cc3d53409821c6736007a5a83b9213eba94abe5de7ddf556ce",
+      "size": 427212
     },
     {
       "path": "handover-v2.css",
@@ -148,8 +148,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "fa27a8a5212ae063ec2d1e38449d1ae72ee685662cd1b200abf25a6f3d612839",
-      "size": 14366
+      "sha256": "3aa408967e008cccdb3ccbf849a63759e044fd22187b64cfdd75d4c7f735af6c",
+      "size": 14422
     },
     {
       "path": "live-operation.js",
@@ -165,6 +165,11 @@
       "path": "live-workspace.js",
       "sha256": "a314ce4c8b7491caf4e3fd88380082629ac9afd1c2427297b14f8f50773b53ee",
       "size": 61133
+    },
+    {
+      "path": "mobile-readability.css",
+      "sha256": "a9ef5f40eab545163117a4bb9935c82e44a77cfc72b94f92a4cd62bc21f02b2a",
+      "size": 5882
     },
     {
       "path": "offline-store.js",
@@ -253,18 +258,18 @@
     },
     {
       "path": "tacho-readonly-model.js",
-      "sha256": "28f55e6a02b12ca42113121f93261492c75ab39888cb0bb5e0b280b0727206f8",
-      "size": 5831
+      "sha256": "5d785d46647cb450d95d710b4dbd373272edb3414e2ea26182cd4afef351f5a4",
+      "size": 7414
     },
     {
       "path": "tacho-readonly.css",
-      "sha256": "134dd339be4ac9a34e05eb436a455d0fbc96e344680e8a9af049aef6c77213ca",
-      "size": 6347
+      "sha256": "9af5866d032de65a0db70c5a7af356eedc302d524c361e5b7425d143a9e59642",
+      "size": 6069
     },
     {
       "path": "tacho-readonly.js",
-      "sha256": "1e0838c3a84851e41fc42092b266843803a09b3975ad09780936a3d1a815684e",
-      "size": 12378
+      "sha256": "1ca0e0a20a744c68c48f2ae0fd6c36ce0099e8a1391497f01775c6abdcbac4c9",
+      "size": 17505
     },
     {
       "path": "tacho.css",

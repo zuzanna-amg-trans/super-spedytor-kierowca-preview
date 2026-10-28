@@ -1,16 +1,55 @@
-/* The real Tacho surface is separate from operation drafts and the DEMO panel. */
+/* Authenticated Tacho reuses the approved tacho.css cards and visual hierarchy.
+   index.html loads that shared sheet before this scoped lifecycle/chrome layer. */
 .device.tacho-readonly-mode .app-action{visibility:hidden;pointer-events:none}
 .tacho-readonly-overlay{position:absolute;inset:64px 0 70px;z-index:38;display:flex;flex-direction:column;overflow:hidden;background:#f5f6f2;color:#292e27;text-align:left;isolation:isolate}
 .tacho-readonly-overlay *{box-sizing:border-box}
-.tro-header{flex:none;display:flex;align-items:center;gap:10px;padding:17px 16px 15px;background:#fff;border-bottom:1px solid #e1e6da}
-.tro-header>div{flex:1;min-width:0}.tro-header>div>span{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:850;letter-spacing:.85px;text-transform:uppercase;color:#985025}.tro-header .icon{width:15px;height:15px;flex:none}.tro-header h2{margin:5px 0 3px;font-size:24px;font-weight:850;line-height:1.18;letter-spacing:-.7px}.tro-header p{margin:0;font-size:10px;line-height:1.5;color:#7c8674}
-.tro-refresh{display:flex;align-items:center;justify-content:center;gap:5px;flex:none;min-width:84px;min-height:46px;padding:8px;border:1px solid #dce3d5;border-radius:13px;background:#fff;color:#59664f;font-size:11px;font-weight:800}.tro-refresh:disabled{opacity:.6;cursor:wait}
-.tro-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:17px 16px 21px;scrollbar-width:thin}.tro-body .icon{width:16px;height:16px;flex:none}.tro-now-card{padding:17px;border:1px solid #efb58d;border-radius:20px;background:#fff;box-shadow:0 10px 26px #75503209}.tro-now-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.tro-now-top>span:last-child{font-size:9px;line-height:1.5;color:#8a927e;text-align:right}.tro-mode{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:850;color:#5d6c53}.tro-mode i{height:7px;width:7px;flex:none;border-radius:50%;background:#869b72;box-shadow:0 0 0 4px #f0f4eb}.tro-mode.drive{color:#a95221}.tro-mode.drive i{background:#ff711f;box-shadow:0 0 0 4px #fff0e5}.tro-mode.rest{color:#79678c}.tro-mode.rest i{background:#9781ae;box-shadow:0 0 0 4px #f4eff8}
-.tro-break-value{padding:20px 0 15px}.tro-break-value>span{display:block;max-width:230px;color:#7c5d43;font-size:11px;font-weight:750;line-height:1.6}.tro-break-value>strong{display:block;margin:5px 0 3px;font-size:47px;font-weight:850;line-height:1.1;letter-spacing:-1.7px;font-variant-numeric:tabular-nums;color:#3c3d30}.tro-break-value>p{margin:0;font-size:10px;line-height:1.6;color:#89927e}.tro-drive-fact{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:13px;border-top:1px solid #edf0e8}.tro-drive-fact span{font-size:10px;line-height:1.5;color:#86917c}.tro-drive-fact strong{font-size:16px;color:#5b6851;font-weight:850;font-variant-numeric:tabular-nums}
-.tro-snapshot-meta{display:flex;flex-direction:column;gap:9px;margin:13px 2px 0}.tro-snapshot-meta>span{display:flex;align-items:center;gap:6px;font-size:10px;color:#7f8974;line-height:1.6}.tro-source-chips{display:flex;flex-wrap:wrap;gap:5px}.tro-source-chips>span{padding:5px 7px;border:1px solid #e2e7db;border-radius:7px;background:#fff;color:#718064;font-size:9px;line-height:1.3;font-weight:750}
-.tro-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:23px 0 10px}.tro-section-heading h3{margin:0;font-size:15px;font-weight:850;line-height:1.4;letter-spacing:-.15px}.tro-section-heading>span{font-size:9px;line-height:1.4;text-align:right;color:#909982}.tro-metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.tro-metric{min-width:0;padding:14px;border:1px solid #e0e6d7;border-radius:15px;background:#fff}.tro-metric>span{display:block;font-size:10px;line-height:1.5;color:#7a886d;font-weight:750}.tro-metric>strong{display:block;margin:7px 0 3px;font-size:24px;font-weight:850;line-height:1.2;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.tro-metric>small{display:block;font-size:9px;line-height:1.6;color:#919a86}.tro-metric.weekly strong{color:#7c6c95}.tro-metric.fortnight{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:12px}.tro-metric.fortnight strong{grid-column:2;grid-row:1/3;color:#67839c;margin:0}.tro-metric.fortnight small{grid-column:1}
-.tro-coverage-note{margin:12px 2px 0;font-size:10px;line-height:1.7;color:#8a917f}.tro-alerts .tro-section-heading{margin-top:22px}.tro-alert{display:flex;align-items:flex-start;gap:8px;margin-top:7px;padding:11px;border:1px solid #e0e6d7;border-radius:12px;background:#fff}.tro-alert .icon{margin-top:2px;color:#899a77}.tro-alert p{margin:0;font-size:11px;line-height:1.65;color:#657457;overflow-wrap:anywhere}.tro-alert.warning{background:#fff8ec;border-color:#eddfbe}.tro-alert.critical{background:#fff2ec;border-color:#efcebd}.tro-alert.critical p,.tro-alert.critical .icon{color:#985735}
-.tro-source-note{display:flex;align-items:flex-start;gap:8px;margin-top:20px;padding:13px;border-radius:13px;background:#fff3e9;color:#8b6548}.tro-source-note>.icon{margin-top:2px}.tro-source-note p{margin:0;font-size:10px;line-height:1.75}.tro-source-note strong{display:block;margin-bottom:3px;font-size:10px;font-weight:850}
-.tro-empty{padding:25px 20px;border:1px solid #e1e5d9;border-radius:20px;background:#fff;text-align:center}.tro-empty-icon{display:grid;place-items:center;width:47px;height:47px;margin:0 auto 14px;border-radius:15px;background:#fff0e3;color:#b3652f}.tro-empty-icon .icon{width:24px;height:24px}.tro-empty h3{margin:0 0 9px;font-size:19px;line-height:1.4;font-weight:850;letter-spacing:-.35px}.tro-empty p{margin:0;color:#7e8972;font-size:12px;line-height:1.75}
-.tro-footer{flex:none;padding:11px 16px;background:#fff;border-top:1px solid #e0e6d7}.tro-footer button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:13px;background:#343e2e;color:#fff;font-size:13px;font-weight:850}.tro-footer .icon{width:18px;height:18px;transform:rotate(180deg)}.tacho-readonly-overlay button:focus-visible{outline:3px solid #e89a58;outline-offset:2px}
-@media(max-width:360px){.tro-header{padding:14px 12px;gap:7px}.tro-header h2{font-size:21px}.tro-refresh{min-width:74px;font-size:10px}.tro-body{padding:14px 12px 18px}.tro-break-value>strong{font-size:42px}.tro-now-card{padding:15px}.tro-footer{padding:10px 12px}.tro-metric{padding:12px}}
+.tro-header{flex:none;display:flex;align-items:flex-start;gap:10px;padding:17px 16px 0;background:#f5f6f2}
+.tro-header .tacho-heading{flex:1;min-width:0;margin-bottom:16px}
+.tro-header .icon{width:14px;height:14px;flex:none}
+.tro-refresh{display:flex;align-items:center;justify-content:center;gap:5px;flex:none;min-width:84px;min-height:46px;padding:8px;margin-top:2px;border:1px solid #dce3d5;border-radius:13px;background:#fff;color:#59664f;font-size:11px;font-weight:800}
+.tro-refresh:disabled{opacity:.6;cursor:wait}
+.tro-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 16px 21px;scrollbar-width:thin}
+.tro-body .icon{width:16px;height:16px;flex:none}
+.tro-designed-screen{padding:0!important}
+.tro-designed-screen .tacho-now-top{flex-wrap:wrap}
+.tro-designed-screen .tacho-status-time{line-height:1.5;color:#7f8875;text-align:right}
+.tro-designed-screen .tro-current-reading>span{font-size:10px;line-height:1.5;letter-spacing:.7px}
+.tro-designed-screen .tro-current-reading>.tacho-primary-time{font-size:36px;line-height:1.12;margin:12px 0 5px;font-variant-numeric:tabular-nums}
+.tro-designed-screen .tro-current-since{margin:8px 0 0;font-size:13px;line-height:1.65;font-weight:750}
+.tro-current-reading>small{display:block;margin-top:5px;font-size:9px;line-height:1.7;color:#8a6e5d}
+.tro-designed-screen .tacho-now-card.rest{border-color:#d5e4cc;background:linear-gradient(145deg,#f5f9f2,#edf5e8)}
+.tro-designed-screen .rest .tacho-status-dot{background:#6e9b52;box-shadow:0 0 0 4px #e4eedc}
+.tro-designed-screen .rest .tro-current-reading{background:#fff;border-color:#d9e5d1}
+.tro-designed-screen .rest .tro-current-reading>span,.tro-designed-screen .rest .tro-current-since{color:#587148}
+.tro-designed-screen .rest .tro-current-reading>.tacho-primary-time{color:#3d4d34}
+.tro-snapshot-meta{display:flex;flex-direction:column;gap:9px;margin:13px 2px 0}
+.tro-snapshot-meta>span{display:flex;align-items:center;gap:6px;font-size:10px;color:#7f8974;line-height:1.6}
+.tro-source-chips{display:flex;flex-wrap:wrap;gap:5px}
+.tro-source-chips>span{padding:5px 7px;border:1px solid #e2e7db;border-radius:7px;background:#fff;color:#718064;font-size:9px;line-height:1.3;font-weight:750}
+.tro-designed-screen .tacho-day-window strong{font-size:17px;line-height:1.4;overflow-wrap:anywhere}
+.tro-designed-screen .tacho-day-window div>span{line-height:1.6}
+.tro-designed-screen .tacho-extension-card.tro-unavailable{border-color:#e3dbd3;background:linear-gradient(135deg,#fff5ee,#fffaf6);box-shadow:none}
+.tro-designed-screen .tro-unavailable .tacho-extension-mark{background:#eadfd5;color:#78604d;box-shadow:none}
+.tro-designed-screen .tacho-extension-copy>span{display:block;font-size:9px;line-height:1.6;color:#8e7a6c}
+.tro-designed-screen .tacho-extension-card.tro-unavailable>b{background:#eee7df;color:#7d6b5b;font-size:9px;line-height:1.5}
+.tro-designed-screen .tro-unavailable strong{color:#87917f}
+.tro-coverage-note,.tro-history-note{margin:12px 2px 0;font-size:10px;line-height:1.7;color:#7f8877}
+.tro-designed-screen .tacho-period{grid-template-columns:85px 32px minmax(0,1fr);gap:8px}
+.tro-designed-screen .tacho-period time{overflow-wrap:anywhere}
+.tro-designed-screen .tacho-activity-icon.available,.tro-designed-screen .tacho-activity-icon.unknown{color:#63745a;background:#f0f4ed;border-color:#d9e2d3}
+.tro-designed-screen .tro-work-summary{margin-top:9px;padding:11px 0 0;border:0;border-top:1px solid #eceee9;border-radius:0}
+.tro-designed-screen .tro-work-summary strong{font-size:17px}
+.tro-designed-screen .tacho-rest-row b{max-width:85px;font-size:9px;line-height:1.6;font-weight:750}
+.tro-designed-screen .tro-empty h3{margin:16px 0 8px;font-size:19px;line-height:1.4;font-weight:850;letter-spacing:-.35px}
+.tro-designed-screen .tro-empty>p{margin:0;color:#7e8972;font-size:12px;line-height:1.75}
+.tro-designed-screen .tro-empty>.tacho-primary-time{margin:14px 0 0;font-size:36px;color:#87917f}
+.tro-alert{display:flex;align-items:flex-start;gap:8px;margin-top:7px;padding:11px;border:1px solid #e0e6d7;border-radius:12px;background:#fff}
+.tro-alert .icon{margin-top:2px;color:#899a77}.tro-alert p{margin:0;font-size:11px;line-height:1.65;color:#657457;overflow-wrap:anywhere}
+.tro-alert.warning{background:#fff8ec;border-color:#eddfbe}.tro-alert.critical{background:#fff2ec;border-color:#efcebd}.tro-alert.critical p,.tro-alert.critical .icon{color:#985735}
+.tro-designed-screen .tro-source-note p{font-size:10px}
+.tro-footer{flex:none;padding:11px 16px;background:#fff;border-top:1px solid #e0e6d7}
+.tro-footer button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:13px;background:#343e2e;color:#fff;font-size:13px;font-weight:850}
+.tro-footer .icon{width:18px;height:18px;transform:rotate(180deg)}
+.tacho-readonly-overlay button:focus-visible{outline:3px solid #e89a58;outline-offset:2px}
+@media(max-width:480px){.tro-header{padding:17px 15px 0}.tro-body{padding:0 15px 22px}.tro-designed-screen .tro-current-reading>.tacho-primary-time{font-size:34px}}
+@media(max-width:360px){.tro-header{padding:14px 12px 0;gap:7px}.tro-header h2{font-size:23px}.tro-refresh{min-width:74px;font-size:10px}.tro-body{padding:0 12px 18px}.tro-footer{padding:10px 12px}.tro-designed-screen .tacho-extension-card{grid-template-columns:37px minmax(0,1fr);gap:9px}.tro-designed-screen .tacho-extension-mark{width:37px;height:37px}.tro-designed-screen .tacho-extension-card>b{grid-column:2;justify-self:start}.tro-designed-screen .tacho-period{grid-template-columns:73px 32px minmax(0,1fr);gap:6px}}

@@ -42,7 +42,9 @@
   }
   function empty(state='no_data',reason='no_data'){
     return {state,reason,ready:false,observedAt:null,sourceNames:[],mode:null,modeLabel:null,status:null,
+      currentSince:null,currentSinceLabel:null,shiftStartedAt:null,shiftStartedAtLabel:null,
       currentDurationSeconds:null,continuousDriveSeconds:null,timeToBreakSeconds:null,shiftDriveSeconds:null,
+      shiftDriveLimitSeconds:null,shiftDriveRemainingSeconds:null,dailyWorkSeconds:null,
       weekDriveSeconds:null,fortnightDriveSeconds:null,dailyHistoryComplete:false,weeklyHistoryComplete:false,alerts:[]};
   }
   function build(payload,session,nowMs){
@@ -60,10 +62,19 @@
     const age=nowMs-view.observedAt;
     if(c.stale!==false||age>MAX_AGE_MS||age< -FUTURE_SKEW_MS)return {...view,state:'stale',reason:'expired'};
     view.state='ready';view.reason=null;view.ready=true;view.mode=c.current.work_mode;view.modeLabel=MODES[view.mode];view.status=c.status;
+    // TMS contract: compliance.current.since is the source segment's started_at.
+    // Never infer it from last_data_at, duration_s, a declaration or this clock.
+    view.currentSince=activityStart(c.current.since,view.observedAt,nowMs);
+    view.currentSinceLabel=formatActivityTimestamp(view.currentSince,view.observedAt);
+    view.shiftStartedAt=activityStart(c.daily?.shift_start,view.observedAt,nowMs);
+    view.shiftStartedAtLabel=formatActivityTimestamp(view.shiftStartedAt,view.observedAt);
     view.currentDurationSeconds=seconds(c.current.duration_s);
     view.continuousDriveSeconds=seconds(c.break?.continuous_drive_s);
     view.timeToBreakSeconds=seconds(c.break?.time_to_break_s);
     view.shiftDriveSeconds=seconds(c.daily?.drive_s);
+    view.shiftDriveLimitSeconds=seconds(c.daily?.limit_s);
+    view.shiftDriveRemainingSeconds=seconds(c.daily?.remaining_s);
+    view.dailyWorkSeconds=seconds(c.daily?.work_s);
     view.weekDriveSeconds=seconds(c.weekly?.drive_s);
     view.fortnightDriveSeconds=seconds(c.weekly?.fortnight_drive_s);
     view.dailyHistoryComplete=c.coverage?.daily_complete===true;
@@ -71,6 +82,18 @@
     view.alerts=(Array.isArray(payload.alerts)?payload.alerts:[]).filter(a=>object(a)&&id(a.driver)===context.driverId&&a.resolved_at==null)
       .slice(0,5).map(a=>({message:typeof a.message==='string'?a.message.slice(0,240):typeof a.alert_type_label==='string'?a.alert_type_label.slice(0,240):'Alert TMS',severity:[10,20,30].includes(a.severity)?a.severity:10}));
     return view;
+  }
+  function activityStart(value,observedAt,nowMs){
+    const start=timestamp(value);
+    return start!==null&&start>0&&start<=observedAt&&start<=nowMs?start:null;
+  }
+  function formatActivityTimestamp(value,referenceMs){
+    if(typeof value!=='number'||!Number.isFinite(value))return null;
+    const parts=at=>Object.fromEntries(new Intl.DateTimeFormat('pl-PL',{timeZone:'Europe/Warsaw',
+      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date(at)).map(part=>[part.type,part.value]));
+    const at=parts(value),reference=parts(referenceMs);
+    return `${at.day}.${at.month}${at.year===reference.year?'':'.'+at.year} ${at.hour}:${at.minute}`;
   }
   function formatDuration(value){
     const s=seconds(value);if(s===null)return '—';

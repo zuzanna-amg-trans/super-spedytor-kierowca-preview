@@ -1,0 +1,176 @@
+/* Shared phone typography: real TMS and the demonstration use the same scale.
+   Keep native font scaling enabled; use reflow rather than enlarging a bitmap. */
+html.android-shell .device {
+  width: 100%;
+  height: 100% !important;
+  transform: none;
+  font-size: 15px;
+  --driver-body-size: 15px;
+  --driver-meta-size: 13px;
+}
+
+html.android-shell .device :is(.app-content, .tro-body, .lw-body, .backend-panel, .modal-sheet) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html.android-shell .device :is(p, label, .stage-description, .action-caption, .small-note,
+  .check-row, .check-row > span, .text-input, .chat-input, .operation-plan-detail > p) {
+  font-size: var(--driver-body-size) !important;
+  line-height: 1.55;
+}
+html.android-shell .device :is(small, .overline, .section-kicker, .badge,
+  .operation-timer-thresholds, .operation-timer-thresholds span, .tacho-status,
+  .tacho-status-time, .tacho-source-note, .tro-source-chips > span,
+  .tro-snapshot-meta > span, .tro-coverage-note, .tro-history-note,
+  .tacho-section-heading > span, .tacho-driver-fact > span, .tacho-period time,
+  .live-route-context > span, .live-route-context > strong, .stage-header span,
+  .stage-header b, .operation-plan-detail em, .chat-bubble > span,
+  .chat-evidence-summary > div, .chat-evidence-summary b, .chat-system-note,
+  .service-task-status, .piece-sequence-note, .piece-sequence-note span,
+  .cargo-list-item dt, .cargo-list-item dd, .compact-metrics dt,
+  .compact-metrics dd, .arrival-time, .additional-info-row .contact-info span) {
+  font-size: var(--driver-meta-size) !important;
+  line-height: 1.5;
+}
+html.android-shell .device :is(.stage-title, .tacho-heading h2, .tacho-heading h3,
+  .service-page-header h2, .backend-login h2) {
+  font-size: 26px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+html.android-shell .device :is(.section-heading h3, .panel h3, .tacho-section-title,
+  .tacho-balance-title, .tacho-section-heading h3, .service-task-heading h3) {
+  font-size: 18px;
+  line-height: 1.35;
+}
+html.android-shell .device button {
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: normal;
+}
+html.android-shell .device :is(.primary-button, .secondary-button, .tro-footer button,
+  .flow-back, .backend-login button[type=submit]) {
+  min-height: 50px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+html.android-shell .device :is(input, select, textarea):not([type=checkbox]):not([type=radio]):not([type=hidden]) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  font-size: 16px !important;
+  line-height: 1.5;
+}
+html.android-shell .device :is(input[type=checkbox], input[type=radio]) {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+html.android-shell .device :is(.icon-button, .live-session-tools .icon-button,
+  .service-page-header > button, .tro-refresh) {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+html.android-shell .device :is(.check-row, .loading-confirmation) {
+  align-items: flex-start;
+  gap: 12px;
+}
+html.android-shell .device .bottom-nav button {
+  min-width: 0;
+  min-height: 62px;
+  padding-inline: 3px;
+}
+html.android-shell .device .bottom-nav button span {
+  font-size: 12px;
+  line-height: 1.3;
+}
+html.android-shell .device :is(.tacho-day-window, .tacho-now-metrics,
+  .tacho-balance-grid, .tacho-rest-row, .service-task-heading, .tro-header) {
+  min-width: 0;
+}
+html.android-shell .device :is(.tacho-day-window span, .tacho-now-metrics span,
+  .tacho-balance-card span, .tacho-rest-row span, .tacho-extension-copy > span,
+  .tro-current-reading > span, .tro-current-reading > small, .tacho-rest-row b) {
+  font-size: var(--driver-meta-size) !important;
+  line-height: 1.5;
+}
+html.android-shell .device .tacho-rest-row b {
+  max-width: 110px;
+  white-space: normal;
+}
+html.android-shell .device :is(.tacho-driver-fact strong, .tacho-period strong,
+  .tacho-rest-row strong, .cargo-piece-summary strong, .chat-file strong,
+  .travel-cargo-item strong, .operation-plan-detail b, .operation-plan-detail h4,
+  .cargo-list-heading h4, .cargo-total strong, .cargo-mismatch-button strong,
+  .additional-info-row strong) {
+  font-size: 16px;
+  line-height: 1.5;
+}
+html.android-shell .device .tacho-extension-card {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+html.android-shell .device .tacho-extension-card > b {
+  grid-column: 2;
+  justify-self: start;
+  font-size: 13px;
+}
+html.android-shell .device .tro-header {
+  flex-wrap: wrap;
+}
+html.android-shell .device .tro-header .tacho-heading {
+  flex-basis: 210px;
+}
+html.android-shell .device .travel-arrival {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px 10px;
+}
+html.android-shell .device .travel-arrival > p {
+  grid-column: 2;
+  text-align: left;
+}
+html.android-shell .device :is(.travel-arrival strong, [data-operation-elapsed],
+  .tacho-primary-time, .tacho-metric > strong) {
+  white-space: nowrap;
+}
+html.android-shell .device .travel-goal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+html.android-shell .device .travel-goal-actions .place-location-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 9px;
+  flex-wrap: wrap;
+}
+html.android-shell .device .travel-goal-actions .place-location-button small {
+  white-space: nowrap;
+}
+html.android-shell .device .place-address-row {
+  flex-wrap: wrap;
+}
+html.android-shell .device .place-address-row > .place-location-actions {
+  flex-basis: 100%;
+}
+html.android-shell .device .place-address-row .place-location-button {
+  flex: 1;
+  width: auto;
+  min-width: 84px;
+  min-height: 50px;
+  flex-direction: row;
+  gap: 8px;
+}
+html.android-shell .device .place-location-button small {
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  html.android-shell .device :is(.app-content, .tro-body) {
+    padding-inline: 14px;
+  }
+  html.android-shell .device .tacho-day-window {
+    grid-template-columns: 1fr;
+  }
+}
