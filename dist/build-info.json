@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "986ed4bc6fb6bf19c530eea4cee6531384a0ab5a",
+  "sourceCommit": "fd14ee197a5cb96849e497f6d8b11ffc71da126d",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T09:41:38.100Z",
+  "builtAt": "2026-10-28T09:51:03.044Z",
   "assetManifestSha256": "8cb84569c2a5bf76ba7660cf30c5c7a8e481d4fb5b05d2e4e550bb9237f9965e",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "986ed4bc6fb6bf19c530eea4cee6531384a0ab5a",
-    "initialIntegrationSha": "5f3a0f12ff31ef23824d64e7e1cea7cbc8abd6d9",
+    "candidateSha": "fd14ee197a5cb96849e497f6d8b11ffc71da126d",
+    "initialIntegrationSha": "986ed4bc6fb6bf19c530eea4cee6531384a0ab5a",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "5f3a0f12ff31ef23824d64e7e1cea7cbc8abd6d9",
+    "baseSha": "986ed4bc6fb6bf19c530eea4cee6531384a0ab5a",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "4e259c202db1df9fad682a372ec0c6c39ab97e86"
+        "sha": "d0012b2f5f8be6b6efa0e88ef9c215e610efadc7"
       },
       {
         "name": "AA21-Pelne-Widoki-Wydanie-Produkcyjne",
@@ -116,7 +116,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-986ed4bc6fb6bf19c530eea4cee6531384a0ab5a/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-fd14ee197a5cb96849e497f6d8b11ffc71da126d/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
