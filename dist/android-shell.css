@@ -50,6 +50,14 @@ html.android-shell .app-scroll {
   -webkit-overflow-scrolling: touch;
 }
 
+/* WebKit on iPhone magnifies small form controls when the keyboard opens.
+   Keep the editable text readable without disabling the driver's pinch zoom. */
+@supports (-webkit-touch-callout: none) {
+  html.android-shell .text-input {
+    font-size: 16px !important;
+  }
+}
+
 html.android-shell .modal-overlay {
   position: fixed;
 }

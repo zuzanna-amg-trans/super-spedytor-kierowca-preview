@@ -1,15 +1,15 @@
 {
   "protocol": 2,
-  "sourceCommit": "5f3a0f12ff31ef23824d64e7e1cea7cbc8abd6d9",
+  "sourceCommit": "986ed4bc6fb6bf19c530eea4cee6531384a0ab5a",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "9d35c0cc88d80e73f9f580cbe611585817980c292dd2294466bc0d36e30b2045",
+  "assetManifestSha256": "8cb84569c2a5bf76ba7660cf30c5c7a8e481d4fb5b05d2e4e550bb9237f9965e",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
       "path": "android-shell.css",
-      "sha256": "ebf8bcd9e6572fa04aa9dd230ca005eab92efa83756f2e1307f3b905e6b8edaf",
-      "size": 26527
+      "sha256": "2e96dfa23d72ebb54e688be724bb2634b42f6e6bda96bd0b8607facbbac796e1",
+      "size": 26799
     },
     {
       "path": "app-updates.js",
