@@ -40,7 +40,7 @@
       unsupported:'ScanKit wymaga aktualnej aplikacji Android.',offline:'ScanKit wymaga połączenia z internetem.',refresh:'Poczekaj na odświeżenie sesji SS i sprawdź dostępność ponownie.',changed:'Sesja SS się zmieniła. Otwórz skaner ponownie.',forbidden:'Test ScanKit nie jest włączony dla tego konta SS.'};
     const code=String(state?.reason||'').toLowerCase();
     const aliases={auth_required:'auth',session_not_ready:'refresh',session_changed:'changed',scankit_forbidden:'forbidden',read_only:'readonly',testing_mode:'readonly',demo_mode:'demo',
-      scankit_limit_reached:'quota',limit_exceeded:'quota',http_404:'not_configured',network_error:'offline'};
+      scankit_limit_reached:'quota',limit_exceeded:'quota',scankit_not_configured:'not_configured',scankit_staging_blocked:'readonly',http_404:'not_configured',network_error:'offline'};
     return reasons[aliases[code]||code]||'ScanKit jest teraz niedostępny. Możesz użyć obróbki na telefonie.';
   }
   function scanKitChoice(s){

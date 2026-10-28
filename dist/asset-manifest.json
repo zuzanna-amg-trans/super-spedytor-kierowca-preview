@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "bc39715f175d80a315533ac4dd144ce9a6b29a1a",
+  "sourceCommit": "a6330c77321d7058469313af69c21088886b3bea",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "edac0647492b07a6378c60cbdfef7a50ad0c1bcb9f9e356d627ae8097d9177ce",
+  "assetManifestSha256": "2e9657d4e72510d30e6ff395255e50634dd283bf8e63648f7251a00489ba7937",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -98,8 +98,8 @@
     },
     {
       "path": "document-enhancement.js",
-      "sha256": "a387604f89cfda1699039139452feda2cc402f113ac7a53c3fe7d3506e1c7e97",
-      "size": 5318
+      "sha256": "93fc034b3e5b529f3808b0e01543ba9d66a57e7ccf98f82a849b3b594385be2f",
+      "size": 6197
     },
     {
       "path": "document-export.js",
@@ -208,8 +208,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "c611bd86ba89e7830c00c11a9eabfc337d63a90e129ca407ec7c45ab51137fb0",
-      "size": 48467
+      "sha256": "46d9baab6a83123be429bcdc0a78dbd056bbb2f20a407f3d71fe4fb46471fbe6",
+      "size": 48542
     },
     {
       "path": "service-register.js",

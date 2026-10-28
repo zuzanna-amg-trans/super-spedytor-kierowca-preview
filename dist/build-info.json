@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "bc39715f175d80a315533ac4dd144ce9a6b29a1a",
+  "sourceCommit": "a6330c77321d7058469313af69c21088886b3bea",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T11:25:37.758Z",
-  "assetManifestSha256": "edac0647492b07a6378c60cbdfef7a50ad0c1bcb9f9e356d627ae8097d9177ce",
+  "builtAt": "2026-10-28T11:54:11.634Z",
+  "assetManifestSha256": "2e9657d4e72510d30e6ff395255e50634dd283bf8e63648f7251a00489ba7937",
   "mode": "demo-driver-preview",
   "backend": {
     "enabled": false,
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "bc39715f175d80a315533ac4dd144ce9a6b29a1a",
-    "initialIntegrationSha": "420179a1713e27e93aa6fcb50d9155250a5efa50",
+    "candidateSha": "a6330c77321d7058469313af69c21088886b3bea",
+    "initialIntegrationSha": "bc39715f175d80a315533ac4dd144ce9a6b29a1a",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "420179a1713e27e93aa6fcb50d9155250a5efa50",
+    "baseSha": "bc39715f175d80a315533ac4dd144ce9a6b29a1a",
     "branches": [
       {
         "name": "main",
@@ -90,7 +90,7 @@
       },
       {
         "name": "codex/scankit-cmr",
-        "sha": "a8751eff52b285c8c238db656bbbe489e856be39"
+        "sha": "d93e8100574e6afcd27c24c05bb5c23c0af08c4d"
       },
       {
         "name": "codex/scanner-fold-shadows",
@@ -102,9 +102,10 @@
       }
     ],
     "mergedBranches": [
-      "main"
+      "codex/scankit-cmr"
     ],
     "skippedBranches": [
+      "main",
       "codex/play-internal-testing",
       "AA21-Pelne-Widoki-Wydanie-Produkcyjne",
       "AA22-Android-Auto-Internal-Testing",
@@ -121,12 +122,11 @@
       "codex/play-production-31",
       "codex/preview-demo-mode",
       "codex/preview-demo-notes",
-      "codex/scankit-cmr",
       "codex/scanner-fold-shadows",
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-bc39715f175d80a315533ac4dd144ce9a6b29a1a/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-a6330c77321d7058469313af69c21088886b3bea/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }

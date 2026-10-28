@@ -14,12 +14,20 @@
       job.reject(new DOMException('Przerwano ulepszanie skanu.','AbortError'));
     }
   }
+  const cloudErrors={
+    SCANKIT_REQUEST_REUSED:'To zdjęcie ma już zarejestrowaną próbę ScanKit. Wykonaj nowe zdjęcie lub wybierz obróbkę na telefonie.',
+    NOT_DETECTED:'ScanKit nie potwierdził wykrycia kartki. Zrób nowe zdjęcie albo ustaw rogi w trybie na telefonie.',
+    SCANKIT_TIMEOUT:'Nie odebrano wyniku ScanKit na czas. Próba mogła zużyć kredyt. Zrób nowe zdjęcie lub wybierz obróbkę na telefonie.',
+    INVALID_RESPONSE:'ScanKit nie zwrócił poprawnego skanu. Zrób nowe zdjęcie lub wybierz obróbkę na telefonie.',
+    NETWORK_ERROR:'Utracono połączenie podczas odbierania skanu. Próba mogła zużyć kredyt. Zrób nowe zdjęcie lub wybierz obróbkę na telefonie.',
+    SCANKIT_LIMIT_REACHED:'Limit prób ScanKit został wykorzystany. Możesz wybrać obróbkę na telefonie.'
+  };
   function receive(result){
     try{if(typeof result==='string')result=JSON.parse(result);}catch{return;}
     const job=jobs.get(result?.requestId);if(!job)return;
     jobs.delete(result.requestId);clearTimeout(job.timer);
     if(result.status==='ok')job.resolve(job.kind==='capabilities'?result:{...result,nativeSourceId:job.sourceId});
-    else{if(job.created)bridge()?.release(job.sourceId);const error=new Error(result.message||'Nie udało się ulepszyć skanu.');error.code=result.code;job.reject(error);}
+    else{if(job.created)bridge()?.release(job.sourceId);const error=new Error((job.engine==='scankit'&&cloudErrors[result.code])||result.message||'Nie udało się ulepszyć skanu.');error.code=result.code;job.reject(error);}
   }
   async function capabilities(){
     if(!available()||typeof bridge()?.capabilities!=='function')return {scankit:{available:false,reason:'unsupported'}};
@@ -41,7 +49,7 @@
     const requestId=uuid(),sourceId=page.nativeSourceId||uuid();
     let resolve,reject;
     const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});promise.catch(()=>{});
-    const job={resolve,reject,sourceId,created:!page.nativeSourceId,timer:setTimeout(()=>{
+    const job={resolve,reject,sourceId,engine,created:!page.nativeSourceId,timer:setTimeout(()=>{
       if(jobs.get(requestId)!==job)return;jobs.delete(requestId);bridge().cancel(requestId);
       if(job.created)bridge().release(sourceId);reject(new Error(engine==='scankit'?'Nie odebrano wyniku ScanKit. Ponowne przetworzenie może zużyć kolejny kredyt.':'Obróbka trwa zbyt długo. Spróbuj ponownie.'));
     },engine==='scankit'?90000:30000)};
