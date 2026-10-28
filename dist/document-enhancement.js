@@ -15,6 +15,12 @@
     }
   }
   const cloudErrors={
+    SCANKIT_PROTOCOL_ERROR:'Nie udało się uzgodnić formatu skanu z SS. Zaktualizuj aplikację; ponawianie tego zdjęcia nie usunie błędu (406).',
+    AUTH_REQUIRED:'Sesja SS wygasła. Zaloguj się ponownie przed wykonaniem skanu.',
+    SCANKIT_FORBIDDEN:'To konto nie ma dostępu do testu ScanKit. Zaloguj się jako ZuzaTest.',
+    SCANKIT_UNAVAILABLE:'Obróbka ScanKit jest teraz niedostępna. Możesz wybrać obróbkę na telefonie.',
+    SESSION_CHANGED:'Sesja SS zmieniła się podczas skanowania. Wróć do aplikacji i sprawdź zalogowane konto.',
+    LIMIT_EXCEEDED:'Zdjęcie lub wynik przekracza limit rozmiaru skanu. Wybierz mniejszy plik albo obróbkę na telefonie.',
     SCANKIT_REQUEST_REUSED:'To zdjęcie ma już zarejestrowaną próbę ScanKit. Wykonaj nowe zdjęcie lub wybierz obróbkę na telefonie.',
     NOT_DETECTED:'ScanKit nie potwierdził wykrycia kartki. Zrób nowe zdjęcie albo ustaw rogi w trybie na telefonie.',
     SCANKIT_TIMEOUT:'Nie odebrano wyniku ScanKit na czas. Próba mogła zużyć kredyt. Zrób nowe zdjęcie lub wybierz obróbkę na telefonie.',

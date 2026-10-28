@@ -3632,7 +3632,7 @@ function addEvidence(operationNameValue,record){
 // example workspace, whose native testing flag deliberately blocks cloud.
 let scanKitPilotSession=null;
 function scanKitPilotOwner(allowPending=false){
-  const playPilot=installedAppVersion==='0.1.36-scankit-internal-dev';
+  const playPilot=installedAppVersion==='0.1.37-scankit-internal-dev';
   if(!backendMode||browserBackend||previewMode||productionScope||backendTestWorkspace
     ||!window.SuperSpedytorNative||driverBridge!==window.SuperSpedytorNative
     ||installedAppVersion!=='0.1.35-scankit-dev-qa'&&!playPilot||appQuery.get('android')!=='1'
