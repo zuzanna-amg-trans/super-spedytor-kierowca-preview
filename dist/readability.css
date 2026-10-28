@@ -32,3 +32,8 @@ html.android-shell .device{--driver-body-size:16px!important;--driver-meta-size:
 .android-shell .tacho-choice-group>h4,.android-shell .tacho-kicker,
 .android-shell .tacho-last-report,.android-shell .tacho-last-report strong{font-size:13px;line-height:1.5}
 .android-shell .tacho-report-button,.android-shell .tacho-other-button{font-size:16px;white-space:normal;min-height:48px}
+
+/* Preserve the already readable titles and secondary controls when the shared
+   reflow sheet replaces the former whole-screen transform on iPhone. */
+html.android-shell .device .stage-title{font-size:31px!important}
+html.android-shell .device :is(.minor-button,.subpage-back,.scan-button,.tacho-other-button,.tacho-report-button){font-size:16px;min-height:48px;white-space:normal}

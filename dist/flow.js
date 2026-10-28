@@ -2528,9 +2528,11 @@ function goLiveReadOnly(screen){
   render();$('#app-scroll').scrollTop=0;
 }
 function bindLiveReadOnlyView(){
-  // Read-only means the same screens with inspection/navigation, never camera,
-  // QR, file selection, local confirmations or a queued native mutation.
+  // Read-only means inspection/navigation, never camera, QR, cargo confirmations
+  // or queued native mutations. Timer responses are only local annotations.
   $$('input,textarea,select,button',$('#app')).forEach(control=>{control.disabled=true;});
+  $$('[data-operation-response]').forEach(button=>{button.disabled=false;button.onclick=()=>acknowledgeOperationTimer(button.dataset.operationResponse);});
+  $$('[data-operation-status-open]').forEach(button=>{button.disabled=false;button.onclick=()=>openModal('operation-status');});
   bindLiveSessionControls();
   bindInventoryCards();
   const screens=current().arrived&&!current().live.routeOnly?operationFlow():['travel'];
