@@ -796,10 +796,11 @@ const progress=()=>isLoad()?[cargoReady(),cmrSealReady(),documentReady()]:[cmrSe
 const completedPieces=()=>current().items.filter(item=>pieceReady(item)).length;
 const operationTimerMeta={
   normal:{label:'W normie',title:'Operacja trwa',description:'Do 20 minut bez dodatkowej akcji.',icon:'clock'},
-  'check-in':{label:'Pytanie o status',title:'Minęło 20 minut',description:'Biuro pyta, co dzieje się na miejscu.',icon:'chat'},
-  urgent:{label:'Wydłużony czas',title:'Minęło 40 minut',description:'Możesz kontynuować operację i przekazać spedytorowi aktualny status.',icon:'bell'},
-  limit:{label:'Przekroczono 60 min',title:'Maksymalny czas przekroczony',description:'Możesz kontynuować dokumentowanie i przekazać spedytorowi przyczynę opóźnienia.',icon:'warning'}
+  'check-in':{label:'Pytanie o status',title:'Minęło 20 minut',description:'Możesz zaznaczyć na urządzeniu, co dzieje się na miejscu.',icon:'chat'},
+  urgent:{label:'Wydłużony czas',title:'Minęło 40 minut',description:'Możesz kontynuować operację i zaznaczyć lokalnie jej aktualny etap.',icon:'bell'},
+  limit:{label:'Przekroczono 60 min',title:'Maksymalny czas przekroczony',description:'Możesz kontynuować dokumentowanie. Lokalne zaznaczenie nie jest wysyłane do spedytora.',icon:'warning'}
 };
+const operationResponseNotice='Zaznaczono na tym urządzeniu. Informacja nie została wysłana do spedytora.';
 const operationResponseOptions=()=>[
   ...(current().physicalConfirmed?[["documenting",isLoad()?"Załadunek wykonany — dokumentuję":"Rozładunek wykonany — dokumentuję"]]:[]),
   ['waiting','Czekam na rampę'],
@@ -807,7 +808,7 @@ const operationResponseOptions=()=>[
   ['problem','Problem na miejscu']
 ];
 function operationStatusPromptView(){
-  return `<p>Jeśli chcesz uzupełnić status, wybierz aktualny etap operacji. Możesz też kontynuować dokumentowanie bez odpowiedzi.</p><div class="operation-response-actions operation-status-options">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${icon(value==='documenting'?'check':'clock')}<span>${esc(label)}</span>${icon('arrow')}</button>`).join('')}</div><p class="small-note">Odpowiedź zapisuje się na tym telefonie. Zakończenie punktu potwierdzisz po uzupełnieniu dokumentacji. Spedytora powiadomisz przez Czat.</p>`;
+  return `<p>Jeśli chcesz uzupełnić status, wybierz aktualny etap operacji. Możesz też kontynuować dokumentowanie bez odpowiedzi.</p><div class="operation-response-actions operation-status-options">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${icon(value==='documenting'?'check':'clock')}<span>${esc(label)}</span>${icon('arrow')}</button>`).join('')}</div><p class="small-note">Wybór zostanie zaznaczony tylko na tym urządzeniu. Informacja nie zostanie wysłana do spedytora. Zakończenie punktu potwierdzisz po uzupełnieniu dokumentacji. Czat otwiera podgląd rozmowy zlecenia.</p>`;
 }
 function beginOperationTimer(record=current()){
   if(!record?.timing||record.finished)return;
@@ -844,10 +845,10 @@ function operationTimerView(compact=false){
   const snapshot=operationTimerSnapshot(record),meta=operationTimerMeta[snapshot.stage],timing=record.timing;
   const showQuestion=snapshot.stage!=='normal';
   const answered=timing.response&&timing.acknowledgedThreshold>=snapshot.threshold;
-  const stageLabel=answered?(record.live?'Status potwierdzony':'Status zarejestrowany'):meta.label;
-  const stageDescription=answered?'Odpowiedź kierowcy została zapisana na tym telefonie.':meta.description;
+  const stageLabel=answered?'Zaznaczono lokalnie':meta.label;
+  const stageDescription=answered?'Zaznaczony status dotyczy tylko tego urządzenia.':meta.description;
   const previewControls=!record.live&&(previewMode||!androidShell)&&!compact?`<div class="operation-timer-preview"><span>PODGLĄD PROGÓW</span>${[0,20,40,60].map(minutes=>`<button type="button" data-timer-preview="${minutes}">${minutes} min</button>`).join('')}</div>`:'';
-  const response=showQuestion?`<div class="operation-timer-response ${snapshot.invitesResponse?'requested':''}"><div class="operation-timer-question">${icon(meta.icon)}<div><strong>${esc(meta.title)}</strong><small>${esc(stageDescription)}</small></div></div>${answered?`<div class="operation-response-saved">${icon('check')}<span><strong>${esc(timing.response)}</strong><small>${record.live?'Potwierdzono na tym telefonie':'Zarejestrowano w podglądzie'} o ${esc(timing.responseAt)}</small></span></div>`:`<div class="operation-response-actions">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${esc(label)}</button>`).join('')}<button type="button" class="operation-response-chat" data-operation-response="chat">${icon('chat')} Czat</button></div>`}</div>`:'';
+  const response=showQuestion?`<div class="operation-timer-response ${snapshot.invitesResponse?'requested':''}"><div class="operation-timer-question">${icon(meta.icon)}<div><strong>${esc(meta.title)}</strong><small>${esc(stageDescription)}</small></div></div>${answered?`<div class="operation-response-saved">${icon('check')}<span><strong>${esc(timing.response)}</strong><small>Zaznaczono o ${esc(timing.responseAt)} · nie wysłano do spedytora</small></span></div>`:`<div class="operation-response-actions">${operationResponseOptions().map(([value,label])=>`<button type="button" data-operation-response="${value}">${esc(label)}</button>`).join('')}<button type="button" class="operation-response-chat" data-operation-response="chat">${icon('chat')} Czat</button></div>`}</div>`:'';
   return `<section class="operation-timer ${compact?'compact':''} ${snapshot.stage}" data-operation-timer><div class="operation-timer-top"><span class="operation-timer-icon">${icon(meta.icon)}</span><div><small>CZAS NA ${isLoad()?'ZAŁADUNKU':'ROZŁADUNKU'}</small><strong data-operation-elapsed>${operationTimingModel.formatDuration(snapshot.elapsedSeconds)}</strong></div><b data-operation-stage>${esc(stageLabel)}</b></div><div class="operation-timer-track"><span data-operation-progress style="width:${snapshot.progressPercent}%"></span><i class="at-20"></i><i class="at-40"></i></div><div class="operation-timer-thresholds"><span>20 min · status</span><span>40 min · alarm</span><span>60 min · limit</span></div>${response}${previewControls}</section>`;
 }
 const collection=()=>state.routeStops.collection;
@@ -3087,10 +3088,9 @@ function playOperationEscalation(snapshot){
 }
 
 function acknowledgeOperationTimer(value){
-  if(liveReadOnly())return;
   const record=current(),timing=record.timing,snapshot=operationTimerSnapshot(record);
   const option=operationResponseOptions().find(([key])=>key===value);
-  const label=value==='chat'?'Kontakt ze spedytorem':option?.[1];
+  const label=value==='chat'?'Podgląd rozmowy ze spedytorem':option?.[1];
   if(!label||snapshot.stage==='normal')return;
   timing.acknowledgedThreshold=snapshot.threshold;
   timing.response=label;
@@ -3100,13 +3100,13 @@ function acknowledgeOperationTimer(value){
     if(record.live){
       if(window.SuperSpedytorLiveWorkspace?.open){render();window.SuperSpedytorLiveWorkspace.open('chat');}
       else handleConnectedBackendNavigation('chat');
-      toast('Odpowiedź zapisano na telefonie. Nie wysłano wiadomości do spedytora.');
-    }else{toast('Status zapisano w podglądzie. Uzupełnij szczegóły w czacie.');go('chat');}
+      toast(operationResponseNotice);
+    }else{toast(operationResponseNotice);go('chat');}
     return;
   }
   render();
   $('#main-action')?.focus({preventScroll:true});
-  toast(record.live?'Odpowiedź zapisano na tym telefonie.':'Status zapisano w podglądzie. Nie wysłano go do backendu.');
+  toast(operationResponseNotice);
 }
 
 function setOperationTimerPreview(minutes){
@@ -3275,7 +3275,7 @@ function openModal(type,target){
     if(!allowed)return;
   }
   if(type==='finish'&&!finishReady())return;
-  if(type==='operation-status'&&(liveReadOnly()||!operationResponseSuggested()))return;
+  if(type==='operation-status'&&!operationResponseSuggested())return;
   if(!state.modal)focusBeforeModal=document.activeElement;
   state.modal={type,target};
   let title='',body='';
