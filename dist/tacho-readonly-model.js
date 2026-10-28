@@ -62,7 +62,7 @@
     const since=activityStart(c.current.since,view.observedAt,nowMs);
     const rest=c.current.work_mode==='rest'?restProgress(payload.rest_progress,payload.event,nowMs):null;
     const knownSince=rest?.sourceStartConfirmed?rest.startedAt:since;
-    view.lastActivity={mode:c.current.work_mode,modeLabel:MODES[c.current.work_mode],sinceLabel:formatActivityTimestamp(knownSince,view.observedAt)};
+    view.lastActivity={mode:c.current.work_mode,modeLabel:MODES[c.current.work_mode],continuousRest:Boolean(rest?.sourceStartConfirmed),sinceLabel:formatActivityTimestamp(knownSince,view.observedAt)};
     const age=nowMs-view.observedAt;
     if(c.stale!==false||age>MAX_AGE_MS||age< -FUTURE_SKEW_MS)return {...view,state:'stale',reason:'expired'};
     view.state='ready';view.reason=null;view.ready=true;view.mode=c.current.work_mode;view.modeLabel=MODES[view.mode];view.status=c.status;
