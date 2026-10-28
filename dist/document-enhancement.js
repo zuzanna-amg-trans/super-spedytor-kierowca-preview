@@ -18,18 +18,33 @@
     try{if(typeof result==='string')result=JSON.parse(result);}catch{return;}
     const job=jobs.get(result?.requestId);if(!job)return;
     jobs.delete(result.requestId);clearTimeout(job.timer);
-    if(result.status==='ok')job.resolve({...result,nativeSourceId:job.sourceId});
-    else{if(job.created)bridge()?.release(job.sourceId);job.reject(new Error(result.message||'Nie udało się ulepszyć skanu.'));}
+    if(result.status==='ok')job.resolve(job.kind==='capabilities'?result:{...result,nativeSourceId:job.sourceId});
+    else{if(job.created)bridge()?.release(job.sourceId);const error=new Error(result.message||'Nie udało się ulepszyć skanu.');error.code=result.code;job.reject(error);}
   }
-  async function process(page,{mode='color',quad=null,rotation=0}={}){
+  async function capabilities(){
+    if(!available()||typeof bridge()?.capabilities!=='function')return {scankit:{available:false,reason:'unsupported'}};
+    const requestId=uuid();
+    return new Promise((resolve,reject)=>{
+      const job={kind:'capabilities',resolve,reject,created:false,timer:setTimeout(()=>{
+        if(jobs.get(requestId)!==job)return;jobs.delete(requestId);
+        resolve({scankit:{available:false,reason:'timeout'}});
+      },30000)};
+      jobs.set(requestId,job);
+      try{if(bridge().capabilities(requestId)===false)throw new Error('ScanKit niedostępny.');}
+      catch(error){jobs.delete(requestId);clearTimeout(job.timer);resolve({scankit:{available:false,reason:'unavailable'}});}
+    });
+  }
+  async function process(page,{mode='color',quad=null,rotation=0,engine='local'}={}){
+    if(!['local','scankit'].includes(engine))throw new Error('Nieznany silnik skanera.');
+    if(engine==='scankit'&&(mode!=='color'||quad!==null))throw new Error('ScanKit obsługuje automatyczny skan w kolorze. Ręczne rogi i tryb naturalny działają na telefonie.');
     if(!available())throw new Error('Ta instalacja nie zawiera natywnego modułu ulepszania.');
     const requestId=uuid(),sourceId=page.nativeSourceId||uuid();
     let resolve,reject;
     const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});promise.catch(()=>{});
     const job={resolve,reject,sourceId,created:!page.nativeSourceId,timer:setTimeout(()=>{
       if(jobs.get(requestId)!==job)return;jobs.delete(requestId);bridge().cancel(requestId);
-      if(job.created)bridge().release(sourceId);reject(new Error('Obróbka trwa zbyt długo. Spróbuj ponownie.'));
-    },30000)};
+      if(job.created)bridge().release(sourceId);reject(new Error(engine==='scankit'?'Nie odebrano wyniku ScanKit. Ponowne przetworzenie może zużyć kolejny kredyt.':'Obróbka trwa zbyt długo. Spróbuj ponownie.'));
+    },engine==='scankit'?90000:30000)};
     jobs.set(requestId,job);
     try{
       if(job.created){
@@ -45,16 +60,18 @@
           }
         }
       }
-      if(jobs.has(requestId)&&!bridge().process(requestId,sourceId,JSON.stringify({mode,quad,rotation})))throw new Error('Silnik skanera jest zajęty. Spróbuj ponownie.');
+      if(jobs.has(requestId)&&!bridge().process(requestId,sourceId,JSON.stringify(engine==='scankit'?{mode,quad,rotation,engine}:{mode,quad,rotation})))throw new Error('Silnik skanera jest zajęty. Spróbuj ponownie.');
     }catch(error){
       if(jobs.get(requestId)===job){jobs.delete(requestId);clearTimeout(job.timer);if(job.created)bridge().release(sourceId);job.reject(error);}
     }
     const result=await promise;
     try{
+      if(engine==='scankit'&&(result.engine!=='scankit-v2'||result.detected!==true||result.quad!==null))
+        throw new Error('Nie otrzymano potwierdzonego wyniku ScanKit. Zdjęcie nie zostało uznane za skan online.');
       const response=await fetch(result.url);if(!response.ok)throw new Error('Nie udało się odczytać ulepszonego skanu.');
       const blob=await response.blob();if(blob.size<8)throw new Error('Pusty wynik skanera.');
       return {...result,blob};
     }catch(error){if(job.created)bridge().release(sourceId);throw error;}
   }
-  window.CmrEnhancement={available,process,receive,release,stop};
+  window.CmrEnhancement={available,capabilities,process,receive,release,stop};
 })();

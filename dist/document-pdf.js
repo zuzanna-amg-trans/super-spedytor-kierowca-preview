@@ -7,6 +7,11 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
   'use strict';
   const VERSION='cmr-pdf-1',ENGINE='pdf-lib-1.17.1';
+  // Existing SS normalization contract: already processed, reviewed image pages
+  // must not be cropped/flattened again after upload. This is cosmetic metadata,
+  // never an authorization or integrity signature. Imported PDFs are excluded.
+  const APP_SCAN_PRODUCER='AMG Fracht skaner / Super Spedytor Kierowca / '+ENGINE;
+  const PROCESSED_ENGINES=new Set(['scankit-v2','android-paper-background','ss-driver-local']);
   const MAX_PAGES=20,MAX_BYTES=100*1024*1024,MAX_IMAGE_PIXELS=80000000;
   const A4=Object.freeze([595.2755905511812,841.8897637795276]);
   class DocumentPdfError extends Error {
@@ -153,7 +158,7 @@
     output.setCreator('Super Spedytor Kierowca');
     const name=filename(options.name);output.setTitle(name.replace(/\.pdf$/i,''));
     if(options.creationDate instanceof Date){output.setCreationDate(options.creationDate);output.setModificationDate(options.creationDate);}
-    let inputBytes=0;
+    let inputBytes=0,reviewedImagesOnly=true;
     for(let index=0;index<pages.length;index++){
       checkActive(options);
       const item=pages[index],data=await readBytes(item,options);inputBytes+=data.length;
@@ -161,6 +166,7 @@
       const mime=sniff(data);assertType(item,mime);
       const sourceHash=await hashOf(data,options);
       if(mime==='application/pdf'){
+        reviewedImagesOnly=false;
         const source=await loadPdf(data,lib,limit.maxPages-manifest.length);
         for(let sourceIndex=0;sourceIndex<source.getPageCount();sourceIndex++){
           checkActive(options);
@@ -189,6 +195,11 @@
         try{image=mime==='image/jpeg'?await output.embedJpg(data):await output.embedPng(data);}
         catch{fail('INVALID_IMAGE','Nie udało się odczytać zdjęcia. Wybierz poprawny JPG lub PNG.');}
         assertImageSize(image.width,image.height);
+        reviewedImagesOnly=reviewedImagesOnly&&PROCESSED_ENGINES.has(item.engine)
+          &&item.needsCrop===false&&item.quality?.blocked===false
+          &&['edges','text','color'].every(key=>item.checks?.[key]===true)
+          &&['color','natural'].includes(item.paperProcessing?.mode)
+          &&item.width===image.width&&item.height===image.height;
         // A processed JPEG's rotation is already baked into its samples. The
         // editor's page.rotation metadata must never rotate those pixels again.
         const layout=placement(image.width,image.height),target=output.addPage(layout.pageSize);
@@ -200,6 +211,7 @@
       await new Promise(resolve=>setTimeout(resolve,0));
     }
     checkActive(options);
+    if(reviewedImagesOnly)output.setProducer(APP_SCAN_PRODUCER);
     // drawImage/drawPage normalize a new page with an empty Annots array.
     // Remove it too; output pages intentionally contain only visible content.
     for(const page of output.getPages())page.node.delete(lib.PDFName.of('Annots'));
