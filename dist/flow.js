@@ -3628,17 +3628,19 @@ function addEvidence(operationNameValue,record){
   return true;
 }
 
-// A private QA entry is separate from both the business attachment workflow and
-// the example workspace, whose native testing flag deliberately blocks cloud.
+// The standalone DEV pilot is separate from business attachments and the
+// example workspace, whose native testing flag deliberately blocks cloud.
 let scanKitPilotSession=null;
 function scanKitPilotOwner(allowPending=false){
+  const playPilot=installedAppVersion==='0.1.36-scankit-internal-dev';
   if(!backendMode||browserBackend||previewMode||productionScope||backendTestWorkspace
     ||!window.SuperSpedytorNative||driverBridge!==window.SuperSpedytorNative
-    ||installedAppVersion!=='0.1.35-scankit-dev-qa'||appQuery.get('android')!=='1'
+    ||installedAppVersion!=='0.1.35-scankit-dev-qa'&&!playPilot||appQuery.get('android')!=='1'
     ||backendState?.status!=='connected'||backendState?.read_only===true
     ||!allowPending&&(backendState?.offline===true||backendState?.refreshing===true))return null;
   const user=Number(backendState?.profile?.id),driver=Number(backendState?.profile?.driver_id||0);
   if(!Number.isSafeInteger(user)||user<=0||!Number.isSafeInteger(driver)||driver<0)return null;
+  if(playPilot&&(backendState.backend_origin!=='https://dev.amg-trans.eu'||user!==60))return null;
   return `${backendState.backend_origin||'native'}|${user}|${driver}`;
 }
 function openScanKitPilot(){
@@ -4122,15 +4124,22 @@ const backendPointPlace=point=>{
 const backendClock=value=>{
   if(!has(value))return '';
   const date=new Date(value);
-  if(!Number.isNaN(date.getTime()))return date.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  if(!Number.isNaN(date.getTime()))return date.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Warsaw'});
   const match=String(value).match(/(?:T|\s)(\d{2}:\d{2})|^(\d{1,2}:\d{2})/);
   return match?.[1]||match?.[2]||String(value);
 };
 const backendCargoText=point=>{
   const orderCargo=point?.order_cargo;
-  if(orderCargo)return [orderCargo.description,has(orderCargo.cargo_weight)?`${orderCargo.cargo_weight} kg`:null,has(orderCargo.ldm)?`${orderCargo.ldm} LDM`:null].filter(has).join(' · ');
+  if(orderCargo&&String(orderCargo.offer_id)===String(point.transport_offer)){
+    const description=[orderCargo.description,has(orderCargo.cargo_weight)?`${orderCargo.cargo_weight} kg`:null,has(orderCargo.ldm)?`${orderCargo.ldm} LDM`:null].filter(has).join(' · ');
+    if(description)return description;
+  }
   const direct=[point?.cargo_summary,point?.cargo_description,point?.goods_description,point?.goods_name].find(has);
   if(has(direct))return String(direct);
+  if(Array.isArray(point?.cargo_items)&&point.cargo_items.length){
+    const description=point.cargo_items.map(item=>[item.description||item.name,has(item.quantity)?`${item.quantity} szt.`:null].filter(has).join(' · ')).filter(has).join('; ');
+    if(description)return description;
+  }
   const cargo=point?.cargo;
   if(typeof cargo==='string'&&has(cargo))return cargo;
   if(cargo&&typeof cargo==='object')return [cargo.name,cargo.quantity,cargo.weight].filter(has).join(' · ');
@@ -4274,17 +4283,18 @@ function openInventory(id){
 }
 window.SuperSpedytorOpenInventory=id=>{if(backendState?.status==='connected')openInventory(Number(id));};
 function backendDesignedTiming(point,{firstOperation=false,history=false}={}){
-  const planned=point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start;
+  const eta=point.live_eta_datetime||point.eta_datetime;
+  const planned=eta||point.planned_at||point.time_window_start;
   const actual=history?(point.actual_end_datetime||point.actual_arrival_datetime):point.actual_arrival_datetime;
   const inProgress=String(point.status||'').toLowerCase()==='in_progress';
   const appointment=backendClock(point.time_window_start);
   const arrivalBy=firstOperation&&appointment?operationTimingModel.subtractMinutesFromClock(appointment,15):'';
   const clock=arrivalBy||backendClock(history?actual||planned:planned);
-  const label=history?(point.actual_end_datetime?'ZAKOŃCZONO':'PRZYJAZD'):inProgress?'PLANOWANY CZAS':arrivalBy?'BĄDŹ NA MIEJSCU':'AKTUALNE ETA';
+  const label=history?(point.actual_end_datetime?'ZAKOŃCZONO':'PRZYJAZD'):inProgress?'PLANOWANY CZAS':arrivalBy?'BĄDŹ NA MIEJSCU':eta?'PRZEWIDYWANY PRZYJAZD':'PLANOWANY TERMIN';
   const hint=arrivalBy?`Operacja o ${esc(appointment)} · 15 min wcześniej`:history?'Według odczytu TMS':point.live_eta_datetime||point.eta_datetime?'Przewidywany dojazd':'Planowany czas operacji';
   const timing=clock?`<div class="travel-arrival">${icon('clock')}<span><small>${label}</small><strong>${esc(clock)}</strong></span><p>${hint}</p></div>`:'';
   const window=has(point.time_window_start)||has(point.time_window_end)?`<div class="live-time-window"><small>OKNO CZASOWE</small><strong>${esc(backendClock(point.time_window_start)||'—')}–${esc(backendClock(point.time_window_end)||'—')}</strong></div>`:'';
-  const actualFacts=[actual&&!history?`Przyjazd ${backendClock(actual)}`:null,has(point.planned_stay_minutes)?`Planowany postój ${point.planned_stay_minutes} min`:null].filter(Boolean);
+  const actualFacts=[actual&&!history?`Zarejestrowany przyjazd: ${backendClock(actual)}`:null,has(point.planned_stay_minutes)?`Planowany czas na miejscu: ${point.planned_stay_minutes} min`:null].filter(Boolean);
   const facts=actualFacts.length?`<div class="travel-access live-operation-facts">${actualFacts.map(fact=>`<span>${esc(fact)}</span>`).join('')}</div>`:'';
   return timing+window+facts;
 }
@@ -4292,7 +4302,9 @@ function backendDesignedPlanItem(point,{history=false,current=false}={}){
   const place=backendPointPlace(point),cargo=backendCargoText(point);
   const clock=backendClock(history?(point.actual_end_datetime||point.actual_arrival_datetime||point.planned_at||point.time_window_start):(point.planned_at||point.live_eta_datetime||point.eta_datetime||point.time_window_start));
   const hasLocation=has(place.address)||(has(place.latitude)&&has(place.longitude));
-  return `<article class="operation-plan-item ${current?'current':''}"><div class="operation-plan-time"><small>${history?'WYKONANO':'PLAN'}</small><strong>${esc(clock||'—')}</strong></div><div class="operation-plan-line"><span></span></div><div class="operation-plan-detail"><div><b>${esc(point.operation_type_display||point.operation_type||'Operacja')}</b>${point.status_display?`<em>${esc(point.status_display)}</em>`:''}</div><h4>${esc(place.company)}</h4>${place.address?`<p>${esc(place.address)}</p>`:''}${point.order_number?`<p>${esc(point.order_number)}</p>`:''}${has(point.transport_offer)?`<p class="operation-plan-reference">Oferta ${esc(point.transport_offer)}</p>`:''}${hasLocation?`<a class="operation-plan-pin" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')}<span>Pinezka</span></a>`:''}${cargo?`<div class="operation-plan-cargo">${icon('box')}<span><strong>${esc(cargo)}</strong></span></div>`:''}${point.notes?`<p>${esc(point.notes)}</p>`:''}</div></article>`;
+  const notes=String(point.notes||'').split(/\r?\n/).filter(line=>!/^\s*(?:auto[\s-]*(?:utworz|wygener)|automatycznie\s+(?:utworz|wygener))/i.test(line)).join('\n').trim();
+  const cargoOperation=['loading','load','pickup','unloading','unload','delivery'].includes(String(point.operation_type).toLowerCase());
+  return `<article class="operation-plan-item ${current?'current':''}"><div class="operation-plan-time"><small>${history?'WYKONANO':'PLAN'}</small><strong>${esc(clock||'—')}</strong></div><div class="operation-plan-line"><span></span></div><div class="operation-plan-detail"><div><b>${esc(point.operation_type_display||point.operation_type||'Operacja')}</b>${point.status_display?`<em>${esc(point.status_display)}</em>`:''}</div><h4>${esc(place.company)}</h4>${place.address?`<p>${esc(place.address)}</p>`:''}${point.order_number?`<p>${esc(point.order_number)}</p>`:''}${cargoOperation?`<div class="operation-plan-cargo">${icon('box')}<span><small>${['loading','load','pickup'].includes(String(point.operation_type).toLowerCase())?'Do załadowania':'Do rozładowania'}</small><strong>${esc(cargo||'Brak opisu ładunku w TMS')}</strong></span></div>`:''}${hasLocation?`<a class="operation-plan-pin" href="${locationUrl(place)}" target="_blank" rel="noopener" aria-label="Pokaż na mapie: ${esc(place.company)}">${icon('pin')}<span>Pinezka</span></a>`:''}${notes?`<p>${esc(notes)}</p>`:''}</div></article>`;
 }
 function backendDesignedPlanGroups(points,dates={},options={}){
   const groups=['today','tomorrow','other'].map(day=>({day,points:points.filter(point=>(point.day==='today'||point.day==='tomorrow'?point.day:'other')===day)})).filter(group=>group.points.length);

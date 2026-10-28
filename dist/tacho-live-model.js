@@ -974,7 +974,41 @@ function buildDeclaredEvent(event, nowMs) {
  * @param {number} nowMs - bieżący znacznik czasu (ms epoch), wstrzykiwany z zewnątrz
  * @returns {DriverTachoView}
  */
+// The phone calculates the running clock from source timestamps. A declaration
+// selects the length of the current rest; its click time never restarts it.
+function buildRestClock(data, nowMs) {
+  const c = data?.compliance || {}, p = data?.rest_progress, event = data?.event;
+  if (c.current?.work_mode !== MODE_REST) return null;
+  const seconds = value => ['number','string'].includes(typeof value) && String(value).trim() !== '' &&
+    Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+  const startMs = parseMs(p?.started_at) ?? parseMs(c.current.since);
+  const validStart = startMs !== null && startMs <= nowMs;
+  const type = String(p?.event_type || event?.event_type || '');
+  const reported = parseMs(event?.reported_at) ?? parseMs(event?.occurred_at);
+  const matching = validStart && (p?.event_reported_at || (reported !== null && reported >= startMs && reported <= nowMs));
+  const durations = {break_15:900,break_30:1800,break_45:2700,daily_rest_9:32400,daily_rest_11:39600,weekly_rest_24:86400,weekly_rest_45:162000};
+  let baseS = matching ? (seconds(p?.base_duration_s) || durations[type] || null) : null;
+  if (baseS && type.startsWith('weekly_rest_') && (p?.regular_required === true || c.weekly?.next_must_be_regular === true)) baseS = Math.max(baseS,162000);
+  const weekly = type.startsWith('weekly_rest_');
+  // The owner can supply compensation facts without calculating an end date.
+  // Legacy total debt is an estimate of paying off all known compensation.
+  const legacyDebt = seconds(c.weekly?.compensation_owed_s);
+  const compensationS = !weekly || (baseS && baseS < 162000) ? 0 : seconds(p?.compensation_before_s) ?? legacyDebt;
+  const totalS = baseS && compensationS !== null ? baseS + compensationS : null;
+  const endMs = validStart && totalS !== null ? startMs + totalS * 1000 : null;
+  const elapsedS = validStart ? Math.max(0,Math.floor((nowMs-startMs)/1000)) : null;
+  const estimated = p ? p.status !== 'confirmed' : weekly && (c.coverage?.weekly_complete !== true || (legacyDebt || 0) > 0);
+  return {startMs:validStart?startMs:null,elapsedS,baseS,compensationS,totalS,endMs,
+    minimumEndMs:validStart&&baseS?startMs+baseS*1000:null,
+    remainingS:endMs===null?null:Math.max(0,Math.ceil((endMs-nowMs)/1000)),
+    type:matching?type:'',title:matching?(event?.event_type_label || ({weekly_rest_45:'Odpoczynek tygodniowy 45 h',weekly_rest_24:'Odpoczynek tygodniowy 24 h',daily_rest_11:'Odpoczynek dobowy 11 h',daily_rest_9:'Odpoczynek dobowy 9 h',break_15:'Przerwa 15 min',break_30:'Przerwa 30 min',break_45:'Przerwa 45 min'}[type]) || 'Odpoczynek'):'Trwający odpoczynek',
+    estimated,weekly,progress:totalS&&elapsedS!==null?clamp01(elapsedS/totalS):0,
+    startText:validStart?fmtWeekdayClock(startMs):null,endText:endMs===null?null:fmtWeekdayClock(endMs),
+    elapsedText:elapsedS===null?'—':fmtStopwatch(elapsedS),remainingText:endMs===null?'—':fmtStopwatch(Math.max(0,Math.ceil((endMs-nowMs)/1000)))};
+}
+
 function restFacts(data, nowMs) {
+  const clock = buildRestClock(data, nowMs);
   const progress = data?.rest_progress;
   const type = String(data?.event?.event_type || progress?.event_type || '');
   const observedStartMs = parseMs(progress?.started_at || data?.compliance?.current?.since);
@@ -983,8 +1017,10 @@ function restFacts(data, nowMs) {
   const weekly = type.startsWith('weekly_rest_') || unresolvedLongRest;
   const details = [];
   if (!progress) {
-    if (weekly) details.push('TMS nie udostępnił rozliczenia ciągłego odpoczynku i rekompensaty. Godzina zakończenia wymaga potwierdzenia.');
-    return { current: data?.compliance?.current, event: weekly ? null : data?.event, details, weekly, verified: false };
+    if (clock?.startText) details.push('Odpoczynek od ' + clock.startText);
+    if (clock?.compensationS > 0) details.push('rekompensata ' + fmtDur(clock.compensationS) + ' według dostępnej historii');
+    if (weekly && clock?.compensationS === null) details.push('Brak danych o rekompensacie. Pokazujemy upływ odpoczynku; pełnego końca jeszcze nie można obliczyć.');
+    return { current: data?.compliance?.current, event: clock?.endMs === null ? null : {...data.event,occurred_at:new Date(clock.startMs).toISOString(),duration_s:clock.totalS,end_at:new Date(clock.endMs).toISOString()}, details, weekly, verified: !clock?.estimated, clock };
   }
   const startMs = parseMs(progress.started_at), endMs = parseMs(progress.end_at);
   if (startMs !== null) details.push(`${progress.start_confirmed ? 'Odpoczynek od' : 'Zapis odpoczynku od'} ${fmtWeekdayClock(startMs)}`);
@@ -997,7 +1033,7 @@ function restFacts(data, nowMs) {
   if (endMs !== null) details.push('Koniec tego odpoczynku nie potwierdza pozostałych limitów jazdy i pracy.');
   const current = startMs === null ? data?.compliance?.current : { ...data.compliance.current, since: progress.started_at };
   const event = endMs !== null && base > 0 ? { ...data?.event, occurred_at: progress.started_at, duration_s: progress.total_duration_s, end_at: progress.end_at } : null;
-  return { current, event, details, weekly, verified: progress.status === 'confirmed', hasProgress: true };
+  return { current, event, details, weekly, verified: progress.status === 'confirmed', hasProgress: true, clock };
 }
 
 function buildDriverTachoView(data, nowMs) {
@@ -1005,7 +1041,8 @@ function buildDriverTachoView(data, nowMs) {
   const compliance = data?.compliance;
   if (!compliance) return view;
 
-  view.stale = Boolean(compliance.stale || data?.rest_progress?.stale);
+  const observed = parseMs(compliance.last_data_at);
+  view.stale = Boolean(compliance.stale || data?.rest_progress?.stale || observed === null || nowMs-observed>600000 || observed-nowMs>60000);
   view.lastDataAgoText = fmtAgo(compliance.last_data_at, nowMs);
   // Fakt z historii tygodniowej — nie zależy od tego, czy mamy świeży stan z tachografu.
   view.weeklyRestMustBeRegular = compliance.weekly?.next_must_be_regular === true || data?.rest_progress?.regular_required === true;
@@ -1013,7 +1050,8 @@ function buildDriverTachoView(data, nowMs) {
   const current = compliance.current;
   if (!current || compliance.status === STATUS_NO_DATA) return view;
 
-  const rest = current.work_mode === MODE_REST ? restFacts(data, nowMs) : null;
+  const rest = current.work_mode === MODE_REST ? restFacts(data,nowMs) : null;
+  view.rest = rest?.clock || null;
   view.restDetails = rest?.details || [];
 
   const modeKey = MODE[current.work_mode] ? current.work_mode : MODE_FALLBACK_KEY;
@@ -1036,11 +1074,11 @@ function buildDriverTachoView(data, nowMs) {
     : buildCountdownHero(compliance, signalCtx, nowMs);
   if (rest?.hasProgress && view.hero) view.hero.etaText = etaLabel(parseMs(rest.event?.end_at), nowMs,
     rest.verified ? 'Koniec odpoczynku: ' : 'Szacowany koniec: ');
-  if (rest?.weekly && view.hero && !rest.verified) {
-    view.hero.etaText = rest.hasProgress && parseMs(rest.event?.end_at) !== null
-      ? etaLabel(parseMs(rest.event.end_at), nowMs, 'Szacowany koniec: ')
-      : 'Koniec odpoczynku wymaga potwierdzenia w TMS';
-    view.hero.label = rest.hasProgress && rest.event ? 'Szacowany czas odpoczynku' : HERO_REST_LABEL;
+  if (rest && view.hero) {
+    view.hero.etaText = rest.clock.endMs === null ? 'Wybierz wymiar odpoczynku; brakujące dane są oznaczone poniżej' : etaLabel(rest.clock.endMs,nowMs,rest.clock.estimated?'Szacowany koniec: ':'Koniec odpoczynku: ');
+    view.hero.label = 'UPŁYNĘŁO ODPOCZYNKU';
+    view.hero.seconds = rest.clock.elapsedS;
+    view.hero.text = rest.clock.elapsedText;
   }
   view.bars = buildBars(compliance, driveElapsedSeconds({
     stale: false, lastDataMs, mode: current.work_mode, nowMs,
@@ -1051,5 +1089,5 @@ function buildDriverTachoView(data, nowMs) {
 
 
 
-window.SuperSpedytorLiveTachoModel={build:buildDriverTachoView,formatDuration:fmtDur};
+window.SuperSpedytorLiveTachoModel={build:buildDriverTachoView,restClock:buildRestClock,formatDuration:fmtDur,formatClock:fmtClock,formatStopwatch:fmtStopwatch};
 })();

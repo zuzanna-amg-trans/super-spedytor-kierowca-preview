@@ -40,8 +40,17 @@
     if(result?.status!=='ok'||!result.token)fail(result?.message||'Nie udało się przygotować dokumentu.');
     keepEvidence(result);return result;
   }
-  function position(){if(!root)return;const header=document.querySelector('.app-header'),nav=document.querySelector('.bottom-nav');root.style.top=((header?.offsetTop||0)+(header?.offsetHeight||0))+'px';root.style.bottom=(nav?.offsetHeight||0)+'px';}
+  function position(){
+    if(!root)return;
+    const header=document.querySelector('.app-header'),nav=document.querySelector('.bottom-nav'),device=document.querySelector('.device'),frame=device?.getBoundingClientRect();
+    const vv=window.visualViewport,visibleBottom=vv?vv.offsetTop+vv.height:window.innerHeight;
+    const keyboardGap=frame?Math.max(0,frame.bottom-visibleBottom):0;
+    root.style.top=((header?.offsetTop||0)+(header?.offsetHeight||0))+'px';
+    root.style.bottom=Math.max(nav?.offsetHeight||0,keyboardGap)+'px';
+  }
   window.addEventListener('resize',position);
+  window.visualViewport?.addEventListener('resize',position);
+  window.visualViewport?.addEventListener('scroll',position);
   function close(){
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav==='now'));
     epoch++;clearInterval(tachoTimer);tachoTimer=null;root?.remove();root=null;screen='';busy=false;
@@ -53,7 +62,7 @@
       root=document.createElement('section');root.className='live-workspace';root.setAttribute('aria-label',title);
       document.querySelector('.device').append(root);
     }
-    screen=name;clearInterval(tachoTimer);tachoTimer=null;position();
+    screen=name;root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;position();
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===name));
     root.innerHTML=`<header class="lw-header"><button data-lw-close aria-label="Wróć do operacji">‹</button><div><small>SUPER SPEDYTOR</small><h2>${e(title)}</h2></div><button data-lw-refresh aria-label="Odśwież widok">↻</button></header><div class="lw-feedback" aria-live="polite"></div><div class="lw-body"><p class="lw-empty" role="status">Pobieram dane Twojego konta…</p></div>`;
     root.querySelector('[data-lw-close]').onclick=close;
@@ -201,18 +210,29 @@
     return hand;
   }
   async function tacho(){
-    const data=await request('GET','vehicles/vehicles/tacho/me/');
-    const render=()=>{
+    const generation=epoch;
+    let data;
+    try{data=await request('GET','vehicles/vehicles/tacho/me/');}catch(error){if(!current())throw error;if(generation!==epoch||screen!=='tacho')return;data={};feedback(error.message,true);}
+    if(generation!==epoch||screen!=='tacho'||!root)return;
+    body().innerHTML='<div data-live-tacho-panel></div>';
+    let painted='';
+    const render=(force=false)=>{
       if(!root||screen!=='tacho'||!current())return;
-      const view=window.SuperSpedytorLiveTachoModel.build(data,Date.now()),compliance=data.compliance||{};
-      body().innerHTML=`<div class="tacho-heading"><div><div class="overline">ODCZYT Z TMS / EMTRACK</div><h3>${e(view.mode?.label||'Brak aktualnego odczytu')}</h3><p>${e(view.lastDataAgoText||'Brak daty danych')}</p></div></div>`;
-      if(!view.ready||view.stale){body().insertAdjacentHTML('beforeend',empty(view.stale?'Dane tacho są nieaktualne. Dostępnego czasu jazdy nie potwierdzono.':'Brak stanu tacho dla konta. Brak danych nie oznacza dostępnego czasu jazdy.'));}
-      else{
-        if(view.hero)body().insertAdjacentHTML('beforeend',`<section class="panel lw-tacho-hero"><small>${e(view.hero.label)}</small><strong>${e(view.hero.text)}</strong><p>${e(view.hero.etaText||'')}</p>${(view.restDetails||[]).map(text=>`<p>${e(text)}</p>`).join('')}</section>`);
-        body().insertAdjacentHTML('beforeend',(view.bars||[]).filter(v=>Number.isFinite(Number(compliance[v.key]?.[v.key==='break'?'continuous_drive_s':'drive_s']))).map(v=>`<section class="panel"><div class="section-heading"><h3>${e(v.label)}</h3><strong>${e(window.SuperSpedytorLiveTachoModel.formatDuration(v.valueS))}</strong></div><progress max="1" value="${v.ratio}"></progress></section>`).join(''));
-        if(view.breakPlan)body().insertAdjacentHTML('beforeend',empty(view.breakPlan.text));
+      const view=window.SuperSpedytorLiveTachoModel.build(data,Date.now());
+      const key=JSON.stringify([view.ready,view.stale,view.mode?.key]),panel=root.querySelector('[data-live-tacho-panel]');
+      if(!force&&key===painted){
+        const set=(selector,text)=>{const node=panel.querySelector(selector);if(node)node.textContent=text;};
+        set('[data-rest-elapsed]',view.rest?.elapsedText||'—');
+        set('[data-rest-remaining]',view.rest?.remainingText||'—');
+        set('.tacho-driver-instruction .tacho-primary-time',view.hero?.text||'—');
+        if(view.rest){const progress=panel.querySelector('.tacho-progress>span');if(progress)progress.style.setProperty('--progress',String(view.rest.progress*100)+'%');}
+        return;
       }
-      if(data.event)body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>Ostatnie zgłoszenie</h3><p>${e(data.event.event_type_label||data.event.event_type)} · zgłoszono ${e(dateTime(data.event.reported_at||data.event.occurred_at))}</p></section>`);
+      painted=key;panel.innerHTML=window.SuperSpedytorDesignedTacho.render(data,view);
+      root.querySelectorAll('[data-live-open-rest]').forEach(node=>node.onclick=()=>{root.querySelector('[data-live-rest-picker]').hidden=false;root.querySelector('[data-rest-picker-close]').focus();});
+    };
+    render();
+    const view=window.SuperSpedytorLiveTachoModel.build(data,Date.now());
       const choices=[
         {group:'Przerwa',value:'break_15',title:'Przerwa 15 min',hint:'Pierwsza część przerwy dzielonej 15 + 30',icon:'clock'},
         {group:'Przerwa',value:'break_30',title:'Przerwa 30 min',hint:'Druga część po wcześniej zaliczonych 15 minutach',icon:'clock'},
@@ -224,7 +244,9 @@
       ];
       const groups=[...new Set(choices.map(c=>c.group))];
       const glyph=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
-      body().insertAdjacentHTML('beforeend',`<section class="panel lw-rest-choices"><h3>Zgłoś rozpoczęty odpoczynek</h3><p>Najpierw przełącz tachograf. Wybierz dokładnie tę przerwę lub odpoczynek, który rozpoczynasz.</p>${groups.map(group=>`<section class="tacho-choice-group"><h4>${group}</h4><div class="tacho-choice-list" role="radiogroup" aria-label="${group}">${choices.filter(c=>c.group===group).map(c=>`<button class="tacho-choice ${c.rest?'rest':''}" role="radio" aria-checked="false" data-live-rest-type="${c.value}" ${c.disabled?'disabled':''}><span class="tacho-choice-icon">${glyph(c.icon)}</span><span><strong>${c.title}</strong><small>${e(c.hint)}</small></span><span class="lw-radio-mark" aria-hidden="true"></span></button>`).join('')}</div></section>`).join('')}<div class="lw-rest-submit"><button class="primary-button" data-tacho-declare disabled>Wybierz przerwę lub odpoczynek</button></div></section>`);
+      root.querySelector('[data-live-rest-picker]')?.remove();
+      root.insertAdjacentHTML('beforeend',`<div class="lw-choice-overlay" data-live-rest-picker hidden><section class="lw-choice-sheet" role="dialog" aria-modal="true" aria-label="Wybierz odpoczynek"><header><h3>Zgłoś rozpoczęty odpoczynek</h3><button data-rest-picker-close aria-label="Zamknij wybór">×</button></header><section class="lw-choice-options lw-rest-choices"><p>Najpierw przełącz tachograf. Wybierz wymiar trwającej przerwy lub odpoczynku.</p>${groups.map(group=>`<section class="tacho-choice-group"><h4>${group}</h4><div class="tacho-choice-list" role="radiogroup" aria-label="${group}">${choices.filter(c=>c.group===group).map(c=>`<button class="tacho-choice ${c.rest?'rest':''}" role="radio" aria-checked="false" data-live-rest-type="${c.value}" ${c.disabled?'disabled':''}><span class="tacho-choice-icon">${glyph(c.icon)}</span><span><strong>${c.title}</strong><small>${e(c.hint)}</small></span><span class="lw-radio-mark" aria-hidden="true"></span></button>`).join('')}</div></section>`).join('')}</section><div class="lw-rest-submit"><button class="primary-button" data-tacho-declare disabled>Wybierz przerwę lub odpoczynek</button></div></section></div>`);
+      root.querySelector('[data-rest-picker-close]').onclick=()=>{root.querySelector('[data-live-rest-picker]').hidden=true;root.querySelector('[data-live-open-rest]')?.focus();};
       let selectedType=null;
       root.querySelectorAll('[data-live-rest-type]').forEach(node=>node.onclick=()=>{
         if(busy||node.disabled)return;selectedType=node.dataset.liveRestType;
@@ -233,10 +255,20 @@
       });
       bind('[data-tacho-declare]',async()=>{const type=selectedType;if(!type)fail('Wybierz przerwę lub odpoczynek.');if(!confirm('Zapisać w TMS: '+choices.find(c=>c.value===type).title+'?'))return;await request('POST','vehicles/vehicles/tacho/driver-event/',{event_type:type});const read=await request('GET','vehicles/vehicles/tacho/me/');if(read.event?.event_type!==type)fail('Odczyt TMS nie potwierdził wybranego zgłoszenia.');await tacho();feedback('Zgłoszenie odczytane z TMS.');});
 
-    };
-    render();
-    // Refresh by an explicit user action; no detached timer can mutate a form
-    // while the driver is choosing the declared rest type.
+    let tick=0,refreshing=false;
+    clearInterval(tachoTimer);
+    tachoTimer=setInterval(async()=>{
+      if(!root||generation!==epoch||screen!=='tacho')return;
+      if(!current()){close();return;}
+      if(document.hidden)return;
+      render();
+      if(++tick%60===0&&!busy&&!refreshing){
+        refreshing=true;
+        try{const fresh=await request('GET','vehicles/vehicles/tacho/me/');if(generation===epoch&&screen==='tacho'){data=fresh;render(true);}}
+        catch(error){if(current())feedback(error.message,true);}
+        finally{refreshing=false;}
+      }
+    },1000);
   }
   async function chats(){
     const data=await request('GET','chat/threads/?scope=mine&status=active'),threads=list(data);
@@ -245,7 +277,14 @@
   }
   async function chat(offerId){
     const path=`chat/threads/${id(offerId)}/messages/`,data=await request('GET',path),messages=list(data);
-    body().innerHTML=`<div class="lw-messages">${messages.map(m=>`<article class="panel"><small>${e(m.sender_name||m.author_name||m.sender?.display_name||m.sender?.full_name||m.sender?.username||'Użytkownik')} · ${e(dateTime(m.created_at))}</small><p>${e(m.body||m.text||'')}</p>${(m.attachments||m.files||[]).map(f=>{const url=media(f.file_url||f.url||f.file),name=f.download_name||f.original_name||f.name||f.filename||'Załącznik';return url?`<a href="${e(url)}" aria-label="Otwórz załącznik: ${e(name)}">${e(name)}</a>`:`<p>Załącznik: ${e(name)} · TMS nie udostępnił adresu pliku.</p>`;}).join('')}</article>`).join('')||empty('W tym wątku nie ma wiadomości.')}</div><section class="panel"><label class="lw-field">Wiadomość<textarea id="lw-chat-message" maxlength="10000"></textarea></label><div class="lw-actions">${button('Dołącz zdjęcie','data-chat-photo',true)}${button('Dołącz plik PDF lub zdjęcie','data-chat-file',true)}${button('Nagraj wiadomość','data-chat-audio',true)}${button('Wyślij do czatu zlecenia','data-chat-send')}</div></section>`;
+    root.classList.add('lw-chat-open');
+    body().innerHTML=`<div class="lw-messages" role="log" aria-label="Rozmowa zlecenia">${messages.map(m=>window.SuperSpedytorLiveChatView.message(m,bridge)).join('')||empty('W tym wątku nie ma wiadomości.')}</div><section class="lw-chat-composer chat-composer"><label class="lw-field" for="lw-chat-message">Wiadomość<textarea id="lw-chat-message" maxlength="10000" rows="1" placeholder="Napisz wiadomość…"></textarea></label>${button('Wyślij','data-chat-send')}<details class="lw-chat-tools"><summary>Dołącz zdjęcie, plik lub nagranie</summary><div class="lw-actions">${button('Zdjęcie','data-chat-photo',true)}${button('Plik PDF lub zdjęcie','data-chat-file',true)}${button('Nagraj wiadomość','data-chat-audio',true)}</div></details></section>`;
+    root.querySelectorAll('[data-chat-inline-preview]').forEach(image=>image.onerror=()=>{image.hidden=true;image.closest('figure').querySelector('.lw-preview-error').hidden=false;});
+    const conversation=root.querySelector('.lw-messages');conversation.scrollTop=conversation.scrollHeight;
+    const input=root.querySelector('#lw-chat-message');
+    input.addEventListener('focus',position);input.addEventListener('blur',position);
+    input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(100,input.scrollHeight)+'px';});
+    position();
     bind('[data-chat-send]',async()=>{const text=root.querySelector('#lw-chat-message').value.trim();if(!text)fail('Wpisz wiadomość.');if(!confirm('Wysłać tę wiadomość do czatu zlecenia?'))return;await request('POST',path,{body:text});const read=list(await request('GET',path));if(!read.some(m=>(m.body||m.text)===text&&!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości w odczycie czatu.');await chat(offerId);feedback('Wiadomość odczytana z czatu po wysłaniu.');});
     bind('[data-chat-photo]',async()=>{const file=await capture();if(!file)return;try{if(!confirm('Wysłać wybrane zdjęcie do tego czatu zlecenia?'))return;await upload(path,file,{body:root.querySelector('#lw-chat-message').value.trim()});await chat(offerId);feedback('TMS przyjął załącznik. Sprawdź nową wiadomość w wątku.');}finally{keepEvidence(file);}});
     const sendFile=async audio=>{const file=await (audio?recordVoice():chooseFile());if(file?.status==='cancelled')return;if(file?.status!=='ok'||!file.token)fail(file?.message||'Nie udało się przygotować pliku.');keepEvidence(file);if(!confirm('Wysłać ten plik lub nagranie do czatu wskazanego zlecenia?'))return;await upload(path,file,{body:root.querySelector('#lw-chat-message').value.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości z załącznikiem. Plik pozostaje na telefonie.');await chat(offerId);feedback('Nowa wiadomość odczytana z czatu po wysyłce.');};
