@@ -974,37 +974,68 @@ function buildDeclaredEvent(event, nowMs) {
  * @param {number} nowMs - bieżący znacznik czasu (ms epoch), wstrzykiwany z zewnątrz
  * @returns {DriverTachoView}
  */
+function restFacts(data) {
+  const progress = data?.rest_progress;
+  const weekly = String(data?.event?.event_type || '').startsWith('weekly_rest_');
+  const details = [];
+  if (!progress) {
+    if (weekly) details.push('TMS nie udostępnił rozliczenia ciągłego odpoczynku i rekompensaty. Godzina zakończenia wymaga potwierdzenia.');
+    return { current: data?.compliance?.current, event: weekly ? null : data?.event, details, weekly, verified: false };
+  }
+  const startMs = parseMs(progress.started_at), endMs = parseMs(progress.end_at);
+  if (startMs !== null) details.push(`${progress.start_confirmed ? 'Odpoczynek od' : 'Zapis odpoczynku od'} ${fmtWeekdayClock(startMs)}`);
+  const base = Number(progress.base_duration_s), compensation = Number(progress.compensation_before_s);
+  if (base > 0) details.push(`Podstawa: ${fmtDur(base)}${compensation > 0 ? ' + rekompensata ' + fmtDur(compensation) : ''}`);
+  if (Number(progress.other_compensation_owed_s) > 0) details.push(`Inna rekompensata do rozliczenia: ${fmtDur(progress.other_compensation_owed_s)}`);
+  if (progress.status !== 'confirmed') details.push('Dane odpoczynku lub historii wymagają weryfikacji. Podany koniec jest szacunkiem.');
+  if (endMs !== null) details.push('Koniec tego odpoczynku nie potwierdza pozostałych limitów jazdy i pracy.');
+  const current = startMs === null ? data?.compliance?.current : { ...data.compliance.current, since: progress.started_at };
+  const event = endMs !== null && base > 0 ? { ...data?.event, occurred_at: progress.started_at, duration_s: progress.total_duration_s, end_at: progress.end_at } : null;
+  return { current, event, details, weekly, verified: progress.status === 'confirmed', hasProgress: true };
+}
+
 function buildDriverTachoView(data, nowMs) {
   const view = emptyView();
   const compliance = data?.compliance;
   if (!compliance) return view;
 
-  view.stale = Boolean(compliance.stale);
+  view.stale = Boolean(compliance.stale || data?.rest_progress?.stale);
   view.lastDataAgoText = fmtAgo(compliance.last_data_at, nowMs);
   // Fakt z historii tygodniowej — nie zależy od tego, czy mamy świeży stan z tachografu.
-  view.weeklyRestMustBeRegular = compliance.weekly?.next_must_be_regular === true;
+  view.weeklyRestMustBeRegular = compliance.weekly?.next_must_be_regular === true || data?.rest_progress?.regular_required === true;
 
   const current = compliance.current;
   if (!current || compliance.status === STATUS_NO_DATA) return view;
 
+  const rest = current.work_mode === MODE_REST ? restFacts(data) : null;
+  view.restDetails = rest?.details || [];
+
   const modeKey = MODE[current.work_mode] ? current.work_mode : MODE_FALLBACK_KEY;
   view.ready = true;
   view.mode = { key: modeKey, label: MODE[modeKey].label };
-  view.sinceText = textOrNull(fmtClock(current.since));
+  view.sinceText = textOrNull(rest?.hasProgress ? fmtWeekdayClock(rest.current?.since) : fmtClock(current.since));
   view.shiftStartMissing = !compliance.daily?.shift_start;
-  view.declaredEvent = buildDeclaredEvent(data?.event, nowMs);
+  view.declaredEvent = buildDeclaredEvent(rest ? rest.event : data?.event, nowMs);
   view.extensionsLeft = extensionsLeftFor(compliance.weekly);
   if (view.stale) return view;
 
   view.breakPlan = buildBreakPlan(compliance.break);
-  view.restCoach = buildRestCoach(compliance, current, data?.event, nowMs);
+  view.restCoach = rest?.weekly ? null : buildRestCoach(compliance, rest?.current || current, rest ? rest.event : data?.event, nowMs);
   view.routePlan = buildRoutePlan(data?.forecast, compliance, view.restCoach);
 
   const lastDataMs = parseMs(compliance.last_data_at);
   const signalCtx = { mode: current.work_mode, stale: false, lastDataMs, now: nowMs };
   view.hero = current.work_mode === MODE_REST
-    ? buildRestHero(current, data?.event, nowMs)
+    ? buildRestHero(rest?.current || current, rest ? rest.event : data?.event, nowMs)
     : buildCountdownHero(compliance, signalCtx, nowMs);
+  if (rest?.hasProgress && view.hero) view.hero.etaText = etaLabel(parseMs(rest.event?.end_at), nowMs,
+    rest.verified ? 'Koniec odpoczynku: ' : 'Szacowany koniec: ');
+  if (rest?.weekly && view.hero && !rest.verified) {
+    view.hero.etaText = rest.hasProgress && parseMs(rest.event?.end_at) !== null
+      ? etaLabel(parseMs(rest.event.end_at), nowMs, 'Szacowany koniec: ')
+      : 'Koniec odpoczynku wymaga potwierdzenia w TMS';
+    view.hero.label = rest.hasProgress ? 'Szacowany czas odpoczynku' : HERO_REST_LABEL;
+  }
   view.bars = buildBars(compliance, driveElapsedSeconds({
     stale: false, lastDataMs, mode: current.work_mode, nowMs,
   }), dailyLimitExtended(compliance.daily, compliance.weekly));

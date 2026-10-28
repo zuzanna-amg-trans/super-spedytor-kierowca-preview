@@ -1,0 +1,31 @@
+/* Larger text in the existing approved phone layout. Decorative artwork and
+   document miniatures retain their own scale; instructions and controls wrap. */
+.android-shell .bottom-nav.five-items button,.android-shell .bottom-nav button{font-size:12px;line-height:1.25}
+.android-shell .overline,.android-shell .section-kicker,.android-shell .metric-label,
+.android-shell .field-label,.android-shell .cmr-section-label,.android-shell .attachment-label{font-size:13px;line-height:1.45}
+.android-shell .arrival-instructions,.android-shell .contact-info strong,
+.android-shell .transport-location p,.android-shell .cargo-primary p,
+.android-shell .note-text,.android-shell .procedure-caption,.android-shell .step-description,
+.android-shell .check-row,.android-shell .document-callout,.android-shell .document-hints,
+.android-shell .final-intro,.android-shell .completion-panel p,.android-shell .summary-line,
+.android-shell .travel-info,.android-shell .modal-sheet p{font-size:16px;line-height:1.55}
+.android-shell .contact-info small,.android-shell .reference-row span,
+.android-shell .notes-source,.android-shell .step-heading .step-status,
+.android-shell .step-compact-note,.android-shell .inline-status,.android-shell .confirm-count,
+.android-shell .scan-info small,.android-shell .locked-note,.android-shell .photo-instruction,
+.android-shell .photo-placeholder small,.android-shell .document-placeholder small,
+.android-shell .small-note,.android-shell .action-caption,.android-shell .action-progress,
+.android-shell .field-error{font-size:14px;line-height:1.5}
+.android-shell .primary-button,.android-shell .secondary-button,.android-shell .minor-button,
+.android-shell .scan-button,.android-shell .subpage-back,.android-shell .final-link,
+.android-shell .help-options button{font-size:16px;line-height:1.4;white-space:normal;min-height:48px}
+.android-shell .text-input,.android-shell textarea{font-size:16px;line-height:1.5}
+.android-shell .check-row{align-items:flex-start}
+.android-shell .check-row input{flex-shrink:0}
+.android-shell .note-text,.android-shell .summary-line,.android-shell .reference-code,
+.android-shell .transport-location p,.android-shell .cargo-primary p{overflow-wrap:anywhere;min-width:0}
+.android-shell .tacho-heading p,.android-shell .tacho-source-note p,
+.android-shell .tacho-driver-instruction>p,.android-shell .tacho-choice small{font-size:15px;line-height:1.5}
+.android-shell .tacho-choice-group>h4,.android-shell .tacho-kicker,
+.android-shell .tacho-last-report,.android-shell .tacho-last-report strong{font-size:13px;line-height:1.5}
+.android-shell .tacho-report-button,.android-shell .tacho-other-button{font-size:16px;white-space:normal;min-height:48px}

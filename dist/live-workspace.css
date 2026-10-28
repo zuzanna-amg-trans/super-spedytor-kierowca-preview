@@ -9,3 +9,21 @@
 .lw-field{min-width:0;max-width:100%}.lw-field input,.lw-field textarea{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}.lw-field input[type=date],.lw-field input[type=datetime-local]{display:block;min-height:52px;text-align:left}.lw-field input::-webkit-date-and-time-value{text-align:left;min-height:1.3em}
 
 .driver-chip[data-live-menu]{cursor:pointer;border:1px solid #edc6a8;border-radius:10px;color:#af4c12;background:#fff5ec;padding:9px 11px;font-size:11px;font-weight:650;letter-spacing:0;text-transform:none}
+
+/* Readable phone text within the approved cards and controls. No fixed text
+   heights: long TMS values must wrap, including on a 320 px viewport. */
+.live-workspace{font-size:16px;line-height:1.5}
+.lw-header small,.lw-choice-sheet small{font-size:12px;line-height:1.4}
+.lw-body p,.lw-field,.lw-counts label{font-size:16px;line-height:1.55}
+.lw-row>span{min-width:0;overflow-wrap:anywhere}
+.lw-row strong,.lw-inventory-row>strong,.lw-body .tacho-choice strong{font-size:17px;line-height:1.4}
+.lw-row small,.lw-row b,.lw-body .tacho-choice small,.lw-tacho-hero small,.lw-messages small{font-size:14px;line-height:1.5}
+.lw-row b{flex-shrink:0;max-width:35%;overflow-wrap:anywhere}
+.lw-body .primary-button,.lw-body .secondary-button,.lw-choice-options button,.lw-rating-options button{font-size:16px;line-height:1.45;white-space:normal;min-height:48px}
+.lw-feedback:not(:empty),.lw-empty{font-size:15px;line-height:1.5}
+.lw-messages a{font-size:16px;line-height:1.5;padding:12px 0;min-height:48px;box-sizing:border-box}
+.lw-rating-options button{min-height:108px}
+.lw-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lw-body .section-heading{gap:12px;flex-wrap:wrap}
+.driver-chip[data-live-menu]{font-size:14px;min-height:44px;line-height:1.35}
+@media(max-width:359px){.lw-counts{grid-template-columns:minmax(0,1fr)}.lw-body .lw-row{align-items:flex-start;flex-wrap:wrap}.lw-row b{max-width:100%}}
