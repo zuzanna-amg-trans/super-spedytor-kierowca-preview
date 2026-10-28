@@ -3,7 +3,7 @@
   "sourceCommit": "92ccf5cd9426388652153382b9a499c66a98f65f",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T21:21:56.694Z",
+  "builtAt": "2026-10-28T21:26:21.101Z",
   "assetManifestSha256": "fd59524ed1c03920ff657a7a0c7aa81b508037edaa3107fbdc44b39711cc7bc7",
   "mode": "demo-driver-preview",
   "backend": {
@@ -16,9 +16,9 @@
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
     "candidateSha": "92ccf5cd9426388652153382b9a499c66a98f65f",
-    "initialIntegrationSha": "dc1d1bf920b322e50649533416b6cf784b005fed",
+    "initialIntegrationSha": "92ccf5cd9426388652153382b9a499c66a98f65f",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "dc1d1bf920b322e50649533416b6cf784b005fed",
+    "baseSha": "92ccf5cd9426388652153382b9a499c66a98f65f",
     "branches": [
       {
         "name": "main",
@@ -109,9 +109,7 @@
         "sha": "a39e6db38a638083a2423a739e7ce4dfa68fda00"
       }
     ],
-    "mergedBranches": [
-      "AA28-Tacho-Live-Android-Auto"
-    ],
+    "mergedBranches": [],
     "skippedBranches": [
       "main",
       "codex/play-internal-testing",
@@ -122,6 +120,7 @@
       "AA25-Android-Auto-Play",
       "AA26-Automatyczne-Aktualizacje",
       "AA27-Test-Autoaktualizacji-DEV",
+      "AA28-Tacho-Live-Android-Auto",
       "AA29-Rejestracja-Paczki-PROD",
       "B792-Translator-Android-Dev",
       "B857-Designed-Driver-UI",
