@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "c45f8fbd838dc9b6f954ed4774db763c82684f19",
+  "sourceCommit": "60237c189def7a562e00c41c73053685a79b6ea9",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "8810a9f54b866e77bba1a9c2f800459708b2795918f783d427dc952bf86398fa",
+  "assetManifestSha256": "061e73c60714405833dc392fd7478dc1707bfd54e001cf189377838f119e9261",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -133,8 +133,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "0e3c6950cb1f09a30db01b4862afc289c3fc126c0537c8b6886ef08755775afa",
-      "size": 445138
+      "sha256": "ab51f192c0a8862ee150dbc84463894a7ab41551ed2b486a1b128a83b71c5365",
+      "size": 447109
     },
     {
       "path": "handover-v2.css",
@@ -218,8 +218,8 @@
     },
     {
       "path": "scanner.js",
-      "sha256": "46d9baab6a83123be429bcdc0a78dbd056bbb2f20a407f3d71fe4fb46471fbe6",
-      "size": 48542
+      "sha256": "1c15fa909dd51d507a408e7565350a847bcf1a4c1cb4c2ecead27a8359d70a3e",
+      "size": 49044
     },
     {
       "path": "service-register.js",

@@ -3290,6 +3290,7 @@ function openModal(type,target){
   if(type==='live-help'){
     title='Pomoc · Super Spedytor';
     body='<p>Operacja pokazuje Twoją trasę z SS. Mapa otwiera lokalizację, a Nawiguj rozpoczyna prowadzenie. Rozpoczęcie i zakończenie operacji zapisują status w SS. Serwis pokazuje historię ankiet.</p><p>Wszystkie pozostałe widoki możesz przejść w trybie testowym z danymi przykładowymi.</p><button class="primary-button" id="help-test-views">Testuj wszystkie widoki</button>';
+    if(scanKitPilotOwner())body+='<button class="primary-button" id="help-scankit-pilot">Test ScanKit · bez zlecenia</button><p>Osobny test skanera. Możesz obejrzeć, zapisać lub udostępnić PDF. Test nie zmienia statusów i nie dołącza dokumentu do zlecenia w SS. Obróbka ScanKit zużywa kredyt pilota.</p>';
   }
 
   if(type==='piece-form'){
@@ -3471,6 +3472,7 @@ function openModal(type,target){
   }
   $$('[data-designed-view]').forEach(button=>button.onclick=()=>showDesignedView(button.dataset.designedView));
   if($('#help-test-views'))$('#help-test-views').onclick=()=>openModal('designed-views',{});
+  if($('#help-scankit-pilot'))$('#help-scankit-pilot').onclick=()=>openScanKitPilot();
   $('.modal-overlay').onclick=event=>{if(event.target.classList.contains('modal-overlay'))closeModal();};
   if($('#fuel-break-start'))$('#fuel-break-start').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'STARTED');
   if($('#fuel-break-continue'))$('#fuel-break-continue').onclick=()=>finishFuelingWithBreakDecision(target.recommendation,'CONTINUE');
@@ -3619,6 +3621,33 @@ function addEvidence(operationNameValue,record){
     revoke(piece.photos[side]);
     piece.photos[side]=record;
   }
+  return true;
+}
+
+// A private QA entry is separate from both the business attachment workflow and
+// the example workspace, whose native testing flag deliberately blocks cloud.
+let scanKitPilotSession=null;
+function scanKitPilotOwner(allowPending=false){
+  if(!backendMode||browserBackend||previewMode||productionScope||backendTestWorkspace
+    ||!window.SuperSpedytorNative||driverBridge!==window.SuperSpedytorNative
+    ||installedAppVersion!=='0.1.35-scankit-dev-qa'||appQuery.get('android')!=='1'
+    ||backendState?.status!=='connected'||backendState?.read_only===true
+    ||!allowPending&&(backendState?.offline===true||backendState?.refreshing===true))return null;
+  const user=Number(backendState?.profile?.id),driver=Number(backendState?.profile?.driver_id||0);
+  if(!Number.isSafeInteger(user)||user<=0||!Number.isSafeInteger(driver)||driver<0)return null;
+  return `${backendState.backend_origin||'native'}|${user}|${driver}`;
+}
+function openScanKitPilot(){
+  const owner=scanKitPilotOwner();
+  if(!owner||!window.SuperSpedytorScanner?.open)return false;
+  if(window.SuperSpedytorScanner.isBusy?.())return false;
+  const token={owner};scanKitPilotSession=token;
+  closeModal(false);
+  try{
+    window.SuperSpedytorScanner.open({standalone:true,
+      isActive:()=>scanKitPilotSession===token&&scanKitPilotOwner(true)===owner,
+      onCancel:()=>{if(scanKitPilotSession===token)scanKitPilotSession=null;}});
+  }catch{scanKitPilotSession=null;toast('Nie udało się otworzyć testu skanera.');return false;}
   return true;
 }
 
@@ -4667,6 +4696,7 @@ window.SuperSpedytorBackend={
     const previousContext={point:liveOperation?.point||backendLastNearest,owner:backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`};
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    window.SuperSpedytorScanner?.revalidate?.();
     if(state.modal?.type==='chat-file-preview'&&!chatAttachmentIsCurrent(state.modal.target))closeModal(false);
     if(typeof backendChatRead!=='undefined'&&backendChatRead&&!backendChatCurrent(backendChatRead))invalidateBackendChatRead();
     const receivedOwner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
