@@ -176,6 +176,20 @@
     };
   }
 
+  // The driver confirmed this actual cargo, not merely a number which may
+  // happen to be unchanged after a dispatcher edits the order. Seal/photo
+  // readback can change without invalidating that physical confirmation.
+  function preservePhysicalConfirmation(record, previous) {
+    const signature = items => JSON.stringify(items.map(item => [
+      String(item.cargoItemId), item.name, item.description, item.mass,
+    ]).sort((a, b) => a[0].localeCompare(b[0])));
+    record.physicalConfirmed = Boolean(previous && previous.physicalConfirmed
+      && previous.live && previous.mode === record.mode && record.items.length > 0
+      && String(previous.live.pointId) === String(record.live.pointId)
+      && String(previous.live.offerId) === String(record.live.offerId)
+      && signature(previous.items || []) === signature(record.items));
+  }
+
   /**
    * Rekord operacji załadunku z punktu (routes/driver/status) i celów oklejania.
    * Kształt = fresh('load') z flow.js + `live` z faktami backendu.
@@ -206,6 +220,7 @@
       state: null,
       fileTokens: prev ? prev.live.fileTokens : [],
     };
+    preservePhysicalConfirmation(record, prev);
     return record;
   }
 
@@ -234,6 +249,7 @@
       state,
       fileTokens: prev ? prev.live.fileTokens : [],
     };
+    preservePhysicalConfirmation(record, prev);
     return record;
   }
 

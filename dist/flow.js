@@ -1299,10 +1299,61 @@ function chatMessagesView(messages){
 function chatComposerView(){
   return `<div class="chat-composer"><input id="chat-message" maxlength="500" autocomplete="off" placeholder="Napisz wiadomość do spedytora" aria-label="Wiadomość do spedytora"><button id="chat-send" aria-label="Wyślij wiadomość">${icon('arrow')}</button></div><p class="chat-demo-note">Prototyp: wiadomość pozostaje tylko w tym podglądzie.</p>`;
 }
+// Attachment buttons resolve their record at click time. URLs never travel through
+// DOM data attributes, and this viewer cannot add, confirm, or upload a file.
+function chatAttachmentEntries(record){
+  const entries=[];
+  for(const [index,piece] of (record?.items||[]).entries()){
+    for(const side of (isLoad()?['near','far']:['unload'])){
+      const file=piece.photos?.[side];
+      if(file)entries.push({key:`photo:${index}:${side}`,file,type:'image',icon:'camera',demoIndex:side==='near'?0:1,title:`Sztuka ${index+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie z rozładunku'}`,detail:`${piece.name||'Ładunek'} · ${file.source==='chat'?'dodano w czacie':'automatycznie z operacji'}`});
+    }
+  }
+  for(const [index,file] of (record?.documents||[]).entries()){
+    entries.push({key:`document:${index}`,file,type:'document',icon:'doc',documentIndex:index,title:`CMR · ${file.mime==='application/pdf'?(file.name||'CMR.pdf'):`strona ${index+1}`}`,detail:`${file.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji`});
+  }
+  // A route chat uses the same viewer for the photos already attached to its stop.
+  for(const key of ['receipt','adBlueReceipt','dispenser','nozzle']){
+    const file=record?.photos?.[key];
+    if(file)entries.push({key:`route:${key}`,file,type:'image',icon:'camera',demoIndex:key==='nozzle'?0:1,title:fuelPhotoLabels[key][1].replace(/ \*$/,''),detail:'Zdjęcie dołączone do zadania na trasie'});
+  }
+  return entries;
+}
+function chatAttachmentsView(record){
+  return chatAttachmentEntries(record).map(entry=>`<button type="button" class="chat-file chat-file-action" data-chat-file="${entry.key}" aria-label="${esc('Otwórz załącznik: '+entry.title)}">${icon(entry.icon)}<span class="chat-file-description"><strong>${esc(entry.title)}</strong><small>${esc(entry.detail)} · Otwórz podgląd</small></span>${icon('arrow')}</button>`).join('');
+}
+function chatAttachmentContext(record){
+  return {record,operation:state.operation,routeStop:state.routeStop,testing:backendTestWorkspace,owner:backendMode?`${backendState?.status||''}|${backendState?.backend_origin||'native'}|${backendState?.profile?.id??''}`:'local'};
+}
+function chatAttachmentIsCurrent(target){
+  if(!target?.context)return false;
+  const context=target.context,currentRecord=state.routeStop?currentStop():current(),now=chatAttachmentContext(currentRecord);
+  if(context.record!==currentRecord||context.operation!==now.operation||context.routeStop!==now.routeStop||context.testing!==now.testing||context.owner!==now.owner)return false;
+  const entry=chatAttachmentEntries(currentRecord).find(item=>item.key===target.key);
+  return Boolean(entry&&entry.file===target.file&&entry.file.url===target.url&&entry.file.mime===target.mime);
+}
+function chatAttachmentPreview(target){
+  const unavailable=message=>({title:'Podgląd załącznika',body:`<p class="cmr-preview-error" role="status">${message}</p>`});
+  if(!chatAttachmentIsCurrent(target))return unavailable('Ten załącznik nie jest już dostępny w bieżącym zleceniu. Otwórz ponownie czat.');
+  const {file,type,title}=target;
+  if(file.demo===true){
+    if(liveMode()||(backendMode&&!backendTestWorkspace))return unavailable('Brak rzeczywistego pliku do podglądu.');
+    return {title:esc(title),body:type==='document'?demoDocument(target.documentIndex+1):`<img class="chat-preview-image" src="${demoPhoto(target.demoIndex)}" alt="Przykładowe zdjęcie — ilustracja"><p class="small-note">Materiał demonstracyjny.</p>`};
+  }
+  const source=window.CmrDocumentPreview?.safeSource(file.url);
+  if(!source)return unavailable('Brak dostępnego pliku do podglądu. Odśwież dokumenty zlecenia.');
+  try{
+    const url=new URL(source);
+    if(url.username||url.password||[...url.searchParams.keys()].some(key=>/^(access_token|refresh_token|authorization|password)$/i.test(key)))return unavailable('Ten adres pliku nie może być bezpiecznie otwarty. Odśwież dokumenty zlecenia.');
+  }catch{return unavailable('Nieprawidłowy adres załącznika. Odśwież dokumenty zlecenia.');}
+  if(file.mime==='application/pdf')return {title:esc(title),body:window.CmrDocumentPreview.markup(file,{native:driverBridge})};
+  if(file.mime&&!/^image\/(jpeg|png|webp|gif|heic|heif|bmp|avif)$/i.test(file.mime))return unavailable('Ten format załącznika nie ma jeszcze podglądu w aplikacji.');
+  return {title:esc(title),body:`<img class="chat-preview-image" data-chat-preview-image src="${esc(source)}" alt="${esc(title)}"><p class="cmr-preview-error" data-chat-preview-error role="status" hidden>Nie udało się odczytać tego zdjęcia. Plik mógł wygasnąć lub zostać usunięty. Odśwież dokumenty zlecenia.</p>`};
+}
 function chatView(){
-  const record=current(),photos=photoRecords(record),autoCount=[...photos,...record.documents].filter(item=>item.chatSynced).length,photoTarget=count()*(isLoad()?2:1),sides=isLoad()?['near','far']:['unload'];
+  const record=current(),photos=photoRecords(record),autoCount=[...photos,...record.documents].filter(item=>item.chatSynced).length,photoTarget=count()*(isLoad()?2:1);
   const instruction=allReady()?'Dokumentacja wszystkich sztuk, plomba CMR i skan CMR są kompletne.':isLoad()?'Najpierw udokumentuj każdą sztukę, następnie plombę CMR, a na końcu dołącz skan CMR.':'Najpierw zeskanuj plombę CMR, następnie udokumentuj każdą sztukę, a na końcu dołącz skan CMR po rozładunku.';
-  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${esc(cargoOrderId())} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${record.items.flatMap((piece,pieceIndex)=>sides.map(side=>({piece,pieceIndex,side,photo:piece.photos[side]})).filter(item=>item.photo)).map(({piece,pieceIndex,side,photo})=>`<div class="chat-file">${icon('camera')}<div><strong>Sztuka ${pieceIndex+1} · ${side==='near'?'z bliska':side==='far'?'z daleka':'zdjęcie z rozładunku'}</strong><small>${esc(piece.name)} · ${photo.source==='chat'?'dodano w czacie':'automatycznie z operacji'}</small></div>${icon('check')}</div>`).join('')}${record.documents.map((document,index)=>`<div class="chat-file">${icon('doc')}<div><strong>CMR · ${document.mime==='application/pdf'?esc(document.name):`strona ${index+1}`}</strong><small>${document.source==='chat'?'Dodano w czacie':'Automatycznie z ekranu CMR'} · w dokumentacji</small></div>${icon('check')}</div>`).join('')}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${esc(cargoOrderId())} · spedytor</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${autoCount?`<div class="chat-system-note">${icon('check')} Aplikacja automatycznie dodała ${autoCount} ${materialWord(autoCount)} do czatu.</div>`:''}<div class="chat-evidence-summary"><div>${icon('camera')} Zdjęcia sztuk <b>${photos.length}/${photoTarget}</b></div><div>${icon('doc')} Dokument CMR <b>${record.documents.length?`${record.documents.length} plik${record.documents.length===1?'':'i'}`:'Do dodania'}</b></div></div>${chatAttachmentsView(record)}${record.documents.length?`<section class="panel chat-document-confirmation">${documentConfirmation()}</section>`:''}<div class="shared-hint">${icon('info')} Zdjęcia poszczególnych sztuk i skany CMR trafiają automatycznie tutaj.</div>${!record.started?`<p class="small-note">${isLoad()?'Załączniki dodasz po potwierdzeniu wykonania załadunku.':'Załączniki dodasz po potwierdzeniu liczby sztuk do rozładowania.'}</p>`:''}${chatComposerView()}</div>`;
 }
 function successView(){
   const photoTotal=count()*(isLoad()?2:1);
@@ -1627,7 +1678,7 @@ function transshipmentReviewView(){
 function stopChatView(){
   const stop=stopDefinition(),record=currentStop();
   const instruction=state.routeStop==='collection'?'Dla każdego kierowcy użyj osobnej koperty. Skanuj QR z papierowych CMR-ów, porównuj je z właściwymi skanami z systemu, a plombę przypisz dopiero przy zamknięciu koperty.':state.routeStop==='transshipment'?'Odbieraj zlecenia w kolejności podanej przez aplikację: najpóźniejszy rozładunek najpierw. Dla każdego zlecenia najpierw CMR, potem kolejno wszystkie sztuki ładunku i ich plomby.':state.routeStop==='fueling'?'Po dotarciu sprawdź kartę i PIN. W trakcie tankowania dodaj zdjęcie dystrybutora i pistoletu, a po zakończeniu — paragon oraz wydatek.':'Po dotarciu zaparkuj na przydzielonym miejscu P-01.';
-  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do zadania">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor testowy</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor testowy</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${chatComposerView()}</div>`;
+  return `<div class="app-content"><div class="chat-header"><button id="stop-chat-back" aria-label="Wróć do zadania">${icon('back')}</button><span><strong>Czat trasy</strong><small>${esc(stop.title)} · spedytor testowy</small></span><span class="badge orange">Symulacja</span></div><div class="chat-bubble"><span>Spedytor testowy</span><p>${instruction}</p></div>${chatMessagesView(record.messages)}${chatAttachmentsView(record)}${chatComposerView()}</div>`;
 }
 function stopActionView(){
   const screen=state.screen,stop=currentStop(),definition=stopDefinition();
@@ -2676,6 +2727,9 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  if(typeof backendChatRead!=='undefined'&&backendChatRead&&!backendChatCurrent(backendChatRead))invalidateBackendChatRead();
+  if(state.modal?.type==='backend-chat-file-preview'&&!backendChatAttachmentCurrent(state.modal.target))closeModal(false);
+  if(state.modal?.type==='chat-file-preview'&&!chatAttachmentIsCurrent(state.modal.target))closeModal(false);
   if(typeof tachoReadonlyScreen!=='undefined'&&tachoReadonlyScreen?.isOpen()){
     if(backendMode&&!backendTestWorkspace&&backendState?.status==='connected'&&backendActiveNav==='tacho'){
       updateDriverWorkspaceBar();return;
@@ -2784,6 +2838,19 @@ function sendChatMessage(record){
   render();
   $('#app-scroll').scrollTop=$('#app-scroll').scrollHeight;
   toast('Wiadomość została dodana do czatu demonstracyjnego.');
+}
+
+function bindChatAttachments(record){
+  const context=chatAttachmentContext(record),entries=chatAttachmentEntries(record);
+  $$('[data-chat-file]').forEach(button=>{
+    const entry=entries.find(item=>item.key===button.dataset.chatFile);
+    if(!entry)return;
+    const target={...entry,context,url:entry.file.url,mime:entry.file.mime};
+    button.onclick=()=>{
+      if(!chatAttachmentIsCurrent(target)){toast('Załącznik zmienił się. Otwórz ponownie czat zlecenia.');return;}
+      openModal('chat-file-preview',target);
+    };
+  });
 }
 
 function bindChatComposer(record){
@@ -2983,6 +3050,7 @@ function bindStopView(){
   if($('#stop-chat-back'))$('#stop-chat-back').onclick=()=>goStop(currentStop().returnScreen||'travel');
   $$('[data-stop-chat]').forEach(button=>button.onclick=()=>goStop('chat'));
   bindChatComposer(currentStop());
+  bindChatAttachments(currentStop());
   $$('[data-fuel-photo]').forEach(button=>button.onclick=()=>openModal('fuel-photo',{key:button.dataset.fuelPhoto}));
   if($('#expense-country'))$('#expense-country').onchange=event=>{currentStop().expense.country=event.target.value;render();};
   if($('#fuel-liters'))$('#fuel-liters').oninput=event=>{currentStop().expense.liters=event.target.value;refreshStopAction();};
@@ -3127,6 +3195,7 @@ function bindView(){
   if($('#review-back'))$('#review-back').onclick=()=>go('documents');
   if($('#chat-back'))$('#chat-back').onclick=()=>go(state.returnScreen);
   bindChatComposer(current());
+  bindChatAttachments(current());
   if($('#copy-reference'))$('#copy-reference').onclick=async()=>{try{await navigator.clipboard.writeText(optional().ref);toast('REF został skopiowany.');}catch{openModal('copy');}};
   $('#main-action').onclick=()=>{
     const action=$('#main-action').dataset.action;
@@ -3211,6 +3280,8 @@ function openModal(type,target){
   state.modal={type,target};
   let title='',body='';
 
+  if(type==='backend-chat-file-preview'){const preview=backendChatAttachmentPreview(target);title=preview.title;body=preview.body;}
+  if(type==='chat-file-preview'){const preview=chatAttachmentPreview(target);title=preview.title;body=preview.body;}
   if(type==='operation-status'){title='Co dzieje się na miejscu?';body=operationStatusPromptView();}
   if(type==='designed-views'){
     title='Wszystkie widoki do testów';
@@ -3366,6 +3437,7 @@ function openModal(type,target){
   if(['help','live-help','route-help'].includes(type))body+=privacyPolicyLink();
   $('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="modal-title">${title}</h3><button class="icon-button" id="close-modal" aria-label="Zamknij">${icon('close')}</button></div>${body}</section></div>`;
   $('#close-modal').onclick=()=>closeModal();
+  if(['chat-file-preview','backend-chat-file-preview'].includes(type)&&$('[data-chat-preview-image]'))$('[data-chat-preview-image]').onerror=event=>{event.currentTarget.hidden=true;const error=$('[data-chat-preview-error]');if(error)error.hidden=false;};
   if(type==='operation-status')bindOperationTimer();
   if($('#collection-missing-from-scan'))$('#collection-missing-from-scan').onclick=()=>openModal('collection-missing');
   if($('#collection-reference-back'))$('#collection-reference-back').onclick=()=>closeModal();
@@ -3887,6 +3959,7 @@ let backendTestWorkspace=false;
 let testingWorkspaceInitialized=false;
 let backendRememberMe=browserBackend;
 let backendState={status:'disconnected',message:'Zaloguj się kontem kierowcy Super Spedytora'};
+let backendChatRead=null,backendChatEpoch=0;
 // The native preflight runs before it publishes write.pending. Keep the UI
 // isolated from test data throughout that asynchronous gap as well.
 let backendPointActionPending=null;
@@ -4228,15 +4301,117 @@ function renderBackendOperationScreen(scroll=0){
   bindInventoryCards();
   $('#app-scroll').scrollTop=scroll;
 }
+function backendChatSelection(){
+  if(!backendMode||backendTestWorkspace||backendActiveNav!=='chat'||backendState?.status!=='connected'||backendState.offline===true||backendState.refreshing===true||browserBackend)return null;
+  const profile=backendState.profile,user=positiveTachoId(profile?.id),owner=tachoSessionKey(backendState);
+  if(!owner||!user||user.length>12||profile?.has_driver!==true||typeof driverBridge?.backendRequest!=='function')return null;
+  let origin;
+  try{const url=new URL(backendState.backend_origin);if(url.protocol!=='https:'||url.username||url.password||url.port||url.pathname!=='/'||url.search||url.hash||!['dev.amg-trans.eu','tms.amg.eco'].includes(url.hostname))return null;origin=url.origin;}catch{return null;}
+  const selected=liveRouteSelection(),point=selected?.point,offer=positiveTachoId(point?.transport_offer);
+  if(!offer||offer.length>12||!['pending','in_progress'].includes(point?.status))return null;
+  return {key:`${owner}|${offer}|${selected.key}`,origin,user,offer,order:String(point.order_number||'')};
+}
+function backendChatCurrent(read){return Boolean(read&&backendChatRead===read&&read.epoch===backendChatEpoch&&backendChatSelection()?.key===read.context.key);}
+function releaseBackendChatFile(file){const token=typeof file?.url==='string'&&file.url.match(/^ssfile:\/\/local\/([a-f0-9]{32})$/)?.[1];if(token)try{nativeReleaseFile(token);}catch{}}
+function invalidateBackendChatRead(){
+  backendChatEpoch++;
+  if(state.modal?.type==='backend-chat-file-preview')closeModal(false);
+  if(backendChatRead)for(const file of backendChatRead.files.values())releaseBackendChatFile(file);
+  backendChatRead=null;
+}
+function backendChatNextPage(value,context,page){
+  if(value===null)return null;
+  if(typeof value!=='string')throw Error('Nieprawidłowa paginacja czatu.');
+  const url=new URL(value,context.origin+'/api/'),path=`/api/chat/threads/${context.offer}/messages/`;
+  const keys=[...url.searchParams.keys()];
+  if(url.origin!==context.origin||url.username||url.password||url.hash||url.pathname!==path||keys.length!==2||new Set(keys).size!==2||!keys.includes('page')||!keys.includes('page_size')||url.searchParams.get('page_size')!=='30'||url.searchParams.get('page')!==String(page+1))throw Error('Nieprawidłowa paginacja czatu.');
+  return page+1;
+}
+function backendChatMessages(body){
+  if(!body||typeof body!=='object'||!Number.isSafeInteger(body.count)||body.count<0||!Array.isArray(body.results)||body.results.length>30||body.count<body.results.length||!(body.next===null||typeof body.next==='string'))throw Error('Nieprawidłowa odpowiedź czatu.');
+  return body.results.map(message=>{
+    const id=positiveTachoId(message?.id);
+    if(!id||id.length>12||typeof message.body!=='string'||message.body.length>10000||!Array.isArray(message.attachments)||message.attachments.length>30)throw Error('Nieprawidłowa wiadomość czatu.');
+    const seen=new Set();
+    const attachments=message.attachments.map(file=>{
+      const id=positiveTachoId(file?.id);
+      if(!id||id.length>12||seen.has(id))throw Error('Nieprawidłowy załącznik czatu.');seen.add(id);
+      return {id,kind:String(file.kind||''),name:String(file.download_name||file.original_name||'Załącznik').slice(0,1000),status:String(file.processing_status||'')};
+    });
+    return {id,body:message.body,sender:String(message.sender?.display_name||'Użytkownik').slice(0,200),senderId:positiveTachoId(message.sender?.user_id),createdAt:String(message.created_at||''),attachments};
+  });
+}
+function backendChatFailure(status){return status===401?'Sesja wygasła. Zaloguj się ponownie.':status===403?'Brak dostępu do czatu tego zlecenia.':status===404?'Czat tego zlecenia nie jest dostępny na serwerze.':'Nie udało się odczytać wiadomości. Spróbuj ponownie.';}
+async function loadBackendChatPage(read,page){
+  if(!backendChatCurrent(read)||read.loading||page<1||page>20)return;
+  read.loading=true;read.error='';read.retryPage=page;
+  try{
+    // Chat reads bypass the offline request cache. No detail/retrieve endpoint:
+    // the backend may create a thread there, whereas messages GET is read-only.
+    const result=await nativeCall(id=>driverBridge.backendRequest(id,'GET',`chat/threads/${read.context.offer}/messages/?page_size=30&page=${page}`,''));
+    if(!backendChatCurrent(read))return;
+    if(result?.cached===true||result?.status!==200)throw Error(backendChatFailure(result?.status));
+    const messages=backendChatMessages(result.body),next=backendChatNextPage(result.body.next,read.context,page);
+    const byId=new Map(read.messages.map(message=>[message.id,message]));for(const message of messages)if(!byId.has(message.id))byId.set(message.id,message);
+    read.messages=[...byId.values()].sort((a,b)=>(Date.parse(a.createdAt)||0)-(Date.parse(b.createdAt)||0)||Number(a.id)-Number(b.id));
+    read.count=result.body.count;read.page=page;read.nextPage=next&&next<=20?next:null;read.limitReached=next>20;read.loaded=true;
+  }catch(error){if(backendChatCurrent(read))read.error=error.message||'Nie udało się odczytać wiadomości.';}
+  finally{if(backendChatCurrent(read)){read.loading=false;renderBackendChatScreen($('#app-scroll').scrollTop);}}
+}
+function backendChatDate(value){try{const date=new Date(value);if(!value||Number.isNaN(date.getTime()))return 'Brak czasu w TMS';return new Intl.DateTimeFormat('pl-PL',{timeZone:'Europe/Warsaw',dateStyle:'short',timeStyle:'short'}).format(date);}catch{return 'Brak czasu w TMS';}}
+function backendChatMessageView(message,read){
+  const attachments=message.attachments.map(file=>{
+    const key=`${message.id}:${file.id}`,supported=['image','document'].includes(file.kind),ready=file.status==='done'&&supported,available=ready&&typeof driverBridge?.openChatAttachment==='function';
+    const detail=!supported?'Podgląd tego formatu nie jest dostępny.':file.status!=='done'?'Plik jest przetwarzany lub podgląd jest niedostępny.':available?'Otwórz podgląd':'Podgląd wymaga aktualnej wersji aplikacji.';
+    return `<button type="button" class="chat-file chat-file-action" data-backend-chat-attachment="${key}" ${available&&!read.attachmentLoading?'':'disabled'} aria-label="${esc('Otwórz załącznik: '+file.name)}">${icon(file.kind==='image'?'camera':'doc')}<span class="chat-file-description"><strong>${esc(file.name)}</strong><small>${esc(detail)}</small></span>${icon('arrow')}</button>`;
+  }).join('');
+  const own=message.senderId===read.context.user;
+  return `<article class="${own?'chat-message-own':'chat-bubble'}"><span>${esc(message.sender)}</span><p>${esc(message.body)}</p><small>${esc(backendChatDate(message.createdAt))}</small>${attachments}</article>`;
+}
+function backendChatAttachmentCurrent(target){return Boolean(backendChatCurrent(target?.read)&&target.read.files.get(target.key)===target.file);}
+function backendChatAttachmentPreview(target){
+  if(!backendChatAttachmentCurrent(target))return {title:'Podgląd załącznika',body:'<p class="cmr-preview-error" role="status">Ten załącznik nie jest już dostępny. Otwórz ponownie czat zlecenia.</p>'};
+  const {file}=target,title=esc(file.name||'Załącznik');
+  if(file.mime==='application/pdf')return {title,body:window.CmrDocumentPreview.markup(file,{native:driverBridge})};
+  return {title,body:`<img class="chat-preview-image" data-chat-preview-image src="${esc(file.url)}" alt="${title}"><p class="cmr-preview-error" data-chat-preview-error role="status" hidden>Nie udało się odczytać zdjęcia. Otwórz ponownie załącznik.</p>`};
+}
+async function openBackendChatAttachment(read,key){
+  if(!backendChatCurrent(read)||read.attachmentLoading||typeof driverBridge?.openChatAttachment!=='function')return;
+  const [messageId,attachmentId]=String(key).split(':'),message=read.messages.find(item=>item.id===messageId),attachment=message?.attachments.find(item=>item.id===attachmentId);
+  if(!attachment||attachment.status!=='done'||!['image','document'].includes(attachment.kind))return;
+  const cached=read.files.get(key);
+  if(cached){openModal('backend-chat-file-preview',{read,key,file:cached});return;}
+  read.attachmentLoading=true;read.attachmentError='';renderBackendChatScreen($('#app-scroll').scrollTop);
+  try{
+    const result=await nativeCall(id=>driverBridge.openChatAttachment(id,Number(read.context.offer),Number(messageId),Number(attachmentId)));
+    const file=result?.body;
+    if(!backendChatCurrent(read)){releaseBackendChatFile(file);return;}
+    if(result?.status!==200||result?.cached===true||!file||typeof file.url!=='string'||!/^ssfile:\/\/local\/[a-f0-9]{32}$/.test(file.url)||!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.mime)){releaseBackendChatFile(file);throw Error('Nie udało się bezpiecznie otworzyć załącznika. Spróbuj ponownie.');}
+    const local={url:file.url,mime:file.mime,name:String(file.name||attachment.name).slice(0,1000),pages:Number.isSafeInteger(file.pages)&&file.pages>0?Math.min(file.pages,20):undefined};
+    read.files.set(key,local);openModal('backend-chat-file-preview',{read,key,file:local});
+  }catch(error){if(backendChatCurrent(read))read.attachmentError=error.message||'Nie udało się otworzyć załącznika.';}
+  finally{if(backendChatCurrent(read)){read.attachmentLoading=false;renderBackendChatScreen($('#app-scroll').scrollTop);}}
+}
 function renderBackendChatScreen(scroll=0){
   surveyRegisterScreen?.destroy();surveyRegisterScreen=null;
-  const point=liveRouteSelection()?.point,order=String(point?.order_number||'');
-  $('#app').innerHTML=`<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${order?esc(order):'Wiadomości Twojego konta'}</small></span><span class="badge orange">Niedostępne</span></div><section class="panel service-history-empty" role="status">${icon('chat')}<h3>Czat nie jest jeszcze dostępny</h3><p>Ta wersja aplikacji nie udostępnia jeszcze wiadomości tego konta. Dokumentację zlecenia możesz kontynuować w Operacji.</p></section><div class="chat-composer"><input disabled placeholder="Czat nie jest dostępny w tej wersji" aria-label="Wiadomość do spedytora"><button disabled aria-label="Wyślij wiadomość">${icon('arrow')}</button></div></div>`;
-  $('#app-action').innerHTML='';$('#design-context').innerHTML='';
-  $('#preview-label').textContent='CZAT / SUPER SPEDYTOR';
+  const context=backendChatSelection();
+  if(!context){
+    if(typeof backendChatRead!=='undefined'&&backendChatRead)invalidateBackendChatRead();
+    const order=String(liveRouteSelection()?.point?.order_number||'');
+    $('#app').innerHTML=`<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${esc(order||'Wiadomości Twojego konta')}</small></span><span class="badge orange">Niedostępne</span></div><section class="panel service-history-empty" role="status"><h3>Nie można otworzyć czatu</h3><p>Wymagane jest aktualne połączenie z kontem kierowcy i zlecenie na aktywnej trasie. Odśwież dane w Operacji.</p></section><div class="chat-composer"><input disabled placeholder="Czat wymaga połączenia i aktywnego zlecenia" aria-label="Wiadomość do spedytora"><button disabled aria-label="Wyślij wiadomość">${icon('arrow')}</button></div></div>`;
+  }else{
+    if(!backendChatRead||backendChatRead.context.key!==context.key){invalidateBackendChatRead();backendChatRead={context,epoch:backendChatEpoch,messages:[],files:new Map(),page:0,nextPage:null,count:0,loaded:false,loading:false,attachmentLoading:false,error:'',attachmentError:''};loadBackendChatPage(backendChatRead,1);}
+    const read=backendChatRead;
+    const status=read.loading?'<p class="small-note" role="status">Wczytuję wiadomości z TMS…</p>':read.error?`<section class="panel" role="alert"><p>${esc(read.error)}</p><button type="button" class="secondary-button" id="backend-chat-retry">Spróbuj ponownie</button></section>`:read.loaded&&!read.messages.length?'<section class="panel" role="status"><p>W tym zleceniu nie ma jeszcze wiadomości.</p></section>':'';
+    $('#app').innerHTML=`<div class="app-content"><div class="chat-header"><button id="chat-back" aria-label="Wróć do operacji">${icon('back')}</button><span><strong>Czat zlecenia</strong><small>${esc(context.order||'Zlecenie '+context.offer)}</small></span><span class="badge orange">Tylko odczyt</span></div><button type="button" class="secondary-button" id="backend-chat-refresh">${icon('refresh')}Odśwież wiadomości</button>${status}${read.loaded?`<p class="small-note">Wyświetlono ${read.messages.length} z ${read.count} wiadomości.</p>`:''}${read.nextPage&&!read.error?`<button type="button" class="secondary-button" id="backend-chat-older" ${read.loading?'disabled':''}>Wczytaj starsze wiadomości</button>`:''}${read.limitReached?'<p class="small-note" role="status">Wyświetlono 20 stron najnowszych wiadomości. Starszą historię sprawdzisz w TMS.</p>':''}${read.messages.map(message=>backendChatMessageView(message,read)).join('')}${read.attachmentLoading?'<p class="small-note" role="status">Pobieram bezpieczny podgląd załącznika…</p>':''}${read.attachmentError?`<p class="cmr-preview-error" role="alert">${esc(read.attachmentError)}</p>`:''}<div class="chat-composer"><input disabled placeholder="Ta wersja czatu służy tylko do odczytu" aria-label="Wiadomość do spedytora"><button disabled aria-label="Wyślij wiadomość">${icon('arrow')}</button></div><p class="small-note">Wysyłanie wiadomości i nowych załączników nie jest dostępne w tej wersji.</p></div>`;
+    $('#backend-chat-refresh').onclick=()=>{invalidateBackendChatRead();renderBackendChatScreen(0);};
+    if($('#backend-chat-retry'))$('#backend-chat-retry').onclick=()=>{loadBackendChatPage(read,read.retryPage||1);renderBackendChatScreen(scroll);};
+    if($('#backend-chat-older'))$('#backend-chat-older').onclick=()=>{loadBackendChatPage(read,read.nextPage);renderBackendChatScreen(scroll);};
+    $$('[data-backend-chat-attachment]').forEach(button=>button.onclick=()=>openBackendChatAttachment(read,button.dataset.backendChatAttachment));
+  }
+  $('#app-action').innerHTML='';$('#design-context').innerHTML='';$('#preview-label').textContent='CZAT / SUPER SPEDYTOR';
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='chat'));
-  $('#chat-back').onclick=()=>handleConnectedBackendNavigation('now');
-  $('#app-scroll').scrollTop=scroll;
+  $('#chat-back').onclick=()=>handleConnectedBackendNavigation('now');$('#app-scroll').scrollTop=scroll;
 }
 function renderBackendServiceUnavailableScreen(panel,scroll=0){
   const labels={survey:['CODZIENNA KONTROLA','Ankieta serwisowa','Ta wersja aplikacji nie udostępnia jeszcze bieżącej ankiety Twojego konta.'],inventory:['STAN POJAZDU I WYPOSAŻENIA','Inwentaryzacja','Ta wersja aplikacji nie udostępnia jeszcze przypisanej inwentaryzacji Twojego konta.'],handover:['AUTO I WYPOSAŻENIE','Przekazanie auta','Ta wersja aplikacji nie udostępnia jeszcze protokołu przekazania Twojego konta.']};
@@ -4492,6 +4667,8 @@ window.SuperSpedytorBackend={
     const previousContext={point:liveOperation?.point||backendLastNearest,owner:backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`};
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    if(state.modal?.type==='chat-file-preview'&&!chatAttachmentIsCurrent(state.modal.target))closeModal(false);
+    if(typeof backendChatRead!=='undefined'&&backendChatRead&&!backendChatCurrent(backendChatRead))invalidateBackendChatRead();
     const receivedOwner=backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`;
     if(tachoReadonlyScreen&&(!previousTachoOwner||previousTachoOwner!==tachoSessionKey(backendState)))closeBackendReadOnlyTacho(false);
     if(receivedOwner!==previousContext.owner){backendPointActionPending=null;backendServicePanel='history';}
