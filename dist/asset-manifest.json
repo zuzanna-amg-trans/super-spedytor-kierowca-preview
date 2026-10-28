@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "8371223562878410ae55a9ce5ea7f4b906c95e5d",
+  "sourceCommit": "ca8a9ed8624b86e7b6d7db6966c7f0c2a2705dae",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "7152702290222614ba6010107a612b2cddf21ed1546dd8c20e1f442f39d47217",
+  "assetManifestSha256": "fa96efa194d5047758676890410230bfda544b7470dcab6e1e4a777ca929fe79",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -198,8 +198,8 @@
     },
     {
       "path": "readability.css",
-      "sha256": "83cc71c69a4a163c76197f4213864726a1dabeabcc506e729920a523f7e182cb",
-      "size": 2696
+      "sha256": "5147c8040f7604d540297de35b6cb7ff16ee328682b2a480a34890bb0823642a",
+      "size": 2952
     },
     {
       "path": "robots.txt",

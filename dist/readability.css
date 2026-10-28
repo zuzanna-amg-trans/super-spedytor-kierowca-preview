@@ -1,5 +1,8 @@
 /* Larger text in the existing approved phone layout. Decorative artwork and
    document miniatures retain their own scale; instructions and controls wrap. */
+/* Other integrated phone sheets consume these tokens. Keep their text at the
+   same readable 16/14 px scale already verified in the bundled iOS interface. */
+html.android-shell .device{--driver-body-size:16px!important;--driver-meta-size:14px!important}
 .android-shell .bottom-nav.five-items button,.android-shell .bottom-nav button{font-size:12px;line-height:1.25}
 .android-shell .overline,.android-shell .section-kicker,.android-shell .metric-label,
 .android-shell .field-label,.android-shell .cmr-section-label,.android-shell .attachment-label{font-size:13px;line-height:1.45}
