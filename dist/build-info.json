@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "91609aad6652351c10fc79f4a0830e99476bdfcd",
+  "sourceCommit": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T11:08:51.637Z",
+  "builtAt": "2026-10-28T11:15:51.278Z",
   "assetManifestSha256": "5212d60bbaeda71cc07b97f7638299c1dc8ce94f7831cf84f4e3e72223c40fb6",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "91609aad6652351c10fc79f4a0830e99476bdfcd",
-    "initialIntegrationSha": "1ce9739b2087a92cfd2c9245299c156ae1ac204e",
+    "candidateSha": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
+    "initialIntegrationSha": "91609aad6652351c10fc79f4a0830e99476bdfcd",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "1ce9739b2087a92cfd2c9245299c156ae1ac204e",
+    "baseSha": "91609aad6652351c10fc79f4a0830e99476bdfcd",
     "branches": [
       {
         "name": "main",
@@ -86,7 +86,7 @@
       },
       {
         "name": "codex/scankit-cmr",
-        "sha": "8c4b1db3a306c31c29775286fbf1ed96f42a5797"
+        "sha": "f007ca86373727c1eb89af2eb3f2c1653de232c4"
       },
       {
         "name": "codex/scanner-fold-shadows",
@@ -121,7 +121,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-91609aad6652351c10fc79f4a0830e99476bdfcd/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-289006bf6005dfe7badb1181ec8ffcaea18c071b/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
