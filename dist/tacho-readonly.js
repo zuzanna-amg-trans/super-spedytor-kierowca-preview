@@ -43,11 +43,16 @@
     const status={ok:'Stan TMS',warning:'TMS: zwróć uwagę',violation:'TMS: sprawdź odczyt'}[data?.status]||'Wg odczytu TMS';
     const since=data?.currentSinceLabel?`${data.mode==='rest'?'Odpoczynek':data.modeLabel} od ${data.currentSinceLabel}`:'Brak godziny rozpoczęcia w TMS';
     const rest=data?.mode==='rest';
-    const mainValue=rest?data.currentDurationSeconds:data?.timeToBreakSeconds;
-    const mainLabel=rest?'Trwanie odpoczynku według TMS':'Do wymaganej przerwy według TMS';
+    const plan=rest?data.restProgress:null;
+    const hasRestEnd=Boolean(plan?.endAtLabel);
+    const mainValue=rest?(hasRestEnd?plan.remainingSeconds:data.currentDurationSeconds):data?.timeToBreakSeconds;
+    const mainLabel=rest?(hasRestEnd?(plan.planConfirmed?'Do końca odpoczynku według TMS':'Szacowany czas do końca odpoczynku'):'Trwanie odpoczynku według TMS'):'Do wymaganej przerwy według TMS';
+    const restDetails=rest?`${hasRestEnd?`<div class="tacho-driver-fact"><span>Trwa według TMS</span><strong>${duration(data.currentDurationSeconds)}</strong></div>`:''}${hasRestEnd?`<p class="tro-current-since">${plan.planConfirmed?'Koniec odpoczynku':'Szacowany koniec'}: ${e(plan.endAtLabel)}</p><p>${e(`Podstawa ${duration(plan.baseDurationSeconds)}${plan.compensationBeforeSeconds>0?' + rekompensata '+duration(plan.compensationBeforeSeconds):''}`)}</p>${plan.planEstimated?'<p>Rozliczenie wymaga potwierdzenia w TMS.</p>':''}`:'<p>Stan odpoczynku jest odczytany. TMS nie potwierdził jego rozliczenia ani terminu zakończenia.</p>'}${plan?.otherCompensationOwedSeconds>0?`<p>Inna rekompensata do rozliczenia: ${duration(plan.otherCompensationOwedSeconds)}</p>`:''}<p>Koniec tego odpoczynku nie potwierdza pozostałych limitów jazdy i pracy.</p>`:'';
+    const last=state==='stale'&&view?.state==='stale'?view.lastActivity:null;
+    const historical=last?`<p>Ostatnio zapisany stan: ${e(last.modeLabel.toLocaleLowerCase('pl-PL'))}${last.sinceLabel?' od '+e(last.sinceLabel):''}. To odczyt historyczny, nie potwierdzenie bieżącej aktywności.</p>`:'';
     const now=ready
-      ?`<section class="tacho-now-card tro-now-card ${e(data.mode)}"><div class="tacho-now-top"><span class="tacho-status tro-mode ${e(data.mode)}"><span class="tacho-status-dot"></span>Teraz · ${e(data.modeLabel)}</span><span class="tacho-status-time">${e(status)}</span></div><div class="tacho-driver-instruction tro-current-reading"><span>${e(mainLabel)}</span><strong class="tacho-primary-time">${duration(mainValue)}</strong><p class="tro-current-since">${e(since)}</p><small>Wg ostatniego odczytu TMS</small></div><div class="tacho-driver-fact"><span>Jazda od pełnej przerwy</span><strong>${duration(data.continuousDriveSeconds)}</strong></div></section>`
-      :`<section class="tacho-now-card tro-now-card tro-empty" role="${state==='error'?'alert':'status'}"><div class="tacho-now-top"><span class="tacho-status">${icon(state==='loading'?'clock':'info')}Stan odczytu</span></div><h3>${e((STATES[state]||STATES.error)[0])}</h3><p>${e(errorMessage||(STATES[state]||STATES.error)[1])}</p><strong class="tacho-primary-time" aria-label="Brak potwierdzonego licznika">—</strong></section>`;
+      ?`<section class="tacho-now-card tro-now-card ${e(data.mode)}"><div class="tacho-now-top"><span class="tacho-status tro-mode ${e(data.mode)}"><span class="tacho-status-dot"></span>Teraz · ${e(data.modeLabel)}</span><span class="tacho-status-time">${e(status)}</span></div><div class="tacho-driver-instruction tro-current-reading"><span>${e(mainLabel)}</span><strong class="tacho-primary-time">${duration(mainValue)}</strong><p class="tro-current-since">${e(since)}</p><small>Wg ostatniego odczytu TMS</small></div>${restDetails}<div class="tacho-driver-fact"><span>Jazda od pełnej przerwy</span><strong>${duration(data.continuousDriveSeconds)}</strong></div></section>`
+      :`<section class="tacho-now-card tro-now-card tro-empty" role="${state==='error'?'alert':'status'}"><div class="tacho-now-top"><span class="tacho-status">${icon(state==='loading'?'clock':'info')}Stan odczytu</span></div><h3>${e((STATES[state]||STATES.error)[0])}</h3><p>${e(errorMessage||(STATES[state]||STATES.error)[1])}</p>${historical}<strong class="tacho-primary-time" aria-label="Brak potwierdzonego licznika">—</strong></section>`;
     const limit=data?.shiftDriveLimitSeconds,remaining=data?.shiftDriveRemainingSeconds;
     const dailyDescription=limit!=null
       ?`Limit wg TMS: ${duration(limit)}${remaining!=null?` · pozostało ${duration(remaining)}`:''}`
@@ -72,7 +77,7 @@
       ${heading('Dzisiejsza aktywność','Bieżący okres wg TMS')}
       <section class="tacho-activity-card"><div class="tacho-period-list" aria-label="Bieżąca aktywność z TMS">${currentActivity}</div>${metric('Praca w zmianie',data?.dailyWorkSeconds,'tro-work-summary')}<p class="tro-history-note">Pełna lista dzisiejszych okresów jest niedostępna.</p></section>
       ${heading('Odpoczynki','Najważniejsze terminy')}
-      <section class="tacho-rest-list"><div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>Ostatni odpoczynek dobowy</small><strong>—</strong></div><b>${unknown}</b></div><div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>Następny odpoczynek dobowy</small><strong>—</strong></div><b>Brak terminu</b></div></section>
+      <section class="tacho-rest-list">${rest?`<div class="tacho-rest-row"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>Bieżący odpoczynek od</small><strong>${e(data.currentSinceLabel||'Brak godziny w TMS')}</strong></div><b>Wg odczytu</b></div><div class="tacho-rest-row ${hasRestEnd?'':'tro-unavailable'}"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>${hasRestEnd?(plan.planConfirmed?'Koniec odpoczynku wg TMS':'Szacowany koniec odpoczynku'):'Termin zakończenia odpoczynku'}</small><strong>${e(plan?.endAtLabel||'Wymaga potwierdzenia w TMS')}</strong></div><b>${hasRestEnd?duration(plan.totalDurationSeconds):'Brak rozliczenia'}</b></div>`:`<div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>Ostatni odpoczynek dobowy</small><strong>—</strong></div><b>${unknown}</b></div><div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>Następny odpoczynek dobowy</small><strong>—</strong></div><b>Brak terminu</b></div>`}</section>
       ${alerts}${note}
     </div>`;
   }
@@ -114,7 +119,8 @@
       if(!alive()){close();return false;}
       if(raw&&!hidden()){
         const next=model.build(raw,options.getSession(),clock());
-        const changed=next.state!==view?.state||next.currentSince!==view?.currentSince||next.shiftStartedAt!==view?.shiftStartedAt;
+        const changed=next.state!==view?.state||next.currentSince!==view?.currentSince||next.shiftStartedAt!==view?.shiftStartedAt
+          ||JSON.stringify(next.restProgress)!==JSON.stringify(view?.restProgress);
         view=next;displayState=next.state;
         if(next.state==='error'){raw=null;error=ERROR_MESSAGES[next.reason]||STATES.error[1];}
         if(changed)paint();

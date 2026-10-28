@@ -974,9 +974,13 @@ function buildDeclaredEvent(event, nowMs) {
  * @param {number} nowMs - bieżący znacznik czasu (ms epoch), wstrzykiwany z zewnątrz
  * @returns {DriverTachoView}
  */
-function restFacts(data) {
+function restFacts(data, nowMs) {
   const progress = data?.rest_progress;
-  const weekly = String(data?.event?.event_type || '').startsWith('weekly_rest_');
+  const type = String(data?.event?.event_type || progress?.event_type || '');
+  const observedStartMs = parseMs(progress?.started_at || data?.compliance?.current?.since);
+  const unresolvedLongRest = !type && observedStartMs !== null
+    && nowMs - observedStartMs > (COACH_CONTEXTS[COACH_DAILY].fullS + REST_COACH_GRACE_S) * 1000;
+  const weekly = type.startsWith('weekly_rest_') || unresolvedLongRest;
   const details = [];
   if (!progress) {
     if (weekly) details.push('TMS nie udostępnił rozliczenia ciągłego odpoczynku i rekompensaty. Godzina zakończenia wymaga potwierdzenia.');
@@ -987,7 +991,9 @@ function restFacts(data) {
   const base = Number(progress.base_duration_s), compensation = Number(progress.compensation_before_s);
   if (base > 0) details.push(`Podstawa: ${fmtDur(base)}${compensation > 0 ? ' + rekompensata ' + fmtDur(compensation) : ''}`);
   if (Number(progress.other_compensation_owed_s) > 0) details.push(`Inna rekompensata do rozliczenia: ${fmtDur(progress.other_compensation_owed_s)}`);
-  if (progress.status !== 'confirmed') details.push('Dane odpoczynku lub historii wymagają weryfikacji. Podany koniec jest szacunkiem.');
+  if (progress.status !== 'confirmed') details.push(endMs !== null
+    ? 'Dane odpoczynku lub historii wymagają weryfikacji. Podany koniec jest szacunkiem.'
+    : 'Rozliczenie odpoczynku wymaga weryfikacji w TMS. Termin zakończenia nie został potwierdzony.');
   if (endMs !== null) details.push('Koniec tego odpoczynku nie potwierdza pozostałych limitów jazdy i pracy.');
   const current = startMs === null ? data?.compliance?.current : { ...data.compliance.current, since: progress.started_at };
   const event = endMs !== null && base > 0 ? { ...data?.event, occurred_at: progress.started_at, duration_s: progress.total_duration_s, end_at: progress.end_at } : null;
@@ -1007,7 +1013,7 @@ function buildDriverTachoView(data, nowMs) {
   const current = compliance.current;
   if (!current || compliance.status === STATUS_NO_DATA) return view;
 
-  const rest = current.work_mode === MODE_REST ? restFacts(data) : null;
+  const rest = current.work_mode === MODE_REST ? restFacts(data, nowMs) : null;
   view.restDetails = rest?.details || [];
 
   const modeKey = MODE[current.work_mode] ? current.work_mode : MODE_FALLBACK_KEY;
@@ -1034,7 +1040,7 @@ function buildDriverTachoView(data, nowMs) {
     view.hero.etaText = rest.hasProgress && parseMs(rest.event?.end_at) !== null
       ? etaLabel(parseMs(rest.event.end_at), nowMs, 'Szacowany koniec: ')
       : 'Koniec odpoczynku wymaga potwierdzenia w TMS';
-    view.hero.label = rest.hasProgress ? 'Szacowany czas odpoczynku' : HERO_REST_LABEL;
+    view.hero.label = rest.hasProgress && rest.event ? 'Szacowany czas odpoczynku' : HERO_REST_LABEL;
   }
   view.bars = buildBars(compliance, driveElapsedSeconds({
     stale: false, lastDataMs, mode: current.work_mode, nowMs,

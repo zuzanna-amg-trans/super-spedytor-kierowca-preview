@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "4d15bed69ea5e63135db71a574629e5301d808fe",
+  "sourceCommit": "b7e8b988109b0c7111d490877d563ad6f3814c24",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "fcc8d5cd76926f08f2f405b02065d340c077fd7c68eebb0ceebec06c7dc65df0",
+  "assetManifestSha256": "18981ced640e124cb069fd131f7bd8c7fbd86bbb4ff6dd79096a97aed0aa85b2",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -128,13 +128,13 @@
     },
     {
       "path": "flow.css",
-      "sha256": "1caf17774ea1f8dc8ae80d812bc2283518272c948fe0b67e35e4617b395450fb",
-      "size": 102133
+      "sha256": "dd4b227784c748f1e8a6258392ecd005a583031ac9060854a93e1e97092746dc",
+      "size": 103221
     },
     {
       "path": "flow.js",
-      "sha256": "3f0221960231aefe4ec230173c7e9bac84988701c0982b06981a9b94f192da86",
-      "size": 447297
+      "sha256": "5fd90f27f82b39aa455a09e572f31fb988348ea7fa6382eba6618c0d01369f91",
+      "size": 448445
     },
     {
       "path": "handover-v2.css",
@@ -258,13 +258,13 @@
     },
     {
       "path": "tacho-live-model.js",
-      "sha256": "633d697f3f4dd6ef6d254c98d75b6059df6ab3e38877532faf783cc49262e31c",
-      "size": 43683
+      "sha256": "57ba4a986cd49a2837eef818306752aa0918ff3958753e57036f6bb9a2972f0e",
+      "size": 44156
     },
     {
       "path": "tacho-readonly-model.js",
-      "sha256": "5d785d46647cb450d95d710b4dbd373272edb3414e2ea26182cd4afef351f5a4",
-      "size": 7414
+      "sha256": "8b3f4963160b20e1defb68641ef4e374f4b08c6cb8964d188a24e181aff8385e",
+      "size": 10544
     },
     {
       "path": "tacho-readonly.css",
@@ -273,8 +273,8 @@
     },
     {
       "path": "tacho-readonly.js",
-      "sha256": "1ca0e0a20a744c68c48f2ae0fd6c36ce0099e8a1391497f01775c6abdcbac4c9",
-      "size": 17505
+      "sha256": "b177cf222c3ff9f7bbb1b4520b1da6d9a0b407e4416c0322bddc7ebf11615962",
+      "size": 19698
     },
     {
       "path": "tacho.css",

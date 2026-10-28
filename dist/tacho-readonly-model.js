@@ -43,7 +43,7 @@
   function empty(state='no_data',reason='no_data'){
     return {state,reason,ready:false,observedAt:null,sourceNames:[],mode:null,modeLabel:null,status:null,
       currentSince:null,currentSinceLabel:null,shiftStartedAt:null,shiftStartedAtLabel:null,
-      currentDurationSeconds:null,continuousDriveSeconds:null,timeToBreakSeconds:null,shiftDriveSeconds:null,
+      lastActivity:null,restProgress:null,currentDurationSeconds:null,continuousDriveSeconds:null,timeToBreakSeconds:null,shiftDriveSeconds:null,
       shiftDriveLimitSeconds:null,shiftDriveRemainingSeconds:null,dailyWorkSeconds:null,
       weekDriveSeconds:null,fortnightDriveSeconds:null,dailyHistoryComplete:false,weeklyHistoryComplete:false,alerts:[]};
   }
@@ -59,6 +59,10 @@
     view.sourceNames=[...new Set(sourceKeys)].map(s=>SOURCES[s]);
     if(c.status==='no_data'||!object(c.current)||!own(MODES,c.current.work_mode))return view;
     if(typeof nowMs!=='number'||!Number.isFinite(nowMs)||view.observedAt===null)return {...view,state:'stale',reason:'timestamp'};
+    const since=activityStart(c.current.since,view.observedAt,nowMs);
+    const rest=c.current.work_mode==='rest'?restProgress(payload.rest_progress,payload.event,nowMs):null;
+    const knownSince=rest?.sourceStartConfirmed?rest.startedAt:since;
+    view.lastActivity={mode:c.current.work_mode,modeLabel:MODES[c.current.work_mode],sinceLabel:formatActivityTimestamp(knownSince,view.observedAt)};
     const age=nowMs-view.observedAt;
     if(c.stale!==false||age>MAX_AGE_MS||age< -FUTURE_SKEW_MS)return {...view,state:'stale',reason:'expired'};
     view.state='ready';view.reason=null;view.ready=true;view.mode=c.current.work_mode;view.modeLabel=MODES[view.mode];view.status=c.status;
@@ -69,6 +73,14 @@
     view.shiftStartedAt=activityStart(c.daily?.shift_start,view.observedAt,nowMs);
     view.shiftStartedAtLabel=formatActivityTimestamp(view.shiftStartedAt,view.observedAt);
     view.currentDurationSeconds=seconds(c.current.duration_s);
+    if(view.mode==='rest'){
+      view.restProgress=rest;
+      if(view.restProgress?.startConfirmed){
+        view.currentSince=view.restProgress.startedAt;
+        view.currentSinceLabel=formatActivityTimestamp(view.currentSince,view.observedAt);
+        view.currentDurationSeconds=view.restProgress.elapsedSeconds;
+      }
+    }
     view.continuousDriveSeconds=seconds(c.break?.continuous_drive_s);
     view.timeToBreakSeconds=seconds(c.break?.time_to_break_s);
     view.shiftDriveSeconds=seconds(c.daily?.drive_s);
@@ -82,6 +94,35 @@
     view.alerts=(Array.isArray(payload.alerts)?payload.alerts:[]).filter(a=>object(a)&&id(a.driver)===context.driverId&&a.resolved_at==null)
       .slice(0,5).map(a=>({message:typeof a.message==='string'?a.message.slice(0,240):typeof a.alert_type_label==='string'?a.alert_type_label.slice(0,240):'Alert TMS',severity:[10,20,30].includes(a.severity)?a.severity:10}));
     return view;
+  }
+  // B896: a later declaration chooses the rest type, not a new start.
+  // Keep source activity separate from a confirmed target / compensation plan.
+  function restProgress(progress,event,nowMs){
+    if(!object(progress)||progress.scope!=='rest_only'||!['confirmed','needs_verification'].includes(progress.status))return null;
+    const at=timestamp(progress.data_as_of),start=timestamp(progress.started_at);
+    if(at===null||start===null||start<=0||start>at||start>nowMs||at-nowMs>FUTURE_SKEW_MS)return null;
+    const fresh=progress.stale===false&&nowMs-at<=MAX_AGE_MS;
+    const elapsed=seconds(progress.elapsed_s),remaining=seconds(progress.remaining_s);
+    const base=seconds(progress.base_duration_s),compensation=seconds(progress.compensation_before_s);
+    const total=seconds(progress.total_duration_s),end=timestamp(progress.end_at);
+    const type=typeof progress.event_type==='string'?progress.event_type:'';
+    const allowed=['break_15','break_30','break_45','daily_rest_9','daily_rest_11','weekly_rest_24','weekly_rest_45'];
+    const reported=timestamp(progress.event_reported_at);
+    const matches=!object(event)||event.event_type===type;
+    const validPlan=fresh&&progress.start_confirmed===true&&allowed.includes(type)&&matches
+      &&reported!==null&&reported>=start&&reported<=nowMs&&base!==null&&base>0
+      &&compensation!==null&&total!==null&&total===base+compensation&&end!==null
+      &&Math.abs(end-start-total*1000)<=1000&&elapsed!==null&&remaining!==null
+      &&Math.abs(Math.max(0,total-elapsed)-remaining)<=2;
+    const confirmed=validPlan&&progress.status==='confirmed'
+      &&Array.isArray(progress.reasons)&&progress.reasons.length===0;
+    return {startedAt:start,sourceStartConfirmed:progress.start_confirmed===true,startConfirmed:progress.start_confirmed===true&&fresh,
+      startedAtLabel:formatActivityTimestamp(start,at),elapsedSeconds:fresh?elapsed:null,
+      planConfirmed:confirmed,planEstimated:validPlan&&!confirmed,stale:!fresh,
+      endAt:validPlan?end:null,endAtLabel:validPlan?formatActivityTimestamp(end,at):null,
+      baseDurationSeconds:validPlan?base:null,compensationBeforeSeconds:validPlan?compensation:null,
+      totalDurationSeconds:validPlan?total:null,remainingSeconds:validPlan?remaining:null,
+      otherCompensationOwedSeconds:fresh?seconds(progress.other_compensation_owed_s):null};
   }
   function activityStart(value,observedAt,nowMs){
     const start=timestamp(value);

@@ -1321,7 +1321,7 @@ function chatAttachmentEntries(record){
   return entries;
 }
 function chatAttachmentsView(record){
-  return chatAttachmentEntries(record).map(entry=>`<button type="button" class="chat-file chat-file-action" data-chat-file="${entry.key}" aria-label="${esc('Otwórz załącznik: '+entry.title)}">${icon(entry.icon)}<span class="chat-file-description"><strong>${esc(entry.title)}</strong><small>${esc(entry.detail)} · Otwórz podgląd</small></span>${icon('arrow')}</button>`).join('');
+  return chatAttachmentEntries(record).map(entry=>`<button type="button" class="chat-file chat-file-action" data-chat-file="${entry.key}" aria-label="${esc('Podgląd załącznika: '+entry.title)}"><span class="chat-file-visual" aria-hidden="true">${icon(entry.icon)}</span><span class="chat-file-description"><strong>${esc(entry.title)}</strong><small>${esc(entry.detail)}</small><b class="chat-file-preview-action">Podgląd</b></span>${icon('arrow')}</button>`).join('');
 }
 function chatAttachmentContext(record){
   return {record,operation:state.operation,routeStop:state.routeStop,testing:backendTestWorkspace,owner:backendMode?`${backendState?.status||''}|${backendState?.backend_origin||'native'}|${backendState?.profile?.id??''}`:'local'};
@@ -3438,8 +3438,10 @@ function openModal(type,target){
     body='<p>Operacja pokazuje Twoją trasę z Super Spedytora. Mapa otwiera lokalizację, a Nawiguj rozpoczyna prowadzenie. Rozpoczęcie i zakończenie punktu, plomby, zdjęcia oraz dokumenty zapisują się w systemie.</p><p>W skanerze CMR sprawdź wszystkie strony, rogi, kolor, podpisy i pieczątki przed zatwierdzeniem PDF. Zadania zamkniętych CMR znajdziesz przy swojej trasie.</p><p>W razie problemu z operacją skontaktuj się ze swoim spedytorem przez ustalony kanał firmowy.</p>';
   }
   if(['help','live-help','route-help'].includes(type))body+=privacyPolicyLink();
+  if(['chat-file-preview','backend-chat-file-preview'].includes(type))body+='<button type="button" class="secondary-button chat-preview-close" id="chat-preview-close">Wróć do czatu</button>';
   $('#modal-root').innerHTML=`<div class="modal-overlay"><section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-handle"></div><div class="modal-title"><h3 id="modal-title">${title}</h3><button class="icon-button" id="close-modal" aria-label="Zamknij">${icon('close')}</button></div>${body}</section></div>`;
   $('#close-modal').onclick=()=>closeModal();
+  if($('#chat-preview-close'))$('#chat-preview-close').onclick=()=>closeModal();
   if(['chat-file-preview','backend-chat-file-preview'].includes(type)&&$('[data-chat-preview-image]'))$('[data-chat-preview-image]').onerror=event=>{event.currentTarget.hidden=true;const error=$('[data-chat-preview-error]');if(error)error.hidden=false;};
   if(type==='operation-status')bindOperationTimer();
   if($('#collection-missing-from-scan'))$('#collection-missing-from-scan').onclick=()=>openModal('collection-missing');
@@ -4393,8 +4395,13 @@ function backendChatDate(value){try{const date=new Date(value);if(!value||Number
 function backendChatMessageView(message,read){
   const attachments=message.attachments.map(file=>{
     const key=`${message.id}:${file.id}`,supported=['image','document'].includes(file.kind),ready=file.status==='done'&&supported,available=ready&&typeof driverBridge?.openChatAttachment==='function';
-    const detail=!supported?'Podgląd tego formatu nie jest dostępny.':file.status!=='done'?'Plik jest przetwarzany lub podgląd jest niedostępny.':available?'Otwórz podgląd':'Podgląd wymaga aktualnej wersji aplikacji.';
-    return `<button type="button" class="chat-file chat-file-action" data-backend-chat-attachment="${key}" ${available&&!read.attachmentLoading?'':'disabled'} aria-label="${esc('Otwórz załącznik: '+file.name)}">${icon(file.kind==='image'?'camera':'doc')}<span class="chat-file-description"><strong>${esc(file.name)}</strong><small>${esc(detail)}</small></span>${icon('arrow')}</button>`;
+    // A thumbnail is only an already attested, explicitly opened local image.
+    // Message file_url is never embedded or fetched while rendering this list.
+    const cached=backendChatCurrent(read)?read.files.get(key):null;
+    const thumbnail=ready&&cached&&['image/jpeg','image/png','image/webp'].includes(cached.mime)&&/^ssfile:\/\/local\/[a-f0-9]{32}$/.test(cached.url)?`<img data-chat-file-thumbnail src="${esc(cached.url)}" alt="">`:'';
+    const detail=!supported?'Podgląd tego formatu nie jest dostępny.':file.status!=='done'?'Plik jest przetwarzany lub podgląd jest niedostępny.':available?(file.kind==='image'?'Zdjęcie':cached?.mime==='application/pdf'?'Dokument PDF':'Dokument'):'Podgląd wymaga aktualnej wersji aplikacji.';
+    const action=available?'Podgląd':'Niedostępny';
+    return `<button type="button" class="chat-file chat-file-action" data-backend-chat-attachment="${key}" ${available&&!read.attachmentLoading?'':'disabled'} aria-label="${esc('Podgląd załącznika: '+file.name)}"><span class="chat-file-visual" aria-hidden="true">${icon(file.kind==='image'?'camera':'doc')}${thumbnail}</span><span class="chat-file-description"><strong>${esc(file.name)}</strong><small>${esc(detail)}</small><b class="chat-file-preview-action">${action}</b></span>${icon('arrow')}</button>`;
   }).join('');
   const own=message.senderId===read.context.user;
   return `<article class="${own?'chat-message-own':'chat-bubble'}"><span>${esc(message.sender)}</span><p>${esc(message.body)}</p><small>${esc(backendChatDate(message.createdAt))}</small>${attachments}</article>`;
@@ -4439,6 +4446,7 @@ function renderBackendChatScreen(scroll=0){
     if($('#backend-chat-retry'))$('#backend-chat-retry').onclick=()=>{loadBackendChatPage(read,read.retryPage||1);renderBackendChatScreen(scroll);};
     if($('#backend-chat-older'))$('#backend-chat-older').onclick=()=>{loadBackendChatPage(read,read.nextPage);renderBackendChatScreen(scroll);};
     $$('[data-backend-chat-attachment]').forEach(button=>button.onclick=()=>openBackendChatAttachment(read,button.dataset.backendChatAttachment));
+    $$('[data-chat-file-thumbnail]').forEach(image=>image.onerror=()=>{image.hidden=true;});
   }
   $('#app-action').innerHTML='';$('#design-context').innerHTML='';$('#preview-label').textContent='CZAT / SUPER SPEDYTOR';
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='chat'));

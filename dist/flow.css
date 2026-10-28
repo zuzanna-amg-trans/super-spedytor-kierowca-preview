@@ -249,7 +249,9 @@
 
 /* Chat attachments are read-only, keyboard-accessible preview actions. */
 .chat-file-action{width:calc(100% - 25px);text-align:left;font:inherit;cursor:pointer}.chat-file-description{flex:1;min-width:0}.chat-file-action:focus-visible{outline:3px solid var(--orange);outline-offset:3px}.chat-preview-image{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain;touch-action:pinch-zoom}
-[data-chat-preview-image][hidden],[data-chat-preview-error][hidden]{display:none}
+/* The whole card opens its preview; the labelled action remains easy to find. */
+.chat-file-action .chat-file-visual{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 52px;width:52px;height:64px;overflow:hidden;border:1px solid #d8dfd0;border-radius:10px;background:#f2f5ee;color:#526347}.chat-file-visual>.icon{width:24px;height:24px}.chat-file-visual>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.chat-file-action .chat-file-preview-action{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;min-height:44px;margin-top:8px;padding:9px 13px;border-radius:10px;background:#e4ecd9;color:#30412a;font-size:16px;font-weight:800;line-height:1.4}.chat-file-action:disabled{cursor:default}.chat-file-action:disabled .chat-file-preview-action{background:#eceee8;color:#636c5c}.chat-file-description>strong,.chat-file-description>small{display:block;overflow-wrap:anywhere}.chat-preview-close{width:100%;min-height:48px;margin-top:16px}
+[data-chat-preview-image][hidden],[data-chat-preview-error][hidden],[data-chat-file-thumbnail][hidden]{display:none}
 
 /* A pale attachment card keeps its own ink inside the sender's orange bubble. */
 .chat-message-own .chat-file-action{color:#30382b}
