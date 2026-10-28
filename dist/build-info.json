@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "fff1564af13130f139c040abc5940beec68aceaa",
+  "sourceCommit": "6921a62f6f5138b27f1a5aad0b02b7986e83f561",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T14:00:19.352Z",
+  "builtAt": "2026-10-28T14:22:09.100Z",
   "assetManifestSha256": "8810a9f54b866e77bba1a9c2f800459708b2795918f783d427dc952bf86398fa",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "fff1564af13130f139c040abc5940beec68aceaa",
-    "initialIntegrationSha": "ca8a9ed8624b86e7b6d7db6966c7f0c2a2705dae",
+    "candidateSha": "6921a62f6f5138b27f1a5aad0b02b7986e83f561",
+    "initialIntegrationSha": "fff1564af13130f139c040abc5940beec68aceaa",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "ca8a9ed8624b86e7b6d7db6966c7f0c2a2705dae",
+    "baseSha": "fff1564af13130f139c040abc5940beec68aceaa",
     "branches": [
       {
         "name": "main",
@@ -58,7 +58,7 @@
       },
       {
         "name": "AA28-Tacho-Live-Android-Auto",
-        "sha": "edfb741995ab0b360d65917461c4ee4488b2628d"
+        "sha": "5ce90430f49424d03c8674f19785a6e11680cdf9"
       },
       {
         "name": "AA29-Rejestracja-Paczki-PROD",
@@ -126,7 +126,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-fff1564af13130f139c040abc5940beec68aceaa/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-6921a62f6f5138b27f1a5aad0b02b7986e83f561/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
