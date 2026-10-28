@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
+  "sourceCommit": "420179a1713e27e93aa6fcb50d9155250a5efa50",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-28T11:15:51.278Z",
-  "assetManifestSha256": "5212d60bbaeda71cc07b97f7638299c1dc8ce94f7831cf84f4e3e72223c40fb6",
+  "builtAt": "2026-10-28T11:20:29.067Z",
+  "assetManifestSha256": "edac0647492b07a6378c60cbdfef7a50ad0c1bcb9f9e356d627ae8097d9177ce",
   "mode": "demo-driver-preview",
   "backend": {
     "enabled": false,
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
-    "initialIntegrationSha": "91609aad6652351c10fc79f4a0830e99476bdfcd",
+    "candidateSha": "420179a1713e27e93aa6fcb50d9155250a5efa50",
+    "initialIntegrationSha": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "91609aad6652351c10fc79f4a0830e99476bdfcd",
+    "baseSha": "289006bf6005dfe7badb1181ec8ffcaea18c071b",
     "branches": [
       {
         "name": "main",
@@ -86,7 +86,7 @@
       },
       {
         "name": "codex/scankit-cmr",
-        "sha": "f007ca86373727c1eb89af2eb3f2c1653de232c4"
+        "sha": "a8751eff52b285c8c238db656bbbe489e856be39"
       },
       {
         "name": "codex/scanner-fold-shadows",
@@ -121,7 +121,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-289006bf6005dfe7badb1181ec8ffcaea18c071b/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-420179a1713e27e93aa6fcb50d9155250a5efa50/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
