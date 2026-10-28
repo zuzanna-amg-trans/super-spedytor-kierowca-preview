@@ -1052,6 +1052,12 @@ function buildDriverTachoView(data, nowMs) {
 
   const rest = current.work_mode === MODE_REST ? restFacts(data,nowMs) : null;
   view.rest = rest?.clock || null;
+  // Old telemetry remains a dated snapshot. Never turn elapsed wall time into
+  // newly confirmed activity, and never erase existing TMS facts because aged.
+  view.observedAt = observed;
+  const restObserved = parseMs(data?.rest_progress?.data_as_of);
+  const snapshotAt = observed === null ? null : Math.min(nowMs, observed, restObserved ?? observed);
+  view.restSnapshot = snapshotAt === null || current.work_mode !== MODE_REST ? null : buildRestClock(data,snapshotAt);
   view.restDetails = rest?.details || [];
 
   const modeKey = MODE[current.work_mode] ? current.work_mode : MODE_FALLBACK_KEY;

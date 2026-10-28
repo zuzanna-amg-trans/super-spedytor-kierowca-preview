@@ -222,10 +222,11 @@
       const key=JSON.stringify([view.ready,view.stale,view.mode?.key]),panel=root.querySelector('[data-live-tacho-panel]');
       if(!force&&key===painted){
         const set=(selector,text)=>{const node=panel.querySelector(selector);if(node)node.textContent=text;};
-        set('[data-rest-elapsed]',view.rest?.elapsedText||'—');
-        set('[data-rest-remaining]',view.rest?.remainingText||'—');
-        set('.tacho-driver-instruction .tacho-primary-time',view.hero?.text||'—');
-        if(view.rest){const progress=panel.querySelector('.tacho-progress>span');if(progress)progress.style.setProperty('--progress',String(view.rest.progress*100)+'%');}
+        const clock=view.stale?view.restSnapshot:view.rest;
+        set('[data-rest-elapsed]',clock?.elapsedText||'—');
+        set('[data-rest-remaining]',view.stale?'—':clock?.remainingText||'—');
+        if(!view.stale)set('.tacho-driver-instruction .tacho-primary-time',view.hero?.text||'—');
+        if(clock){const progress=panel.querySelector('.tacho-progress>span');if(progress)progress.style.setProperty('--progress',String(clock.progress*100)+'%');}
         return;
       }
       painted=key;panel.innerHTML=window.SuperSpedytorDesignedTacho.render(data,view);

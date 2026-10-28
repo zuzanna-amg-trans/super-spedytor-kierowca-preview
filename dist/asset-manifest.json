@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "92ccf5cd9426388652153382b9a499c66a98f65f",
+  "sourceCommit": "d9ef7ffaada7ab0a7fa768852e4597b124a8acf2",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "fd59524ed1c03920ff657a7a0c7aa81b508037edaa3107fbdc44b39711cc7bc7",
+  "assetManifestSha256": "ef13434e103f1822b376f5b78f72ad4b15ac795879e338db87845e01bbe9cb42",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -168,8 +168,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "efc8f506ddb11161a1ed0e396f3e2081b15665f8d2ca8f8c4e3f57456286aa5c",
-      "size": 62875
+      "sha256": "716878b958577702d488b9427d392a9ca1c363993d55a1d53b83e7799c4f4429",
+      "size": 62951
     },
     {
       "path": "mobile-readability.css",
@@ -263,13 +263,13 @@
     },
     {
       "path": "tacho-designed-view.js",
-      "sha256": "11954b111cf5f4c35ff90be653c87380bd110efecd138be3aa5d18a1607e6877",
-      "size": 7933
+      "sha256": "ed985d8c0d22dd084c5e005ee20a38a82ef5a909bf0dfdb3ce0f97865b8ceeba",
+      "size": 9393
     },
     {
       "path": "tacho-live-model.js",
-      "sha256": "ac6ca791291862c74814602288afd029dcc5e2f63c5a464ab05478d816f39c30",
-      "size": 47828
+      "sha256": "bfe709988c208e0d9e0887bbf0390cfc7865477dfec8a9a3d3cd0d66c84d4503",
+      "size": 48302
     },
     {
       "path": "tacho-readonly-model.js",
