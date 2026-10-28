@@ -250,3 +250,10 @@
 /* Chat attachments are read-only, keyboard-accessible preview actions. */
 .chat-file-action{width:calc(100% - 25px);text-align:left;font:inherit;cursor:pointer}.chat-file-description{flex:1;min-width:0}.chat-file-action:focus-visible{outline:3px solid var(--orange);outline-offset:3px}.chat-preview-image{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain;touch-action:pinch-zoom}
 [data-chat-preview-image][hidden],[data-chat-preview-error][hidden]{display:none}
+
+/* A pale attachment card keeps its own ink inside the sender's orange bubble. */
+.chat-message-own .chat-file-action{color:#30382b}
+.chat-message-own .chat-file-action strong{color:#30382b;font-size:16px;line-height:1.5}
+.chat-message-own .chat-file-action small{color:#4f6045;font-size:13px;line-height:1.5;text-align:left}
+.chat-message-own .chat-file-action>.icon{color:#4f6045}
+.chat-message-own .chat-file-action:focus-visible{outline-color:#30382b}
