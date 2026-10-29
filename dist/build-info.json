@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "d472a66e164f2e611383f896e754e1cd8f97c716",
+  "sourceCommit": "d28c6baa7b7972855b0914d08f7a7bd3b4233e26",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-29T12:14:50.999Z",
+  "builtAt": "2026-10-29T12:23:59.179Z",
   "assetManifestSha256": "40464132fa787ffa4c465607389d181f1fb16d231367ed01b5e4e964b64c685f",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "d472a66e164f2e611383f896e754e1cd8f97c716",
-    "initialIntegrationSha": "f43941a9fe31633fcc9adde6c6fb690b234a8469",
+    "candidateSha": "d28c6baa7b7972855b0914d08f7a7bd3b4233e26",
+    "initialIntegrationSha": "d472a66e164f2e611383f896e754e1cd8f97c716",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "f43941a9fe31633fcc9adde6c6fb690b234a8469",
+    "baseSha": "d472a66e164f2e611383f896e754e1cd8f97c716",
     "branches": [
       {
         "name": "main",
@@ -114,7 +114,7 @@
       },
       {
         "name": "codex/tacho-car-views-release-2026-10-29",
-        "sha": "e5fb923d26ca71bec45610fdc0989bd96184d0bf"
+        "sha": "c221fa2753a00919741bd982272ffa47ef39814a"
       }
     ],
     "mergedBranches": [
@@ -146,7 +146,7 @@
       "codex/shared-preview-parity"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-d472a66e164f2e611383f896e754e1cd8f97c716/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-d28c6baa7b7972855b0914d08f7a7bd3b4233e26/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
