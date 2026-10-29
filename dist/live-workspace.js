@@ -88,6 +88,7 @@
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav==='now'));
     epoch++;clearInterval(tachoTimer);tachoTimer=null;root?.remove();root=null;screen='';busy=false;
     const action=document.getElementById('app-action');if(action)action.style.display='';
+    window.SuperSpedytorRouteActivity?.resume?.();
   }
   function mount(title,name){
     if(!current()&&root)close();
@@ -96,6 +97,7 @@
       document.querySelector('.device').append(root);
     }
     screen=name;root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;position();
+    window.SuperSpedytorRouteActivity?.suspend?.();
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===name));
     root.innerHTML=`<header class="lw-header"><button data-lw-close aria-label="Wróć do operacji">‹</button><div><small>SUPER SPEDYTOR</small><h2>${e(title)}</h2></div><button data-lw-refresh aria-label="Odśwież widok">↻</button></header><div class="lw-feedback" aria-live="polite"></div><div class="lw-body"><p class="lw-empty" role="status">Pobieram dane Twojego konta…</p></div>`;
     root.querySelector('[data-lw-close]').onclick=close;

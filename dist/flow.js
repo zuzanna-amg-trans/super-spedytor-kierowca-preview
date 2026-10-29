@@ -401,14 +401,14 @@ function updateServiceNavIndicator(){
   button.setAttribute('aria-label',due?'Serwis — dzisiejsza ankieta do wypełnienia':'Serwis — dzisiejsza ankieta wykonana');
 }
 function maybeShowDailyServiceReminder(){
-  if(backendMode)return;
+  if(backendMode||(previewMode&&appQuery.get('restpreview')==='1'))return;
   if(state.modal||state.serviceOpen||!serviceReminderDue())return;
   recordServiceReminderShown();
   openModal('daily-service',{});
 }
 function scheduleServiceReminder(){
   clearTimeout(serviceReminderTimer);
-  if(backendMode||serviceCompletedToday())return;
+  if(backendMode||(previewMode&&appQuery.get('restpreview')==='1')||serviceCompletedToday())return;
   const record=readServiceDailyRecord();
   const reminderAt=record?.snoozeUntil?new Date(record.snoozeUntil).getTime():Date.now()+15*60*1000;
   serviceReminderTimer=setTimeout(()=>{
@@ -2549,6 +2549,7 @@ function bindLiveSessionControls(){
   const refresh=$('#backend-refresh'),logout=$('#backend-logout'),retry=$('#live-details-retry');
   if(refresh){refresh.disabled=false;refresh.onclick=()=>{
     if(liveMode()&&current()?.live){current().live.targetsRequested=false;current().live.targetsReady=false;}
+    window.SuperSpedytorRouteActivity?.refresh?.();
     driverBridge?.backendRefresh();
   };}
   if(logout){logout.disabled=false;logout.onclick=()=>{closeBackendReadOnlyTacho(false);detachLiveOperation();driverBridge?.backendLogout();};}
@@ -2730,6 +2731,7 @@ function liveCmrSealRows(){
 }
 
 function render(){
+  syncRouteActivity();
   if(typeof backendChatRead!=='undefined'&&backendChatRead&&!backendChatCurrent(backendChatRead))invalidateBackendChatRead();
   if(state.modal?.type==='backend-chat-file-preview'&&!backendChatAttachmentCurrent(state.modal.target))closeModal(false);
   if(state.modal?.type==='chat-file-preview'&&!chatAttachmentIsCurrent(state.modal.target))closeModal(false);
@@ -4011,6 +4013,7 @@ let backendActiveNav='now';
 let backendServicePanel='history';
 let backendLastNearest=null;
 let tachoReadonlyScreen=null;
+let routeActivityPreview=null;
 const designedDriverViews=[
   {id:'scanner',title:'Skaner CMR',icon:'camera',description:'Obrys kartki na żywo, automatyczny skan i kolor'},
   {id:'load',title:'Załadunek',icon:'box',description:'Mapa, sztuki, plomby, zdjęcia i skan CMR'},
@@ -4656,7 +4659,8 @@ function tachoSessionKey(session){
 }
 async function backendTachoMe(){
   const owner=tachoSessionKey(backendState);
-  if(!owner||!tachoReadOnlyAvailable())throw new Error('Odczyt Tacho wymaga połączenia z kontem kierowcy.');
+  const transport=browserBackend?typeof driverBridge?.backendTachoMe==='function':typeof driverBridge?.backendRequest==='function';
+  if(!owner||!transport)throw new Error('Odczyt Tacho wymaga połączenia z kontem kierowcy.');
   // Intentionally bypass nativeRequest / SuperSpedytorOfflineWorkspace.
   const result=browserBackend
     ?await driverBridge.backendTachoMe()
@@ -4667,6 +4671,24 @@ async function backendTachoMe(){
   const expected=owner.slice(owner.lastIndexOf('|')+1);
   if(positiveTachoId(result.body.driver?.id)!==expected)throw new Error('Odpowiedź Tacho nie jest przypisana do zalogowanego kierowcy.');
   return result;
+}
+function syncRouteActivity(){
+  const widget=window.SuperSpedytorRouteActivity;
+  if(!widget)return;
+  if(previewMode&&!backendMode&&appQuery.get('restpreview')==='1'){
+    if(!routeActivityPreview){
+      const at=Date.now(),start=at-(45*60+8)*60000;
+      routeActivityPreview={driver:{id:4242},compliance:{status:'ok',stale:false,last_data_at:new Date(at).toISOString(),
+        current:{work_mode:'rest',since:new Date(at-300000).toISOString(),duration_s:300,source:'gbox'}},
+        rest_progress:{scope:'rest_only',status:'needs_verification',start_confirmed:true,stale:false,
+          started_at:new Date(start).toISOString(),data_as_of:new Date(at).toISOString(),elapsed_s:(at-start)/1000}};
+    }
+    widget.sync({active:backendActiveNav==='now'&&!state.serviceOpen,demo:true,payload:routeActivityPreview,
+      session:{status:'connected',backend_origin:'https://tms.amg.eco',profile:{id:99,driver_id:4242}}});
+    return;
+  }
+  const active=backendMode&&!backendTestWorkspace&&backendActiveNav==='now'&&backendState?.status==='connected';
+  widget.sync({active,session:backendState,request:backendTachoMe});
 }
 function closeBackendReadOnlyTacho(restore=false){
   try{driverBridge?.tachoScreenVisible?.(false);}catch{}
@@ -4693,6 +4715,7 @@ function openBackendReadOnlyTacho(){
   }
   window.SuperSpedytorTacho?.close?.();
   backendActiveNav='tacho';
+  syncRouteActivity();
   updateDriverWorkspaceBar();
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='tacho'));
   if(!tachoReadonlyScreen)tachoReadonlyScreen=window.SuperSpedytorReadOnlyTacho.create({

@@ -97,7 +97,7 @@
         <div class="status-bar"><span>10:42</span><div class="status-icons"><svg class="icon"><use href="#i-signal"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M1 4c4-4 11-4 15 0M4 7c2-2 7-2 9 0M7 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="battery"></span></div></div>
         <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
         <div id="driver-workspace-bar" class="driver-workspace-bar" hidden></div>
-        <div class="app-scroll" id="app-scroll"><div id="app"></div></div>
+        <div class="app-scroll" id="app-scroll"><section id="route-activity" class="route-activity" aria-label="Bieżąca czynność kierowcy" hidden></section><div id="app"></div></div>
         <div id="app-action" class="app-action"></div>
         <nav class="bottom-nav five-items" aria-label="Nawigacja aplikacji"><button data-nav="now" class="active"><svg class="icon"><use href="#i-home"/></svg><span>Operacja</span></button><button data-nav="tacho"><svg class="icon"><use href="#i-clock"/></svg><span>Tacho</span></button><button data-nav="chat"><svg class="icon"><use href="#i-chat"/></svg><span>Czat</span></button><button data-nav="service"><svg class="icon"><use href="#i-service"/></svg><span>Serwis</span></button><button data-nav="help"><svg class="icon"><use href="#i-help"/></svg><span>Pomoc</span></button></nav>
         <div class="android-home"><span></span></div>
@@ -145,13 +145,15 @@
   <script src="offline-store.js"></script>
   <link rel="stylesheet" href="offline.css">
   <script src="translator-launcher.js"></script>
+  <script src="tacho-readonly-model.js"></script>
+  <script src="driver-activity-summary.js"></script>
+  <script src="route-activity.js"></script>
   <script src="flow.js?v=cmr-inventory-aa11-dev"></script>
   <script src="offline-workspace.js"></script>
   <script src="app-updates.js"></script>
   <script src="tacho-day-summary.js"></script>
   <script src="tacho.js"></script>
   <link rel="stylesheet" href="tacho-readonly.css">
-  <script src="tacho-readonly-model.js"></script>
   <script src="tacho-readonly.js"></script>
   <link rel="stylesheet" href="live-workspace.css">
   <link rel="stylesheet" href="mobile-readability.css">

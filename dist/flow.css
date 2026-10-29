@@ -259,3 +259,18 @@
 .chat-message-own .chat-file-action small{color:#4f6045;font-size:13px;line-height:1.5;text-align:left}
 .chat-message-own .chat-file-action>.icon{color:#4f6045}
 .chat-message-own .chat-file-action:focus-visible{outline-color:#30382b}
+/* Own-driver activity shared by Android WebView and iOS WKWebView. */
+.route-activity{margin:12px 16px 0;padding:16px;border:1px solid #cce2d7;border-radius:18px;background:#f0f7f3;color:#173f30}
+.route-activity[hidden]{display:none}
+.route-activity-heading{display:flex;align-items:center;gap:10px}
+.route-activity-heading>div{flex:1;min-width:0}
+.route-activity-heading small{font-size:10px;font-weight:800;letter-spacing:.08em}
+.route-activity-heading h3{margin:3px 0 0;font-size:18px;line-height:1.25}
+.route-activity-icon{font-size:30px;line-height:1}
+.route-activity-heading button{flex:none;width:44px;height:44px;border:0;border-radius:12px;background:#fff;color:inherit;font-size:26px}
+.route-activity-values{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+.route-activity-values p{margin:0;font-size:15px;line-height:1.5;font-weight:600}
+.route-activity-values strong{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.3}
+.route-activity-note,.route-activity-observed{margin:9px 0 0;font-size:12px;line-height:1.5}
+.route-activity-observed{color:#466353}
+.route-activity[data-state="stale"],.route-activity[data-state="no_data"],.route-activity[data-state="error"]{background:#faf6eb;border-color:#e5d9b7;color:#654d19}

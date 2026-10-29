@@ -78,6 +78,25 @@ function fmtWeekdayClock(value) {
   }
 }
 
+// A rest can cross midnight or last several days: keep the full source date,
+// and show elapsed hours without rolling over to days or ticking seconds.
+function fmtRestStart(value) {
+  if (value === null || value === undefined) return null;
+  const at = new Date(value);
+  if (!Number.isFinite(at.getTime())) return null;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('pl-PL', {
+    timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(at).map(part => [part.type, part.value]));
+  return `${parts.day}.${parts.month}.${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
+function fmtRestElapsed(seconds) {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '—';
+  const minutes = Math.floor(seconds / 60);
+  return `${Math.floor(minutes / 60)} godz. ${String(minutes % 60).padStart(2, '0')} min`;
+}
+
 // Kolor pilności odliczania (sekundy do terminu). Próg ostrzeżenia domyślnie 2h.
 function urgencyClass(s, warnAtS = 2 * 3600) {
   if (s === null || s === undefined) return 'text-gray-400';
@@ -1003,8 +1022,8 @@ function buildRestClock(data, nowMs) {
     remainingS:endMs===null?null:Math.max(0,Math.ceil((endMs-nowMs)/1000)),
     type:matching?type:'',title:matching?(event?.event_type_label || ({weekly_rest_45:'Odpoczynek tygodniowy 45 h',weekly_rest_24:'Odpoczynek tygodniowy 24 h',daily_rest_11:'Odpoczynek dobowy 11 h',daily_rest_9:'Odpoczynek dobowy 9 h',break_15:'Przerwa 15 min',break_30:'Przerwa 30 min',break_45:'Przerwa 45 min'}[type]) || 'Odpoczynek'):'Trwający odpoczynek',
     estimated,weekly,progress:totalS&&elapsedS!==null?clamp01(elapsedS/totalS):0,
-    startText:validStart?fmtWeekdayClock(startMs):null,endText:endMs===null?null:fmtWeekdayClock(endMs),
-    elapsedText:elapsedS===null?'—':fmtStopwatch(elapsedS),remainingText:endMs===null?'—':fmtStopwatch(Math.max(0,Math.ceil((endMs-nowMs)/1000)))};
+    startText:validStart?fmtRestStart(startMs):null,endText:endMs===null?null:fmtWeekdayClock(endMs),
+    elapsedText:fmtRestElapsed(elapsedS),remainingText:endMs===null?'—':fmtStopwatch(Math.max(0,Math.ceil((endMs-nowMs)/1000)))};
 }
 
 function restFacts(data, nowMs) {
@@ -1023,7 +1042,7 @@ function restFacts(data, nowMs) {
     return { current: data?.compliance?.current, event: clock?.endMs === null ? null : {...data.event,occurred_at:new Date(clock.startMs).toISOString(),duration_s:clock.totalS,end_at:new Date(clock.endMs).toISOString()}, details, weekly, verified: !clock?.estimated, clock };
   }
   const startMs = parseMs(progress.started_at), endMs = parseMs(progress.end_at);
-  if (startMs !== null) details.push(`${progress.start_confirmed ? 'Odpoczynek od' : 'Zapis odpoczynku od'} ${fmtWeekdayClock(startMs)}`);
+  if (startMs !== null) details.push(`${progress.start_confirmed ? 'Odpoczynek od' : 'Zapis odpoczynku od'} ${fmtRestStart(startMs)}`);
   const base = Number(progress.base_duration_s), compensation = Number(progress.compensation_before_s);
   if (base > 0) details.push(`Podstawa: ${fmtDur(base)}${compensation > 0 ? ' + rekompensata ' + fmtDur(compensation) : ''}`);
   if (Number(progress.other_compensation_owed_s) > 0) details.push(`Inna rekompensata do rozliczenia: ${fmtDur(progress.other_compensation_owed_s)}`);
@@ -1063,7 +1082,7 @@ function buildDriverTachoView(data, nowMs) {
   const modeKey = MODE[current.work_mode] ? current.work_mode : MODE_FALLBACK_KEY;
   view.ready = true;
   view.mode = { key: modeKey, label: MODE[modeKey].label };
-  view.sinceText = textOrNull(rest?.hasProgress ? fmtWeekdayClock(rest.current?.since) : fmtClock(current.since));
+  view.sinceText = textOrNull(rest ? rest.clock.startText : fmtClock(current.since));
   view.shiftStartMissing = !compliance.daily?.shift_start;
   view.declaredEvent = buildDeclaredEvent(rest ? rest.event : data?.event, nowMs);
   view.extensionsLeft = extensionsLeftFor(compliance.weekly);

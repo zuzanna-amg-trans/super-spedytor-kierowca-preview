@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "3cff55f7bff1e4f478c80a9cedbfb739417d4ae0",
+  "sourceCommit": "7cce0e7c9a14f0525eb8ff6a3f0fb156d8968859",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "5dd768d1a3f4a59b55527ba2b8b3e462d2a45bb328f9c37d026d738b9decece9",
+  "assetManifestSha256": "130e459d35a4dccd28a9ea92497c040774307a980eb7ab89dd95afa2942850b2",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -122,19 +122,24 @@
       "size": 4485
     },
     {
+      "path": "driver-activity-summary.js",
+      "sha256": "80147cb2604b608f20d1c83909ea3b632d05f5908e1d83c87b243a0d63aad1cf",
+      "size": 5668
+    },
+    {
       "path": "driver.css",
       "sha256": "9196948cf326cc39989e1569644ee21405c709d21e9194ed04636798847f1c58",
       "size": 34430
     },
     {
       "path": "flow.css",
-      "sha256": "dd4b227784c748f1e8a6258392ecd005a583031ac9060854a93e1e97092746dc",
-      "size": 103221
+      "sha256": "7bbc0ea8ec0c0f923af87d9819743c5ee3e640834961a87de5623451fd38fef6",
+      "size": 104476
     },
     {
       "path": "flow.js",
-      "sha256": "8138eaf5e4c49bb4f1113372995018fb29c6a41013da867d19db9554573f1e3c",
-      "size": 450265
+      "sha256": "ff8f724c94a5740dafec85370dc12e4637605669ed91cb590c486343be1c435b",
+      "size": 451733
     },
     {
       "path": "handover-v2.css",
@@ -148,8 +153,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "c8e3ddaa951a4b00717281ffad542a4e327f46fd08decf5ac2a10d8df596148f",
-      "size": 14564
+      "sha256": "a956005d50f72e9df00c8e90941d6710453e4c5e1475e248b4a3976157066502",
+      "size": 14773
     },
     {
       "path": "live-chat-view.js",
@@ -168,8 +173,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "e09ea5e04c819547c1bf0dfbbfb6afd7a43a92640aad3332a8375a95ae341730",
-      "size": 67583
+      "sha256": "7954150d1cb4868d785342180c5a1c3c468e0557a3e888060bd064499fd006bc",
+      "size": 67686
     },
     {
       "path": "mobile-readability.css",
@@ -210,6 +215,11 @@
       "path": "robots.txt",
       "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1",
       "size": 26
+    },
+    {
+      "path": "route-activity.js",
+      "sha256": "c73a3f5cf74afb0347af67891b2a3b9ccd96f107c91aa08f5033e42fc5d622de",
+      "size": 4475
     },
     {
       "path": "scan-quality.js",
@@ -268,8 +278,8 @@
     },
     {
       "path": "tacho-live-model.js",
-      "sha256": "bfe709988c208e0d9e0887bbf0390cfc7865477dfec8a9a3d3cd0d66c84d4503",
-      "size": 48302
+      "sha256": "1936d4219c822f9b56360c36e27ba864319ed40dd1a423777bf8ccb5dddb1fe0",
+      "size": 49195
     },
     {
       "path": "tacho-readonly-model.js",
