@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "9e597f5c98db4c853b85d8da557b5bba6a5cc213",
+  "sourceCommit": "7c62fe79ce0e2b8220de620b3812d00f7904f34d",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "570aab5633f3723369d3528535c29495f9d18d71b162021420b089f31075c5e3",
+  "assetManifestSha256": "32ad946f506fdf66303730d02874684349c92f34a3640816db6a9d4c68187685",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -148,13 +148,18 @@
     },
     {
       "path": "handover-v2.js",
-      "sha256": "3cef716373d1adca2e1346a3f7c2c150ceb164da0dfd13a65c33e358bb4914bb",
-      "size": 28719
+      "sha256": "47f5816a377b0732d8deb8a686e2ba3d5fb7914441a7ecadff97c516ff7af341",
+      "size": 28763
     },
     {
       "path": "index.html",
-      "sha256": "a956005d50f72e9df00c8e90941d6710453e4c5e1475e248b4a3976157066502",
-      "size": 14773
+      "sha256": "c56a398382c72b2b18255324edd32b79c2062eb1b397db60c8b5ec6ced44f2e8",
+      "size": 14824
+    },
+    {
+      "path": "inventory-walkthrough.js",
+      "sha256": "667b1682f330ded80082df90a277a53c131682082c0994d0a2c6ece936161f17",
+      "size": 2543
     },
     {
       "path": "live-chat-view.js",
@@ -173,8 +178,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "2d79f45b3aeb99d985e11ffc29494a60be6d8dd747813e6b02623da9b54fc25c",
-      "size": 83742
+      "sha256": "57ecb169cfe5b077e18de2717b0891c346ea039f5103bf04bcc6251d0ebf6763",
+      "size": 84175
     },
     {
       "path": "mobile-readability.css",
@@ -363,8 +368,8 @@
     },
     {
       "path": "vehicle-inspection-v2.js",
-      "sha256": "afffe222d55049bba5fa434b0639f5aef880519fedb03aa64be7c7996bfb59b7",
-      "size": 9744
+      "sha256": "b5678acfb8f6417c706e5589db9aaf9f743c2bb683f00f2760b7ead388a3f6a6",
+      "size": 9841
     },
     {
       "path": "vendor/OpenCV-LICENSE.txt",

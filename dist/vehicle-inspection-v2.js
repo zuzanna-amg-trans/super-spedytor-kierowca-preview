@@ -47,29 +47,27 @@
     const checklist=(id,section,title,description,items)=>({id,type:'checklist',section,title,description,items:items.map(item=>({...item}))});
     const steps=[{
       id:'intro',type:'intro',section:'start',title:options.mode==='inventory'?'Inwentaryzacja · V2':'Przekazanie auta · V2',
-      description:'Sprawdź auto krok po kroku: kabinę, pakę i windę, a następnie obejdź pojazd dookoła.'
+      description:'Zrób zdjęcia kabiny i sprawdź jej wyposażenie, obejdź pojazd, a potem przejdź do przestrzeni ładunkowej i schowków zewnętrznych.'
     }];
 
     readings.forEach(reading=>steps.push({
       id:`reading-${reading.id}`,type:'reading',section:'cabin',title:reading.title,
       description:reading.description,reading:{...reading},photo:photoFor(reading.id,'readings')
     }));
-    const cabinEquipment=equipment.filter(item=>cabinKeys.has(equipmentKey(item)));
-    if(cabinEquipment.length)steps.push(checklist('checklist-cabin','cabin','Wyposażenie kabiny','Sprawdź klucze, dokumenty, karty i wyposażenie. Następnie przejdziesz do osobnych zdjęć kabiny.',cabinEquipment));
     requirements.filter(photo=>photo.groupId==='cabin').forEach(photo=>steps.push(photoStep(photo,'cabin')));
-
-    const cargoEquipment=equipment.filter(item=>cargoKeys.has(equipmentKey(item)));
-    if(cargoEquipment.length)steps.push(checklist('checklist-cargo','cargo','Wyposażenie paki i windy','Sprawdź wyposażenie przestrzeni ładunkowej. Następnie sfotografujesz pakę i windę krok po kroku.',cargoEquipment));
-    requirements.filter(photo=>photo.groupId==='cargo').forEach(photo=>steps.push(photoStep(photo,'cargo')));
-
-    const extras=equipment.filter(item=>!cabinKeys.has(equipmentKey(item))&&!cargoKeys.has(equipmentKey(item)));
-    if(extras.length)steps.push(checklist('checklist-extras','exterior','Wyposażenie dodatkowe','Sprawdź rzeczy przechowywane na zewnątrz i dodatkowe wyposażenie przypisane do auta.',extras));
+    const cabinEquipment=equipment.filter(item=>cabinKeys.has(equipmentKey(item)));
+    if(cabinEquipment.length)steps.push(checklist('checklist-cabin','cabin','Wyposażenie kabiny','Pozostając w kabinie, sprawdź klucze, dokumenty, karty i wyposażenie. Następnie wyjdziesz zrobić zdjęcia dookoła pojazdu.',cabinEquipment));
     exteriorOrder.forEach(id=>{
       const photo=photoFor(id,'exterior');
       if(photo)steps.push(photoStep(photo,'exterior'));
     });
     // Preserve any extra owner-supplied exterior requirements after the standard walkaround.
     requirements.filter(photo=>photo.groupId==='exterior'&&!exteriorOrder.includes(photo.id)).forEach(photo=>steps.push(photoStep(photo,'exterior')));
+    requirements.filter(photo=>photo.groupId==='cargo').forEach(photo=>steps.push(photoStep(photo,'cargo')));
+    const cargoEquipment=equipment.filter(item=>cargoKeys.has(equipmentKey(item)));
+    if(cargoEquipment.length)steps.push(checklist('checklist-cargo','cargo','Wyposażenie paki i windy','Sprawdź wyposażenie przestrzeni ładunkowej. Następnie przejdziesz do schowków zewnętrznych.',cargoEquipment));
+    const extras=equipment.filter(item=>!cabinKeys.has(equipmentKey(item))&&!cargoKeys.has(equipmentKey(item)));
+    if(extras.length)steps.push(checklist('checklist-extras','cargo','Schowki zewnętrzne i wyposażenie dodatkowe','Na koniec sprawdź rzeczy przechowywane na zewnątrz i pozostałe wyposażenie przypisane do auta.',extras));
     steps.push({id:'review',type:'review',section:'finish',title:options.mode==='inventory'?'Zakończ inwentaryzację':'Zakończ przekazanie',description:'Sprawdź podsumowanie i potwierdź wykonanie wszystkich czynności.'});
     return steps;
   }
