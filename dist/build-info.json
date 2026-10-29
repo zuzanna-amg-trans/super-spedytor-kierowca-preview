@@ -1,10 +1,10 @@
 {
   "protocol": 2,
-  "sourceCommit": "e1fa96f4ba33089bc726373e349a0623d397d51d",
+  "sourceCommit": "9e597f5c98db4c853b85d8da557b5bba6a5cc213",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-29T18:00:08.203Z",
-  "assetManifestSha256": "40464132fa787ffa4c465607389d181f1fb16d231367ed01b5e4e964b64c685f",
+  "builtAt": "2026-10-29T21:48:38.812Z",
+  "assetManifestSha256": "570aab5633f3723369d3528535c29495f9d18d71b162021420b089f31075c5e3",
   "mode": "demo-driver-preview",
   "backend": {
     "enabled": false,
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "e1fa96f4ba33089bc726373e349a0623d397d51d",
-    "initialIntegrationSha": "77f57890ab1b694386efb368701b9d607cc4724d",
+    "candidateSha": "9e597f5c98db4c853b85d8da557b5bba6a5cc213",
+    "initialIntegrationSha": "e1fa96f4ba33089bc726373e349a0623d397d51d",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "77f57890ab1b694386efb368701b9d607cc4724d",
+    "baseSha": "e1fa96f4ba33089bc726373e349a0623d397d51d",
     "branches": [
       {
         "name": "main",
@@ -77,6 +77,10 @@
         "sha": "178c163ea3ba849920d8e19f8aec9179318fd596"
       },
       {
+        "name": "codex/ios-inventory-complete",
+        "sha": "5b41c504dc1342876597708d96a7e6551e47795b"
+      },
+      {
         "name": "codex/ios-mobile-readability",
         "sha": "11f930a93309b7d795fc4416811f3d1c2b76a93d"
       },
@@ -118,7 +122,7 @@
       }
     ],
     "mergedBranches": [
-      "codex/tacho-car-views-release-2026-10-29"
+      "codex/ios-inventory-complete"
     ],
     "skippedBranches": [
       "main",
@@ -143,10 +147,11 @@
       "codex/rest-start-duration",
       "codex/scankit-cmr",
       "codex/scanner-fold-shadows",
-      "codex/shared-preview-parity"
+      "codex/shared-preview-parity",
+      "codex/tacho-car-views-release-2026-10-29"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-e1fa96f4ba33089bc726373e349a0623d397d51d/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-9e597f5c98db4c853b85d8da557b5bba6a5cc213/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
