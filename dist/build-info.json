@@ -3,7 +3,7 @@
   "sourceCommit": "1787fb3331ca0cceac449cb95e4c75bedd6805c1",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-29T09:29:44.849Z",
+  "builtAt": "2026-10-29T09:34:03.953Z",
   "assetManifestSha256": "e58b67fa0a08a1e6e88aaac685273185d265c287588248c320f5f65a816ad32a",
   "mode": "demo-driver-preview",
   "backend": {
@@ -16,9 +16,9 @@
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
     "candidateSha": "1787fb3331ca0cceac449cb95e4c75bedd6805c1",
-    "initialIntegrationSha": "64d35cea9951a5b1f4f14f329a7014e085d745a2",
+    "initialIntegrationSha": "1787fb3331ca0cceac449cb95e4c75bedd6805c1",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "64d35cea9951a5b1f4f14f329a7014e085d745a2",
+    "baseSha": "1787fb3331ca0cceac449cb95e4c75bedd6805c1",
     "branches": [
       {
         "name": "main",
@@ -113,11 +113,10 @@
         "sha": "a39e6db38a638083a2423a739e7ce4dfa68fda00"
       }
     ],
-    "mergedBranches": [
-      "codex/play-internal-testing"
-    ],
+    "mergedBranches": [],
     "skippedBranches": [
       "main",
+      "codex/play-internal-testing",
       "AA21-Pelne-Widoki-Wydanie-Produkcyjne",
       "AA22-Android-Auto-Internal-Testing",
       "AA23-Android-Auto-Punkty-Trasy",
