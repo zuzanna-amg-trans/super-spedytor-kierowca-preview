@@ -11,6 +11,39 @@
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
   let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null;
   const localEvidence=new Map();let evidenceOwner="";
+  // Drafts belong to the current authenticated account and live only in memory.
+  // A readback for one field must not erase edits in the other fields.
+  const formDrafts=new Map();
+  const draftKey=scope=>owner+'|'+scope;
+  function bindDraft(scope){
+    const key=draftKey(scope),saved=formDrafts.get(key)||new Map();
+    root?.querySelectorAll('[data-draft-field]').forEach(node=>{
+      if(node.disabled||node.readOnly)return;
+      const field=node.dataset.draftField;
+      if(saved.has(field)){
+        if(node.type==='checkbox')node.checked=saved.get(field);else node.value=saved.get(field);
+        node.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      const remember=()=>{if(!current())return;saved.set(field,node.type==='checkbox'?node.checked:node.value);formDrafts.set(key,saved);};
+      node.addEventListener('input',remember);node.addEventListener('change',remember);
+    });
+  }
+  function clearDraft(scope,fields){
+    const key=draftKey(scope);if(!fields){formDrafts.delete(key);return;}
+    const saved=formDrafts.get(key);fields.forEach(field=>saved?.delete(field));if(!saved?.size)formDrafts.delete(key);
+  }
+  function confirmDraft(scope,values){
+    const saved=formDrafts.get(draftKey(scope));
+    clearDraft(scope,Object.keys(values).filter(field=>saved?.get(field)===values[field]));
+  }
+  function bindTaskDraft(taskId){
+    root.querySelectorAll('[data-step-key]').forEach(step=>{
+      step.querySelectorAll('[data-note],[data-status]').forEach(node=>node.dataset.draftField='step:'+step.dataset.stepKey+':'+(node.hasAttribute('data-note')?'note':'status_value'));
+    });
+    root.querySelectorAll('[data-inventory-key]').forEach(row=>row.querySelectorAll('[data-count]').forEach(node=>node.dataset.draftField='inventory:'+row.dataset.inventoryKey+':'+node.dataset.count));
+    for(const attribute of ['ho','ho-card','ho-area','ho-item','ho-role'])root.querySelectorAll('[data-'+attribute+']').forEach(node=>node.dataset.draftField=attribute+':'+node.getAttribute('data-'+attribute));
+    bindDraft('task:'+taskId);
+  }
   function keepEvidence(file){if(file?.token&&current())localEvidence.set(file.token,file);}
   const recordVoice=()=>nativeCall(id=>bridge.recordAudio(id));
   const chooseFile=()=>nativeCall(id=>bridge.selectFile(id));
@@ -124,8 +157,8 @@
     const generation=++epoch;
     try{
       if(name==='tacho')await tacho();
-      else if(name==='chat')await chats();
-      else if(name==='service')await tasks();
+      else if(name==='chat')context.offerId?await chat(context.offerId):await chats();
+      else if(name==='service')context.taskId?await task(context.taskId):await tasks();
       else if(name==='collection')await collection();
       else if(name==='transshipment')await transshipments();
       else if(name==='expenses')await expenses(null,context.sourceRoutePoint);
@@ -149,11 +182,13 @@
   }
   async function task(taskId){
     const data=await request('GET',`driver-tasks/${id(taskId)}/`);
+    screenContext={taskId};
     const definition=data.definition||{},steps=definition.steps_config||[];
     body().innerHTML=`<section class="panel"><small>${e(data.date||'')}</small><h3>${e(definition.name||data.definition_name||'Zadanie')}</h3><p>${e(definition.description||'')}</p><p>Stan w TMS: <strong>${e(data.status_display||statusLabel(data.status))}</strong></p></section>`;
     const done=!['pending','in_progress'].includes(data.status);
+    if(done)clearDraft('task:'+taskId);
     if(['vehicle-inventory','vehicle-handover'].includes(definition.slug)){
-      await inventory(taskId,definition.slug==='vehicle-handover',done);return;
+      await inventory(taskId,definition.slug==='vehicle-handover',done);if(!done)bindTaskDraft(taskId);return;
     }
     if(data.is_manual){
       body().insertAdjacentHTML('beforeend',`<section class="panel"><label class="lw-field">Informacja o wykonaniu<textarea id="lw-manual-note"></textarea></label>${done?'':button('Zakończ zadanie w TMS','data-lw-manual')}</section>`);
@@ -165,9 +200,11 @@
       const options=step.status_options||[];
       body().insertAdjacentHTML('beforeend',`<section class="panel lw-step" data-step-index="${index}"><div class="section-heading"><h3>${e(step.label||step.title||step.name||step.key)}</h3><span>${index+1}/${steps.length}</span></div>${step.description?`<p>${e(step.description)}</p>`:''}${options.length?`<label class="lw-field">Ocena<select data-status ${done?'disabled':''}><option value="">Wybierz ocenę</option>${options.map(o=>{const value=typeof o==='string'?o:o.value;return `<option value="${e(value)}" data-color="${e(typeof o==='string'?'':o.color||'')}" ${String(response.status_value)===String(value)?'selected':''}>${e(typeof o==='string'?o:o.label||o.value)}</option>`;}).join('')}</select></label>`:''}<label class="lw-field">${step.unit?'Wartość · '+e(step.unit):'Uwagi'}${step.note_required?' *':''}<textarea data-note ${done?'readonly':''}>${e(response.note||'')}</textarea></label><p>${response.photos?.length||0} zdjęć zapisanych w TMS${step.photo_required?' · zdjęcie wymagane':''}</p>${done?'':`<div class="lw-actions">${step.allow_photos||step.photo_required||step.photo_only?button('Zrób i dołącz zdjęcie',`data-task-photo="${index}"`,true):''}${button('Zapisz krok w TMS',`data-task-save="${index}"`)}</div>`}</section>`);
     });
+    root.querySelectorAll('[data-step-index]').forEach(node=>node.dataset.stepKey=steps[Number(node.dataset.stepIndex)].key);
+    if(!done)bindTaskDraft(taskId);
     const values=index=>{const node=root.querySelector(`[data-step-index="${index}"]`);return{step_key:steps[index].key,note:node.querySelector('[data-note]').value,...(node.querySelector('[data-status]')?{status_value:node.querySelector('[data-status]').value}:{})};};
-    bind('[data-task-save]',async n=>{const v=values(Number(n.dataset.taskSave));await request('POST',`driver-tasks/${id(taskId)}/steps/`,v);const read=await request('GET',`driver-tasks/${id(taskId)}/`),saved=(read.step_responses||[]).find(r=>r.step_key===v.step_key);if(!saved||String(saved.note||'')!==v.note||v.status_value!==undefined&&String(saved.status_value||'')!==v.status_value)fail('Nie udało się potwierdzić wartości zapisanego kroku.');await task(taskId);feedback('Krok odczytany z TMS po zapisie.');});
-    bind('[data-task-photo]',async n=>{const v=values(Number(n.dataset.taskPhoto)),before=(data.step_responses||[]).find(r=>r.step_key===v.step_key)?.photos||[],file=await capture();if(!file)return;try{await upload(`driver-tasks/${id(taskId)}/steps/`,file,v);const read=await request('GET',`driver-tasks/${id(taskId)}/`),photos=(read.step_responses||[]).find(r=>r.step_key===v.step_key)?.photos||[];if(photos.length<=before.length)fail('Nie potwierdzono nowego zdjęcia w zadaniu.');await task(taskId);feedback('Zdjęcie odczytane z TMS.');}finally{keepEvidence(file);}});
+    bind('[data-task-save]',async n=>{const v=values(Number(n.dataset.taskSave));await request('POST',`driver-tasks/${id(taskId)}/steps/`,v);const read=await request('GET',`driver-tasks/${id(taskId)}/`),saved=(read.step_responses||[]).find(r=>r.step_key===v.step_key);if(!saved||String(saved.note||'')!==v.note||v.status_value!==undefined&&String(saved.status_value||'')!==v.status_value)fail('Nie udało się potwierdzić wartości zapisanego kroku.');confirmDraft('task:'+taskId,Object.fromEntries(Object.entries(v).filter(([key])=>key!=='step_key').map(([key,value])=>['step:'+v.step_key+':'+key,value])));await task(taskId);feedback('Krok odczytany z TMS po zapisie.');});
+    bind('[data-task-photo]',async n=>{const v=values(Number(n.dataset.taskPhoto)),before=(data.step_responses||[]).find(r=>r.step_key===v.step_key)?.photos||[],file=await capture();if(!file)return;try{await upload(`driver-tasks/${id(taskId)}/steps/`,file,v);const read=await request('GET',`driver-tasks/${id(taskId)}/`),photos=(read.step_responses||[]).find(r=>r.step_key===v.step_key)?.photos||[];if(photos.length<=before.length)fail('Nie potwierdzono nowego zdjęcia w zadaniu.');const saved=(read.step_responses||[]).find(r=>r.step_key===v.step_key);confirmDraft('task:'+taskId,Object.fromEntries(Object.entries(v).filter(([key,value])=>key!=='step_key'&&String(saved?.[key]??'')===value).map(([key,value])=>['step:'+v.step_key+':'+key,value])));await task(taskId);feedback('Zdjęcie odczytane z TMS.');}finally{keepEvidence(file);}});
   }
   async function inventory(taskId,handover=false,completed=false){
     const path=`inventory/driver/survey/${id(taskId)}/`,data=await request('GET',path);
@@ -176,17 +213,17 @@
     const sections=handover?(hand.photo_sections||[]):(data.shot_sections||[]),shotPhotos=handover?(hand.photos||[]):(data.shot_photos||[]);
     for(const section of sections){
       const shots=section.shots||[];
-      body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>${e(section.label||section.title||section.name||'Zdjęcia pojazdu')}</h3>${shots.map(shot=>{const key=typeof shot==='string'?shot:shot.code||shot.key||shot.id;const photos=shotPhotos.filter(p=>p.shot===key);return card(typeof shot==='string'?shot:shot.label||shot.title||key,`${photos.length} zdjęć w TMS`,'Dodaj',`data-inventory-shot="${e(key)}"`);}).join('')}</section>`);
+      body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>${e(section.label||section.title||section.name||'Zdjęcia pojazdu')}</h3>${shots.map(shot=>{const key=typeof shot==='string'?shot:shot.code||shot.key||shot.id;const photos=shotPhotos.filter(p=>p.shot===key);const label=typeof shot==='string'?shot:shot.label||shot.title||key;return readOnly?`<div class="lw-row"><span><strong>${e(label)}</strong><small>${photos.length} zdjęć w TMS</small></span></div>`:card(label,`${photos.length} zdjęć w TMS`,'Dodaj',`data-inventory-shot="${e(key)}"`);}).join('')}</section>`);
     }
     stages.forEach((stage,si)=>{
-      body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>${e(stage.title||stage.name||stage.slot?.name||'Wyposażenie')}</h3>${(stage.products||[]).map((row,ri)=>`<div class="lw-inventory-row" data-inv="${si}:${ri}"><strong>${e(row.product?.name||row.name||row.key)}</strong><p>Oczekiwane: ${e(row.expected)} · ${row.confirmed?'potwierdzone w TMS':'do sprawdzenia'}</p><div class="lw-counts">${[['good','Dobre'],['average','Zużyte'],['bad','Uszkodzone'],['recovered','Odzyskane']].map(([key,label])=>`<label>${label}<input type="number" min="0" max="9999" step="1" data-count="${key}" value="${Number(row[key]||0)}" ${readOnly?'disabled':''}></label>`).join('')}</div>${readOnly?'':button('Potwierdź tę pozycję',`data-inv-save="${si}:${ri}"`,true)}</div>`).join('')}</section>`);
+      body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>${e(stage.title||stage.name||stage.slot?.name||'Wyposażenie')}</h3>${(stage.products||[]).map((row,ri)=>`<div class="lw-inventory-row" data-inv="${si}:${ri}" data-inventory-key="${e(row.key)}"><strong>${e(row.product?.name||row.name||row.key)}</strong><p>Oczekiwane: ${e(row.expected)} · ${row.confirmed?'potwierdzone w TMS':'do sprawdzenia'}</p><div class="lw-counts">${[['good','Dobre'],['average','Zużyte'],['bad','Uszkodzone'],['recovered','Odzyskane']].map(([key,label])=>`<label>${label}<input type="number" min="0" max="9999" step="1" data-count="${key}" value="${Number(row[key]||0)}" ${readOnly?'disabled':''}></label>`).join('')}</div>${readOnly?'':button('Potwierdź tę pozycję',`data-inv-save="${si}:${ri}"`,true)}</div>`).join('')}</section>`);
     });
     if(!rows.length)body().insertAdjacentHTML('beforeend',empty('TMS nie zwrócił pozycji wyposażenia dla tego zadania.'));
     const answers=()=>Object.fromEntries(rows.map(row=>[row.key,Object.fromEntries(['good','average','bad','recovered','confirmed','found_at_slot'].map(k=>[k,row[k]??(k==='found_at_slot'?null:k==='confirmed'?false:0)]))]));
-    bind('[data-inv-save]',async node=>{const [si,ri]=node.dataset.invSave.split(':').map(Number),row=stages[si].products[ri],values={};root.querySelectorAll(`[data-inv="${si}:${ri}"] [data-count]`).forEach(n=>{const value=Number(n.value);if(!Number.isInteger(value)||value<0||value>9999)fail('Podaj całkowite ilości od 0 do 9999.');values[n.dataset.count]=value;});const payload=answers();payload[row.key]={...payload[row.key],...values,confirmed:true};await request('PATCH',path+'draft/',{answers:payload});const read=await request('GET',path),saved=(read.stages||[]).flatMap(s=>s.products||[]).find(r=>r.key===row.key);if(!saved?.confirmed||Object.entries(values).some(([k,v])=>Number(saved[k])!==v))fail('Odczyt nie potwierdził zapisanych ilości.');await task(taskId);feedback('Pozycja potwierdzona w odczycie TMS.');});
-    bind('[data-inventory-shot]',async n=>{const file=await capture();if(!file)return;try{await upload(handover?`inventory/driver/handover/${id(taskId)}/photos/`:path+'shots/',file,{shot:n.dataset.inventoryShot});await task(taskId);feedback('TMS przyjął zdjęcie. Sprawdź liczbę w wymaganym ujęciu.');}finally{keepEvidence(file);}});
+    bind('[data-inv-save]',async node=>{const [si,ri]=node.dataset.invSave.split(':').map(Number),row=stages[si].products[ri],values={},draftValues={};root.querySelectorAll(`[data-inv="${si}:${ri}"] [data-count]`).forEach(n=>{const value=Number(n.value);if(!Number.isInteger(value)||value<0||value>9999)fail('Podaj całkowite ilości od 0 do 9999.');values[n.dataset.count]=value;draftValues[n.dataset.draftField]=n.value;});const payload=answers();payload[row.key]={...payload[row.key],...values,confirmed:true};await request('PATCH',path+'draft/',{answers:payload});const read=await request('GET',path),saved=(read.stages||[]).flatMap(s=>s.products||[]).find(r=>r.key===row.key);if(!saved?.confirmed||Object.entries(values).some(([k,v])=>Number(saved[k])!==v))fail('Odczyt nie potwierdził zapisanych ilości.');confirmDraft('task:'+taskId,draftValues);await task(taskId);feedback('Pozycja potwierdzona w odczycie TMS.');});
+    bind('[data-inventory-shot]',async n=>{if(readOnly)return;const file=await capture();if(!file)return;try{await upload(handover?`inventory/driver/handover/${id(taskId)}/photos/`:path+'shots/',file,{shot:n.dataset.inventoryShot});await task(taskId);feedback('TMS przyjął zdjęcie. Sprawdź liczbę w wymaganym ujęciu.');}finally{keepEvidence(file);}});
     if(!readOnly&&rows.length)body().insertAdjacentHTML('beforeend',button('Zakończ protokół w TMS','data-inv-finish'));
-    bind('[data-inv-finish]',async()=>{if(rows.some(r=>!r.confirmed))fail('Sprawdź i potwierdź każdą pozycję wyposażenia.');if(!confirm('Zakończyć i wysłać protokół w TMS?'))return;await request('POST',path+'submit/',{});const read=await request('GET',`driver-tasks/${id(taskId)}/`);if(read.status!=='completed')fail('Nie potwierdzono zakończenia protokołu w zadaniu. Sprawdź wymagane zdjęcia i potwierdzenia.');await task(taskId);feedback('TMS potwierdził zakończenie protokołu.');});
+    bind('[data-inv-finish]',async()=>{if(formDrafts.get(draftKey('task:'+taskId))?.size)fail('Zapisz zmienione pola przed zakończeniem protokołu.');if(rows.some(r=>!r.confirmed))fail('Sprawdź i potwierdź każdą pozycję wyposażenia.');if(!confirm('Zakończyć i wysłać protokół w TMS?'))return;await request('POST',path+'submit/',{});const read=await request('GET',`driver-tasks/${id(taskId)}/`);if(read.status!=='completed')fail('Nie potwierdzono zakończenia protokołu w zadaniu. Sprawdź wymagane zdjęcia i potwierdzenia.');await task(taskId);feedback('TMS potwierdził zakończenie protokołu.');});
   }
   async function handoverDetails(taskId,readOnly){
     const path=`inventory/driver/handover/${id(taskId)}/`,hand=await request('GET',path),choices=hand.choices||{};
@@ -194,19 +231,20 @@
     body().insertAdjacentHTML('beforeend',`<section class="panel" id="lw-handover-header"><h3>Protokół przekazania pojazdu</h3><p>Przekazuje: ${e(hand.handing_label)}<br>Odbiera: ${e(hand.receiving_driver_name)}</p>${hand.missing?.length?`<p>Do uzupełnienia: ${e(hand.missing.join('; '))}</p>`:''}${[['place','Miejsce przekazania','text'],['odometer_km','Przebieg w km','number'],['km_to_service','Kilometry do przeglądu (ujemne = po terminie)','number']].map(([key,label,type])=>`<label class="lw-field">${label}<input type="${type}" data-ho="${key}" value="${e(hand[key]??'')}" ${readOnly?'readonly':''}></label>`).join('')}${select('no_fluids_in_cabin','Brak płynów eksploatacyjnych w kabinie',hand.no_fluids_in_cabin,[{value:true,label:'Potwierdzam brak płynów w kabinie'},{value:false,label:'Płyny są w kabinie'}])}${select('tail_lift_ok','Działanie windy',hand.tail_lift_ok,[{value:true,label:'Działa — stan OK'},{value:false,label:'Nie działa'}])}${select('cleanliness_rating','Czystość pojazdu',hand.cleanliness_rating,choices.cleanliness||[])}${(hand.card_rows||[]).map(row=>`<label class="lw-field">${e(row.name)} — 4 ostatnie cyfry lub BRAK<input data-ho-card="${e(row.key)}" maxlength="4" value="${e(hand.card_digits?.[row.key]||'')}" ${readOnly?'readonly':''}></label>`).join('')}${(choices.areas||[]).map(area=>`<label class="lw-field">Uwagi — ${e(area.label)}<textarea data-ho-area="${e(area.key)}" ${readOnly?'readonly':''}>${e(hand.area_notes?.[area.key]||'')}</textarea></label>`).join('')}<label class="lw-field">Dodatkowe ustalenia<textarea data-ho="notes" ${readOnly?'readonly':''}>${e(hand.notes||'')}</textarea></label>${readOnly?'':button('Zapisz dane i kontrole w TMS','data-ho-save')}</section>`);
     bind('[data-ho-save]',async()=>{
       const patch={card_digits:{},area_notes:{}};
+      const draftValues=Object.fromEntries([...root.querySelectorAll('#lw-handover-header [data-draft-field]')].map(node=>[node.dataset.draftField,node.value]));
       root.querySelectorAll('#lw-handover-header [data-ho]').forEach(n=>{const key=n.dataset.ho;let value=n.value;if(['odometer_km','km_to_service'].includes(key)){if(value!==''&&!Number.isSafeInteger(Number(value)))fail('Podaj całkowite kilometry.');value=value===''?null:Number(value);}if(['no_fluids_in_cabin','tail_lift_ok'].includes(key))value=value===''?null:value==='true';patch[key]=value;});
       root.querySelectorAll('[data-ho-card]').forEach(n=>{const value=n.value.trim().toUpperCase();if(value&&!/^(\d{4}|BRAK)$/.test(value))fail('Wpisz dokładnie cztery cyfry karty lub BRAK.');patch.card_digits[n.dataset.hoCard]=value;});
       root.querySelectorAll('[data-ho-area]').forEach(n=>patch.area_notes[n.dataset.hoArea]=n.value);
       await request('PATCH',path,patch);const read=await request('GET',path);
       if(['place','odometer_km','km_to_service','no_fluids_in_cabin','tail_lift_ok','cleanliness_rating','notes'].some(key=>String(read[key]??'')!==String(patch[key]??'')))fail('Nie potwierdzono wszystkich wartości protokołu w odczycie TMS.');
-      await task(taskId);feedback('Dane protokołu odczytane po zapisie w TMS.');
+      for(const group of ['card_digits','area_notes'])for(const [key,value]of Object.entries(patch[group])){if(String(read[group]?.[key]??'')!==value)fail('Odczyt nie potwierdził wszystkich pól protokołu.');}confirmDraft('task:'+taskId,draftValues);await task(taskId);feedback('Dane protokołu odczytane po zapisie w TMS.');
     });
     if(hand.driver_item_rows?.length){
       body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>Rzeczy kierowcy przekazującego</h3>${hand.driver_item_rows.map(row=>`<label class="lw-field">${e(row.product)} × ${e(row.quantity)}<select data-ho-item="${e(id(row.item_id))}" ${readOnly?'disabled':''}><option value="">Wybierz</option>${(choices.driver_item||[]).map(c=>`<option value="${e(c.value)}" ${row.decision===c.value?'selected':''}>${e(c.label)}</option>`).join('')}</select></label>`).join('')}${readOnly?'':button('Zapisz ustalenia dotyczące rzeczy kierowcy','data-ho-items',true)}</section>`);
-      bind('[data-ho-items]',async()=>{const values={};root.querySelectorAll('[data-ho-item]').forEach(n=>{if(n.value)values[n.dataset.hoItem]=n.value;});await request('PATCH',path,{driver_items:values});await task(taskId);feedback('Odświeżono ustalenia po odpowiedzi TMS.');});
+      bind('[data-ho-items]',async()=>{const values={};root.querySelectorAll('[data-ho-item]').forEach(n=>{if(n.value)values[n.dataset.hoItem]=n.value;});await request('PATCH',path,{driver_items:values});const read=await request('GET',path);if(Object.entries(values).some(([key,value])=>!read.driver_item_rows?.some(row=>String(row.item_id)===key&&row.decision===value)))fail('Odczyt nie potwierdził ustaleń dotyczących rzeczy kierowcy.');confirmDraft('task:'+taskId,Object.fromEntries(Object.entries(values).map(([key,value])=>['ho-item:'+key,value])));await task(taskId);feedback('Ustalenia odczytane po zapisie w TMS.');});
     }
     body().insertAdjacentHTML('beforeend',`<section class="panel"><h3>Potwierdzenia stron</h3><p>Potwierdź dopiero po wspólnym sprawdzeniu wyposażenia.</p>${[['handing','Przekazujący',hand.handing_label],['receiving','Odbierający',hand.receiving_driver_name]].map(([role,label,name])=>`<label class="lw-field">${label}: ${e(name)}<select data-ho-role="${role}" ${readOnly?'disabled':''}><option value="">Wybierz</option>${(choices.confirmation||[]).map(c=>`<option value="${e(c.value)}" ${hand.confirmations?.[role]?.decision===c.value?'selected':''}>${e(c.label)}</option>`).join('')}</select></label>${readOnly?'':button('Zapisz potwierdzenie: '+label,`data-ho-confirm="${role}"`,true)}`).join('')}</section>`);
-    bind('[data-ho-confirm]',async n=>{const role=n.dataset.hoConfirm,value=root.querySelector(`[data-ho-role="${role}"]`).value;if(!value)fail('Wybierz wynik wspólnej kontroli.');if(!confirm('Zapisać wskazane potwierdzenie strony w protokole TMS?'))return;await request('PATCH',path,{confirmations:{[role]:value}});const read=await request('GET',path);if(read.confirmations?.[role]?.decision!==value)fail('TMS nie potwierdził wybranej decyzji.');await task(taskId);feedback('Potwierdzenie odczytane z TMS.');});
+    bind('[data-ho-confirm]',async n=>{const role=n.dataset.hoConfirm,value=root.querySelector(`[data-ho-role="${role}"]`).value;if(!value)fail('Wybierz wynik wspólnej kontroli.');if(!confirm('Zapisać wskazane potwierdzenie strony w protokole TMS?'))return;await request('PATCH',path,{confirmations:{[role]:value}});const read=await request('GET',path);if(read.confirmations?.[role]?.decision!==value)fail('TMS nie potwierdził wybranej decyzji.');confirmDraft('task:'+taskId,{['ho-role:'+role]:value});await task(taskId);feedback('Potwierdzenie odczytane z TMS.');});
     return hand;
   }
   async function tacho(){
@@ -277,18 +315,19 @@
     bind('[data-lw-thread]',n=>chat(n.dataset.lwThread));
   }
   async function chat(offerId){
-    const path=`chat/threads/${id(offerId)}/messages/`,data=await request('GET',path),messages=list(data);
-    root.classList.add('lw-chat-open');
-    body().innerHTML=`<div class="lw-messages" role="log" aria-label="Rozmowa zlecenia">${messages.map(m=>window.SuperSpedytorLiveChatView.message(m,bridge)).join('')||empty('W tym wątku nie ma wiadomości.')}</div><section class="lw-chat-composer chat-composer"><label class="lw-field" for="lw-chat-message">Wiadomość<textarea id="lw-chat-message" maxlength="10000" rows="1" placeholder="Napisz wiadomość…"></textarea></label>${button('Wyślij','data-chat-send')}<details class="lw-chat-tools"><summary>Dołącz zdjęcie, plik lub nagranie</summary><div class="lw-actions">${button('Zdjęcie','data-chat-photo',true)}${button('Plik PDF lub zdjęcie','data-chat-file',true)}${button('Nagraj wiadomość','data-chat-audio',true)}</div></details></section>`;
+    const path=`chat/threads/${id(offerId)}/messages/`,data=await request('GET',path),messages=window.SuperSpedytorLiveChatView.chronological(list(data));
+    screenContext={offerId};root.classList.add('lw-chat-open');
+    body().innerHTML=`<div class="lw-messages" role="log" aria-label="Rozmowa zlecenia">${messages.map(m=>window.SuperSpedytorLiveChatView.message(m,bridge)).join('')||empty('W tym wątku nie ma wiadomości.')}</div><section class="lw-chat-composer chat-composer"><label class="lw-field" for="lw-chat-message">Wiadomość<textarea id="lw-chat-message" data-draft-field="message" maxlength="10000" rows="1" placeholder="Napisz wiadomość…"></textarea></label>${button('Wyślij','data-chat-send')}<details class="lw-chat-tools"><summary>Dołącz zdjęcie, plik lub nagranie</summary><div class="lw-actions">${button('Zdjęcie','data-chat-photo',true)}${button('Plik PDF lub zdjęcie','data-chat-file',true)}${button('Nagraj wiadomość','data-chat-audio',true)}</div></details></section>`;
     root.querySelectorAll('[data-chat-inline-preview]').forEach(image=>image.onerror=()=>{image.hidden=true;image.closest('figure').querySelector('.lw-preview-error').hidden=false;});
     const conversation=root.querySelector('.lw-messages');conversation.scrollTop=conversation.scrollHeight;
     const input=root.querySelector('#lw-chat-message');
     input.addEventListener('focus',position);input.addEventListener('blur',position);
     input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(100,input.scrollHeight)+'px';});
+    bindDraft('chat:'+offerId);input.style.height=Math.min(100,input.scrollHeight)+'px';
     position();
-    bind('[data-chat-send]',async()=>{const text=root.querySelector('#lw-chat-message').value.trim();if(!text)fail('Wpisz wiadomość.');if(!confirm('Wysłać tę wiadomość do czatu zlecenia?'))return;await request('POST',path,{body:text});const read=list(await request('GET',path));if(!read.some(m=>(m.body||m.text)===text&&!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości w odczycie czatu.');await chat(offerId);feedback('Wiadomość odczytana z czatu po wysłaniu.');});
-    bind('[data-chat-photo]',async()=>{const file=await capture();if(!file)return;try{if(!confirm('Wysłać wybrane zdjęcie do tego czatu zlecenia?'))return;await upload(path,file,{body:root.querySelector('#lw-chat-message').value.trim()});await chat(offerId);feedback('TMS przyjął załącznik. Sprawdź nową wiadomość w wątku.');}finally{keepEvidence(file);}});
-    const sendFile=async audio=>{const file=await (audio?recordVoice():chooseFile());if(file?.status==='cancelled')return;if(file?.status!=='ok'||!file.token)fail(file?.message||'Nie udało się przygotować pliku.');keepEvidence(file);if(!confirm('Wysłać ten plik lub nagranie do czatu wskazanego zlecenia?'))return;await upload(path,file,{body:root.querySelector('#lw-chat-message').value.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości z załącznikiem. Plik pozostaje na telefonie.');await chat(offerId);feedback('Nowa wiadomość odczytana z czatu po wysyłce.');};
+    bind('[data-chat-send]',async()=>{const draft=root.querySelector('#lw-chat-message').value,text=draft.trim();if(!text)fail('Wpisz wiadomość.');if(!confirm('Wysłać tę wiadomość do czatu zlecenia?'))return;await request('POST',path,{body:text});const read=list(await request('GET',path));if(!read.some(m=>(m.body||m.text)===text&&!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości w odczycie czatu.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Wiadomość odczytana z czatu po wysłaniu.');});
+    bind('[data-chat-photo]',async()=>{const file=await capture();if(!file)return;try{if(!confirm('Wysłać wybrane zdjęcie do tego czatu zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości ze zdjęciem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość ze zdjęciem odczytana z czatu.');}finally{keepEvidence(file);}});
+    const sendFile=async audio=>{const file=await (audio?recordVoice():chooseFile());if(file?.status==='cancelled')return;if(file?.status!=='ok'||!file.token)fail(file?.message||'Nie udało się przygotować pliku.');keepEvidence(file);if(!confirm('Wysłać ten plik lub nagranie do czatu wskazanego zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości z załącznikiem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość odczytana z czatu po wysyłce.');};
     bind('[data-chat-file]',()=>sendFile(false));bind('[data-chat-audio]',()=>sendFile(true));
 
   }
@@ -393,7 +432,7 @@
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();

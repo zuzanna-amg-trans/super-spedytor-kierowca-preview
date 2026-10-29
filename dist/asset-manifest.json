@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "a6038cb5c20be03070a6679287b426392ed7ab1a",
+  "sourceCommit": "3cff55f7bff1e4f478c80a9cedbfb739417d4ae0",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "d80e4e9663fe2d9b6db5840e5cc61ea86bec26f13dfa60788e37a31640c6954d",
+  "assetManifestSha256": "5dd768d1a3f4a59b55527ba2b8b3e462d2a45bb328f9c37d026d738b9decece9",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -133,8 +133,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "d1a0cb6f1bec3c4f8187bc80bc36606c9890254f0fb40033e3ade092a72d180b",
-      "size": 450086
+      "sha256": "8138eaf5e4c49bb4f1113372995018fb29c6a41013da867d19db9554573f1e3c",
+      "size": 450265
     },
     {
       "path": "handover-v2.css",
@@ -153,13 +153,13 @@
     },
     {
       "path": "live-chat-view.js",
-      "sha256": "16c9b7b7eb07acd326f826fe30c7172d2dbf4a4b67d1bcbddfb494ae518d3271",
-      "size": 2626
+      "sha256": "4c432b8e27713f2d4e7f5a0932eaea78cf8eb0d615ee4c16c22fc950eba77739",
+      "size": 3012
     },
     {
       "path": "live-operation.js",
-      "sha256": "7a60e640d128d939d0671a614b02a7d8f526f453cffc9920aa9dbcacef0c0ecd",
-      "size": 24701
+      "sha256": "05613cbe40ef111eab08aa9d886034345d81c444866d0917b78cb33338cb62b4",
+      "size": 24860
     },
     {
       "path": "live-workspace.css",
@@ -168,8 +168,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "716878b958577702d488b9427d392a9ca1c363993d55a1d53b83e7799c4f4429",
-      "size": 62951
+      "sha256": "e09ea5e04c819547c1bf0dfbbfb6afd7a43a92640aad3332a8375a95ae341730",
+      "size": 67583
     },
     {
       "path": "mobile-readability.css",

@@ -314,14 +314,17 @@
       && String(projectedCargo.offer_id) === String(record.live.offerId) ? projectedCargo : null;
     const orderMass = massNumber(orderCargo && orderCargo.cargo_weight);
     const mass = completePieceMass !== null ? completePieceMass : orderMass;
-    const destinations = [...new Set(items.map(item => item.description.replace(/^Rozładunek: /, '')).filter(has))];
+    const destinations = [...new Set([
+      ...items.map(item => item.description.replace(/^Rozładunek: /, '')),
+      ...(record.cmrItems || []).map(item => item.label),
+    ].filter(has))];
     const here = placeFromPoint(point);
     const unload = record.mode === 'unload';
     return {
       id: record.live.orderNumber || `punkt ${record.live.pointId || ''}`.trim(),
       // makieta: currentPlace() = pickup dla załadunku, delivery dla rozładunku
-      pickup: unload ? unknownPlace('Według zlecenia w Super Spedytorze') : here,
-      delivery: unload ? here : unknownPlace(destinations.length ? destinations.join(' · ') : 'Według zlecenia w Super Spedytorze'),
+      pickup: unload ? {...unknownPlace('Brak miejsca załadunku w odczycie TMS'),locationAvailable:false} : here,
+      delivery: unload ? here : {...unknownPlace(destinations.length ? destinations.join(' · ') : 'Brak miejsca rozładunku w odczycie TMS'),locationAvailable:destinations.length===1},
       cargo: {
         name: text(orderCargo && orderCargo.description) || text(point && point.cargo_description) || text(point && point.cargo_summary) || 'Sztuki ładunku ze zlecenia',
         quantity: items.length,

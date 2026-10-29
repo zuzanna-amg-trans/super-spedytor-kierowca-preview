@@ -21,5 +21,11 @@
     const date=m.created_at&&!Number.isNaN(new Date(m.created_at).getTime())?new Date(m.created_at).toLocaleString('pl-PL',{timeZone:'Europe/Warsaw',dateStyle:'short',timeStyle:'short'}):'';
     return `<article class="chat-bubble"><small>${e(sender)}${date?' · '+e(date):''}</small><p>${e(m.body||m.text||'')}</p><div class="lw-chat-attachments">${(m.attachments||m.files||[]).map(f=>attachment(f,native)).join('')}</div></article>`;
   }
-  return {media,attachment,message};
+  function chronological(messages){
+    const entries=messages.map((message,index)=>({message,index,time:Date.parse(message.created_at)}));
+    const ordered=entries.filter(entry=>Number.isFinite(entry.time)).sort((a,b)=>a.time-b.time||a.index-b.index);
+    let next=0;
+    return entries.map(entry=>Number.isFinite(entry.time)?ordered[next++].message:entry.message);
+  }
+  return {media,attachment,message,chronological};
 });

@@ -1189,7 +1189,7 @@ function placeView(){
 }
 function destinationView(){
   const place=current().sourcePlace||(isLoad()?assignment.delivery:assignment.pickup);
-  return `<section class="panel destination-panel"><div class="section-kicker">${icon('route')} ${isLoad()?'DOKĄD JEDZIE ŁADUNEK':'SKĄD JEDZIE ŁADUNEK'} / ${dictionary[state.language][isLoad()?'delivery':'pickup']}</div><h4>${esc(place.company)}</h4><p>${esc(place.countryName)}${has(place.address)?`<br>${esc(place.address)}`:''}</p><a href="${locationUrl(place)}" target="_blank" rel="noopener">Otwórz lokalizację ${icon('arrow')}</a></section>`;
+  return `<section class="panel destination-panel"><div class="section-kicker">${icon('route')} ${isLoad()?'DOKĄD JEDZIE ŁADUNEK':'SKĄD JEDZIE ŁADUNEK'} / ${dictionary[state.language][isLoad()?'delivery':'pickup']}</div><h4>${esc(place.company)}</h4><p>${esc(place.countryName)}${has(place.address)?`<br>${esc(place.address)}`:''}</p>${place.locationAvailable===false?'':`<a href="${locationUrl(place)}" target="_blank" rel="noopener">Otwórz lokalizację ${icon('arrow')}</a>`}</section>`;
 }
 function cargoView(){
   const totalMass=current().cargoMass??assignment.cargo.mass;
@@ -2597,7 +2597,7 @@ async function enterLiveOperation(point,{selected=liveRouteSelection()}={}){
   }
 }
 async function refreshLiveTargets(){
-  if(!liveMode())return false;
+  if(!liveMode()||!liveOperationModel.wizardMode(liveOperation.point))return false;
   const operation=liveOperation,record=current();
   const result=await nativeRequest('GET',liveTargetsPath());
   if(!liveMode()||liveOperation!==operation||current()!==record)return false;
@@ -3419,7 +3419,7 @@ function openModal(type,target){
   if(type==='finish'){
     title=`Zakończyć ${isLoad()?'załadunek':'rozładunek'}?`;
     const photoTotal=count()*(isLoad()?2:1);
-    body=`<p>${isLoad()?'Każda sztuka ma plombę, QR i dwa zdjęcia. Plomba na pustym tyle ostatniej strony CMR oraz pełny skan dokumentu są gotowe.':'Każda sztuka ma zgodny skan plomby i zdjęcie z rozładunku. Plomba CMR oraz pełny skan dokumentu są gotowe.'}</p><div class="summary-line">${icon('check')}Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')}${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')}Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')}Pełny skan CMR <b>OK</b></div><button class="primary-button" id="confirm-finish">${icon('check')}Potwierdź zakończenie</button><p class="small-note">Demonstracja: nie zmieniamy statusu rzeczywistego zlecenia.</p>`;
+    body=`<p>${isLoad()?'Każda sztuka ma plombę, QR i dwa zdjęcia. Plomba na pustym tyle ostatniej strony CMR oraz pełny skan dokumentu są gotowe.':'Każda sztuka ma zgodny skan plomby i zdjęcie z rozładunku. Plomba CMR oraz pełny skan dokumentu są gotowe.'}</p><div class="summary-line">${icon('check')}Sztuki ładunku <b>${count()}/${count()}</b></div><div class="summary-line">${icon('check')}${isLoad()?'Zdjęcia każdej sztuki':'Zdjęcia z rozładunku'} <b>${photoTotal}/${photoTotal}</b></div><div class="summary-line">${icon('check')}Plomba CMR <b>${esc(current().cmrSeal)}</b></div><div class="summary-line">${icon('check')}Pełny skan CMR <b>OK</b></div><button class="primary-button" id="confirm-finish">${icon('check')}Potwierdź zakończenie</button><p class="small-note">${liveMode()?'Potwierdzenie zapisze zakończenie tej operacji w Super Spedytorze.':'Demonstracja: nie zmieniamy statusu rzeczywistego zlecenia.'}</p>`;
   }
   if(type==='fuel-break'){
     const recommendation=target.recommendation;
