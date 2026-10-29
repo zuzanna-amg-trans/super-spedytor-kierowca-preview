@@ -34,6 +34,9 @@
     }
     async function load(force=false){
       if(!options.active||suspended||options.demo||pending||typeof options.request!=='function'||options.session?.offline||options.session?.refreshing)return;
+      // Background telemetry must wait for foreground work. A deferred read
+      // does not consume the refresh interval and can recover on the next sync.
+      if(typeof options.canRequest==='function'&&!options.canRequest())return;
       if(!force&&fetchedAt!==null&&now()-fetchedAt<REFRESH_MS)return;
       const generation=epoch,key=owner,request=options.request;
       pending=true;fetchedAt=now();paint();
@@ -54,7 +57,10 @@
       if(timer===null)timer=setTimer(()=>{paint();load();},REFRESH_MS);
       paint();load(next.force===true);
     }
-    function close(){epoch++;owner='';payload=null;error='';pending=false;fetchedAt=null;options={};stop();paint();}
+    function close(){
+      epoch++;owner='';payload=null;error='';pending=false;fetchedAt=null;options={};stop();
+      const node=getNode();if(node){node.hidden=true;node.innerHTML='';delete node.dataset.state;}
+    }
     function suspend(){suspended=true;stop();paint();}
     function resume(){suspended=false;sync(options);}
     return {sync,refresh:()=>load(true),close,suspend,resume};

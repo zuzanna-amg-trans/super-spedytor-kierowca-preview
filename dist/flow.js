@@ -4688,7 +4688,9 @@ function syncRouteActivity(){
     return;
   }
   const active=backendMode&&!backendTestWorkspace&&backendActiveNav==='now'&&backendState?.status==='connected';
-  widget.sync({active,session:backendState,request:backendTachoMe});
+  widget.sync({active,session:backendState,request:backendTachoMe,
+    canRequest:()=>!document.hidden&&!liveBusy&&!liveOperation?.finishing&&!backendPointActionPending
+      &&backendState?.write?.status!=='pending'&&pendingRequests.size===0});
 }
 function closeBackendReadOnlyTacho(restore=false){
   try{driverBridge?.tachoScreenVisible?.(false);}catch{}
@@ -4750,6 +4752,10 @@ window.SuperSpedytorBackend={
     const previousContext={point:liveOperation?.point||backendLastNearest,owner:backendState?.profile?.id==null?'':`${backendState.backend_origin||'native'}|${backendState.profile.id}`};
     try{backendState=typeof raw==='string'?JSON.parse(raw):raw;}
     catch{backendState={status:'error',message:'Aplikacja otrzymała nieprawidłową odpowiedź'};}
+    // Authentication screens can return before render(). Drop telemetry and its
+    // pending generation immediately, even when no operation wizard is mounted.
+    if(backendState?.status!=='connected'||previousTachoOwner!==tachoSessionKey(backendState))
+      window.SuperSpedytorRouteActivity?.close?.();
     window.SuperSpedytorScanner?.revalidate?.();
     if(state.modal?.type==='chat-file-preview'&&!chatAttachmentIsCurrent(state.modal.target))closeModal(false);
     if(typeof backendChatRead!=='undefined'&&backendChatRead&&!backendChatCurrent(backendChatRead))invalidateBackendChatRead();
