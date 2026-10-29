@@ -1,6 +1,6 @@
 {
   "protocol": 2,
-  "sourceCommit": "7c62fe79ce0e2b8220de620b3812d00f7904f34d",
+  "sourceCommit": "bbd0d257acb944ada3312ef14975d9e883d386e8",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
   "assetManifestSha256": "32ad946f506fdf66303730d02874684349c92f34a3640816db6a9d4c68187685",
