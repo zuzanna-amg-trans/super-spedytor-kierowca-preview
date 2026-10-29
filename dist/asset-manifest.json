@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "bbd0d257acb944ada3312ef14975d9e883d386e8",
+  "sourceCommit": "bc261d261790994ace8c8b213641b017e5f7ccce",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "32ad946f506fdf66303730d02874684349c92f34a3640816db6a9d4c68187685",
+  "assetManifestSha256": "c576855948e6177cb1efb9c42e0f360a4a04d5a11eb9369b45966cd7a2177624",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -173,8 +173,8 @@
     },
     {
       "path": "live-workspace.css",
-      "sha256": "35900d0841972ab1ac84bedaddee44bd787c6b6d1953b9a2a8e74bd267fd1c49",
-      "size": 13138
+      "sha256": "7e9eaf4b2a62ee1b1a270c727be17a3149648ae3e24a7544a718c1ae225fbd78",
+      "size": 14262
     },
     {
       "path": "live-workspace.js",
