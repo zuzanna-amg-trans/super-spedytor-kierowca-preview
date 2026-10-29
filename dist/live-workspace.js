@@ -10,7 +10,7 @@
   const media=value=>{if(typeof value!=='string')return '';try{const u=new URL(value,'https://tms.amg.eco');return u.protocol==='https:'&&u.hostname==='tms.amg.eco'&&!u.username&&!u.password&&u.pathname.startsWith('/media/')?u.href.replace(/^https:/,'ssmedia:'):'';}catch{return '';}};
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
   let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null;
-  const localEvidence=new Map();let evidenceOwner="";
+  const localEvidence=new Map();let evidenceOwner="",standaloneScan=null;
   // Drafts belong to the current authenticated account and live only in memory.
   // A readback for one field must not erase edits in the other fields.
   const formDrafts=new Map();
@@ -154,7 +154,7 @@
   }
   async function open(name='menu',context={}){
     if(!enabled()||state().status!=='connected')return;
-    const titles={menu:'Twoje sprawy',service:'Serwis i zadania',tacho:'Tacho',chat:'Czat',collection:'Dokumenty CMR',transshipment:'Przeładunki',fueling:'Tankowanie i parkingi',expenses:'Wydatki',files:'Pliki na telefonie',help:'Pomoc'};
+    const titles={menu:'Twoje sprawy',scanner:'Skaner',service:'Serwis i zadania',tacho:'Tacho',chat:'Czat',collection:'Dokumenty CMR',transshipment:'Przeładunki',fueling:'Tankowanie i parkingi',expenses:'Wydatki',files:'Pliki na telefonie',help:'Pomoc'};
     if(!mount(titles[name]||titles.menu,name))return;screenContext=context;
     const generation=++epoch;
     try{
@@ -165,11 +165,12 @@
       else if(name==='transshipment')await transshipments();
       else if(name==='expenses')await expenses(null,context.sourceRoutePoint);
       else if(name==='fueling')await routeStops();
+      else if(name==='scanner')scanner();
       else if(name==='files')await files();
       else if(name==='help'){
         body().innerHTML=empty('W sprawach trasy i dokumentów wybierz Czat i właściwe zlecenie. O rezultacie operacji decyduje potwierdzenie TMS. W razie utraty połączenia odśwież rekord przed ponownym zapisem.')+button('Otwórz czat','data-lw-chat');bind('[data-lw-chat]',()=>open('chat'));
       }else{
-        body().innerHTML=[['service','Serwis, ankiety i zadania','Przypisane zadania, wyposażenie i przekazanie auta'],['tacho','Tacho','Aktualny odczyt i zgłoszenie odpoczynku'],['chat','Czat','Zlecenia, wiadomości i załączniki'],['collection','Obieg dokumentów CMR','Własne koszulki i przekazania'],['transshipment','Przeładunki','Spotkania i kroki przypisane do Twojej trasy'],['fueling','Tankowanie i parkingi','Punkty trasy, zdjęcia i odpoczynek'],['expenses','Wydatki','Paragony, faktury i pozycje do poprawy'],['files','Pliki na telefonie','Zachowane zdjęcia, skany i nagrania tego konta'],['help','Pomoc','Kontakt w sprawie Twojej operacji']].map(([key,title,text])=>card(title,text,'›',`data-lw-open="${key}"`)).join('');bind('[data-lw-open]',n=>open(n.dataset.lwOpen));
+        body().innerHTML=[['scanner','Skaner','Zeskanuj i sprawdź PDF bez rozpoczynania operacji'],['service','Serwis, ankiety i zadania','Przypisane zadania, wyposażenie i przekazanie auta'],['tacho','Tacho','Aktualny odczyt i zgłoszenie odpoczynku'],['chat','Czat','Zlecenia, wiadomości i załączniki'],['collection','Obieg dokumentów CMR','Własne koszulki i przekazania'],['transshipment','Przeładunki','Spotkania i kroki przypisane do Twojej trasy'],['fueling','Tankowanie i parkingi','Punkty trasy, zdjęcia i odpoczynek'],['expenses','Wydatki','Paragony, faktury i pozycje do poprawy'],['files','Pliki na telefonie','Zachowane zdjęcia, skany i nagrania tego konta'],['help','Pomoc','Kontakt w sprawie Twojej operacji']].map(([key,title,text])=>card(title,text,'›',`data-lw-open="${key}"`)).join('');bind('[data-lw-open]',n=>open(n.dataset.lwOpen));
       }
     }catch(error){if(generation===epoch&&root){body().innerHTML=empty('Nie udało się pobrać danych. Użyj odświeżenia, aby spróbować ponownie.');feedback(error.message,true);}}
   }
@@ -346,12 +347,28 @@
     bind('[data-cmr-accept]',async()=>{if(!confirm('Czy fizycznie odebrano wskazane dokumenty? Zapis potwierdzi przejęcie w TMS.'))return;await request('POST',`documents/cmr-transfers/${id(incoming.id)}/accept/`,{});await collection();feedback('Odświeżono stan przekazania po odpowiedzi TMS.');});
     bind('[data-cmr-transfer]',async()=>{const code=root.querySelector('#lw-transfer-code').value.trim();if(!code)fail('Wpisz kod odbiorcy.');if(!confirm('Wysłać do wskazanego kodem kierowcy prośbę o przejęcie własnych dokumentów?'))return;await request('POST','documents/cmr-transfers/',{to_driver_code:code,item_ids:items.map(i=>i.id)});const read=await request('GET','documents/cmr-transfers/pending/');if(!read.outgoing)fail('Nie potwierdzono oczekującego przekazania.');await collection();feedback('Prośba oczekuje w TMS na przyjęcie przez odbiorcę.');});
   }
+  function scanner(){
+    const ready=typeof bridge.scanDocument==='function';
+    body().innerHTML=`<section class="panel"><h3>Skanuj dokument</h3><p>Zrób skan jednej lub kilku stron. Po wybraniu „Użyj PDF” sprawdzisz gotowy dokument tutaj.</p><p>Skan zostaje na telefonie. Nie jest wysyłany do zlecenia ani do czatu.</p>${ready?button(standaloneScan?'Zeskanuj kolejny dokument':'Uruchom skaner','data-standalone-scan'):empty('Skaner jest niedostępny w tej wersji aplikacji na tym urządzeniu.')}</section>`+(standaloneScan?`<section class="panel" aria-label="Gotowy skan"><h3>Podgląd skanu</h3>${window.CmrDocumentPreview.markup(standaloneScan,{native:bridge})}</section>`:'')+button('Pliki na telefonie','data-scanner-files',true);
+    const back=root.querySelector('[data-lw-close]');back.setAttribute('aria-label','Wróć do moich spraw');back.onclick=()=>open('menu');
+    bind('[data-scanner-files]',()=>open('files'));
+    bind('[data-standalone-scan]',async()=>{
+      const generation=epoch,account=owner;
+      // This entry only creates an owned local PDF. No order/point or upload is involved.
+      const result=await nativeCall(id=>bridge.scanDocument(id));
+      if(!current()||owner!==account||generation!==epoch||screen!=='scanner')return;
+      if(result?.status==='cancelled'){feedback('Skanowanie anulowane. Możesz spróbować ponownie.');return;}
+      if(result?.status!=='ok'||!result.token||result.mime!=='application/pdf'||!Number.isInteger(result.pages)||result.pages<1)fail(result?.message||'Nie udało się przygotować PDF. Spróbuj ponownie.');
+      standaloneScan={...result,url:'ssfile://local/'+encodeURIComponent(result.token)};
+      keepEvidence(standaloneScan);scanner();feedback('PDF gotowy. Otwórz podgląd, aby sprawdzić wszystkie strony.');
+    });
+  }
   async function files(){
     const response=await nativeCall(id=>bridge.localFiles(id));
     if(response?.status!==200)fail('Nie udało się odczytać plików tego konta.');
     const entries=list(response.body);entries.forEach(keepEvidence);
     body().innerHTML=empty('To lokalne kopie przypisane do Twojego konta. Pozostają dostępne po ponownym zalogowaniu. Sam plik nie potwierdza przyjęcia dokumentu w TMS.')+entries.map(file=>`<section class="panel"><h3>${e(file.name)}</h3><p>${e(file.mime)} · ${(Number(file.size)/1024/1024).toFixed(1)} MB</p><a href="ssfile://local/${e(file.token)}" target="_blank">Otwórz lub zachowaj w Plikach</a>${button('Usuń tę lokalną kopię',`data-local-remove="${e(file.token)}"`,true)}</section>`).join('');
-    bind('[data-local-remove]',async n=>{if(!confirm('Usunąć tę lokalną kopię? Najpierw sprawdź zapis w TMS albo zachowaj plik poza aplikacją.'))return;bridge.releaseFile(n.dataset.localRemove);localEvidence.delete(n.dataset.localRemove);await files();});
+    bind('[data-local-remove]',async n=>{if(!confirm('Usunąć tę lokalną kopię? Najpierw sprawdź zapis w TMS albo zachowaj plik poza aplikacją.'))return;bridge.releaseFile(n.dataset.localRemove);localEvidence.delete(n.dataset.localRemove);if(standaloneScan?.token===n.dataset.localRemove)standaloneScan=null;await files();});
   }
   async function expenses(entry=null,sourcePoint=null){
     const data=entry?null:await request('GET','stats/cost-entries/my-rejected/'),profile=state().profile||{},driverId=profile.driver_profile?.id||profile.driver?.id,vehicleId=state().vehicle?.id;
@@ -432,9 +449,9 @@
     const name=nav?.dataset.nav;
     if(name==='now'){close();return;}
     event.preventDefault();event.stopImmediatePropagation();
-    open(workspace?'menu':designed?({tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
+    open(workspace?'menu':designed?({scanner:'scanner',tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();
