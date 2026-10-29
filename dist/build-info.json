@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "120d7a19c13c5e23068bbba60846b9d97547361f",
+  "sourceCommit": "af3cafb56dfdf9a1ef6091fd5001f44acc19524d",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-10-29T23:41:23.627Z",
+  "builtAt": "2026-10-29T23:44:55.828Z",
   "assetManifestSha256": "c576855948e6177cb1efb9c42e0f360a4a04d5a11eb9369b45966cd7a2177624",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "120d7a19c13c5e23068bbba60846b9d97547361f",
-    "initialIntegrationSha": "bc261d261790994ace8c8b213641b017e5f7ccce",
+    "candidateSha": "af3cafb56dfdf9a1ef6091fd5001f44acc19524d",
+    "initialIntegrationSha": "120d7a19c13c5e23068bbba60846b9d97547361f",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "bc261d261790994ace8c8b213641b017e5f7ccce",
+    "baseSha": "120d7a19c13c5e23068bbba60846b9d97547361f",
     "branches": [
       {
         "name": "main",
@@ -106,7 +106,7 @@
       },
       {
         "name": "codex/public-phone-rest-44",
-        "sha": "ead5b355df821c8bfd62578a24d77b0ca4b100d3"
+        "sha": "85940f08f35b039dba83c9c85ce86d3d5e6b77d4"
       },
       {
         "name": "codex/rest-start-duration",
@@ -161,7 +161,7 @@
       "codex/tacho-car-views-release-2026-10-29"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-120d7a19c13c5e23068bbba60846b9d97547361f/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-af3cafb56dfdf9a1ef6091fd5001f44acc19524d/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
