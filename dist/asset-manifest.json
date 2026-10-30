@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "af3cafb56dfdf9a1ef6091fd5001f44acc19524d",
+  "sourceCommit": "1ecc73e069566b0c041c230ae15801a6679d9c26",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "c576855948e6177cb1efb9c42e0f360a4a04d5a11eb9369b45966cd7a2177624",
+  "assetManifestSha256": "b6708c308899170e775770d961c92a23cec071af639d25d1221c0a67f0f19e47",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -50,6 +50,21 @@
       "path": "break-suggestion.js",
       "sha256": "ecb63a3d8474a014fd8169d8313a2013f38f1ec5ec67c16d36fd5c878ce252f0",
       "size": 3764
+    },
+    {
+      "path": "car-route-alert-demo.css",
+      "sha256": "524ea5c948732118aa17d058c5fa290931113ec7e44feaacfddd8ec338a2280f",
+      "size": 2879
+    },
+    {
+      "path": "car-route-alert-demo.html",
+      "sha256": "83f3903707309f49c79f941c2234243dc41af8b40138ba1dafb1573109815175",
+      "size": 2962
+    },
+    {
+      "path": "car-route-alert-demo.js",
+      "sha256": "7174361b4c3a248acf34b345e908a2217e3b508a7bb2bba7fc510433af9339b9",
+      "size": 2655
     },
     {
       "path": "cmr-collection.js",

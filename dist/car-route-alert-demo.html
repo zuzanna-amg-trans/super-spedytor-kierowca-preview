@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zmiana trasy w aucie · Super Spedytor DEMO</title>
+  <link rel="stylesheet" href="car-route-alert-demo.css">
+  <script src="car-route-alert-demo.js" defer></script>
+</head>
+<body>
+  <main>
+    <a class="back" href="./">← Podgląd aplikacji</a>
+    <p class="eyebrow">SUPER SPEDYTOR · DEMO</p>
+    <h1>Nowy punkt nie umknie kierowcy</h1>
+    <p class="intro">Sprawdź zmianę celu podczas jazdy. Wszystkie miejsca w tej demonstracji są przykładowe.</p>
+    <div class="controls" aria-label="Wybór systemu auta">
+      <button id="android" aria-pressed="true">Android Auto</button><button id="carplay" aria-pressed="false">CarPlay</button>
+    </div>
+    <section class="car" aria-label="Schemat ekranu auta">
+      <header><strong id="platform">Android Auto · DEMO</strong><span>Super Spedytor</span></header>
+      <div class="map">
+        <svg viewBox="0 0 900 440" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+          <path class="road" d="M-40 360L950 60M110 -40L550 500M650 -40L270 500M-20 120L940 340"/>
+          <path class="route" d="M100 390L420 250L640 135L805 90"/>
+          <circle cx="100" cy="390" r="14" class="position"/><circle cx="805" cy="90" r="13" class="destination"/>
+        </svg>
+        <div class="map-caption"><span>CEL NAWIGACJI</span><strong id="map-destination">Magazyn A · Kraków</strong><small id="map-address">ul. Przykładowa 10</small></div>
+        <div id="route-alert" class="alert" role="alertdialog" aria-modal="true" aria-labelledby="alert-title" aria-describedby="alert-detail" hidden>
+          <span class="alert-label">NOWA TRASA OD SPEDYTORA</span>
+          <h2 id="alert-title">Zmieniono trasę</h2>
+          <p id="alert-detail">Nowy najbliższy punkt</p>
+          <strong id="new-destination">Magazyn B · Katowice</strong><p id="new-address">ul. Demonstracyjna 20</p>
+          <button id="navigate" class="primary">Nawiguj do nowego punktu →</button><button id="later">Później</button>
+        </div>
+        <button id="pending" hidden>Pokaż nowy punkt trasy</button>
+      </div>
+      <footer id="car-status" role="status" aria-live="polite">Nawigacja do pierwotnego punktu</footer>
+    </section>
+    <div class="controls actions"><button id="change" class="primary">Dodaj nowy punkt na trasie</button><button id="refresh">Odśwież tę samą trasę</button><button id="reset">Od początku</button></div>
+    <p id="event-status" role="status" aria-live="polite">Wybierz „Dodaj nowy punkt na trasie”, aby wywołać alert.</p>
+    <p class="scope">To demonstracja alertu w aplikacji Super Spedytor. Nad Google Maps lub Apple Maps system auta pokazuje własny baner i decyduje o jego rozmiarze. Kierowca otwiera nowy punkt i świadomie uruchamia nawigację. Podgląd nie zmienia prawdziwej trasy.</p>
+  </main>
+</body>
+</html>
