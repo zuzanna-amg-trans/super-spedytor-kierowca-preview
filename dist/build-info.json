@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "362d56a0dd498ba5350ebef933a38cecf18cf7ca",
+  "sourceCommit": "77fc438688ae0d65f2c88aaa5f3513d42234de4e",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-11-01T11:52:17.618Z",
+  "builtAt": "2026-11-01T11:58:38.139Z",
   "assetManifestSha256": "fada99b738fcb8f722366870f61c0238d9f8b0302102efaf6d6d98f45f5d9285",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "362d56a0dd498ba5350ebef933a38cecf18cf7ca",
-    "initialIntegrationSha": "bad0bfc85e9a82cad37493ab93983dd83d9e34e8",
+    "candidateSha": "77fc438688ae0d65f2c88aaa5f3513d42234de4e",
+    "initialIntegrationSha": "362d56a0dd498ba5350ebef933a38cecf18cf7ca",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "bad0bfc85e9a82cad37493ab93983dd83d9e34e8",
+    "baseSha": "362d56a0dd498ba5350ebef933a38cecf18cf7ca",
     "branches": [
       {
         "name": "main",
@@ -26,7 +26,7 @@
       },
       {
         "name": "codex/play-internal-testing",
-        "sha": "806b6e0845a08fe4ee33fb0f9494af7b425fb419"
+        "sha": "09794e6f17cc84dabb7460c0ad66c36651b1c7d4"
       },
       {
         "name": "AA21-Pelne-Widoki-Wydanie-Produkcyjne",
@@ -166,7 +166,7 @@
       "codex/tacho-car-views-release-2026-10-29"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-362d56a0dd498ba5350ebef933a38cecf18cf7ca/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-77fc438688ae0d65f2c88aaa5f3513d42234de4e/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
