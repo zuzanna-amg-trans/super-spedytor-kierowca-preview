@@ -2,7 +2,7 @@
 // Public product/place definitions only; never a vehicle assignment or a driver record.
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.SuperSpedytorFullInventoryCatalog=api;})(typeof globalThis!=='undefined'?globalThis:this,()=>{
   const data={
-  "revision": "amg-full-inventory-2026-11-01-v1",
+  "revision": "amg-full-inventory-2026-11-01-v2",
   "source": "AMG_Fracht/inventory/seed_catalog.py",
   "sourceCommit": "90206ece1b67c95bc1abc3aac9a3a66ac9081e02",
   "groups": [
@@ -172,7 +172,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-05304542be3b",
@@ -191,7 +192,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-0a6065ca24a2",
@@ -210,7 +212,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-2460b49f4680",
@@ -229,7 +232,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-2d252f13a6fd",
@@ -248,7 +252,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-ce9334cab25c",
@@ -267,7 +272,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-10abb0c4f9a4",
@@ -286,7 +292,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-afef5c7b9321",
@@ -305,7 +312,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-986a91c772c9",
@@ -324,7 +332,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-ec7a1d1504b1",
@@ -343,7 +352,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-f154bb57e327",
@@ -362,7 +372,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-8deb4277cdc7",
@@ -381,7 +392,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-fc7091e0ac91",
@@ -400,7 +412,8 @@
       "countRequired": true,
       "asksCardDigits": true,
       "owner": "vehicle",
-      "icon": "card"
+      "icon": "card",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-fd0261093b62",
@@ -419,7 +432,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-01788752b12b",
@@ -438,7 +452,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-e8c4583ee641",
@@ -457,7 +472,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-7900dd6e96a3",
@@ -476,7 +492,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-a209d561b4f3",
@@ -495,7 +512,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-9c0936d409e9",
@@ -514,7 +532,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": true
     },
     {
       "id": "equipment-full-f1f0c7b599d0",
@@ -533,7 +552,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-ff436609b979",
@@ -552,7 +572,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-9cbbc5b40182",
@@ -571,7 +592,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-0aa9c88946c3",
@@ -590,7 +612,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-59c83d08b4d5",
@@ -609,7 +632,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-2789de7ca199",
@@ -628,7 +652,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-fe0208840390",
@@ -647,7 +672,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-ecfc2b1287fb",
@@ -666,7 +692,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-f21c58c3f68f",
@@ -685,7 +712,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-d5f4d9c8f7e6",
@@ -704,7 +732,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-1fcf31418c7c",
@@ -723,7 +752,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-458c2372dc0f",
@@ -742,7 +772,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-4eb9d6248cfb",
@@ -761,7 +792,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-938aa57288bc",
@@ -780,7 +812,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-6e6d7e1731e7",
@@ -799,7 +832,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-14fcc960327c",
@@ -818,7 +852,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-d4ad35c383e4",
@@ -837,7 +872,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-97eca686e992",
@@ -856,7 +892,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-fbcc710ccb0f",
@@ -875,7 +912,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-abba3fccbc34",
@@ -894,7 +932,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-eb34fa3e070e",
@@ -913,7 +952,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-edefdf4af7bf",
@@ -932,7 +972,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-8152ea7b8239",
@@ -951,7 +992,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-7cb04cc70665",
@@ -970,7 +1012,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-f6892dc8249d",
@@ -989,7 +1032,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-1214246918a5",
@@ -1008,7 +1052,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-70f2fb233d14",
@@ -1027,7 +1072,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-51470693c4a4",
@@ -1046,7 +1092,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-7240504033d7",
@@ -1065,7 +1112,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-446407095cd3",
@@ -1084,7 +1132,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-405578a5bac1",
@@ -1103,7 +1152,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-b00cf0ee8f1a",
@@ -1122,7 +1172,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-0a08478f1d07",
@@ -1141,7 +1192,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-5758dabc6852",
@@ -1160,7 +1212,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-fd08042a97f5",
@@ -1179,7 +1232,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-241182d8e4e5",
@@ -1198,7 +1252,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-6918ceba8cae",
@@ -1217,7 +1272,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-219dc7ec28b4",
@@ -1236,7 +1292,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-c0d38d5f66fd",
@@ -1255,7 +1312,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-50a21999711d",
@@ -1274,7 +1332,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-c22c914de072",
@@ -1293,7 +1352,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-dd7049b52cd8",
@@ -1312,7 +1372,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-746f248d082b",
@@ -1331,7 +1392,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-b28fc348d2a4",
@@ -1350,7 +1412,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-6e04c0c51986",
@@ -1369,7 +1432,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-095137b04e3d",
@@ -1388,7 +1452,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-446041f7ac02",
@@ -1407,7 +1472,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-35c5a52d3835",
@@ -1426,7 +1492,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-17173f5189b5",
@@ -1445,7 +1512,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-a0d79574a968",
@@ -1464,7 +1532,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-b1a5568faf78",
@@ -1483,7 +1552,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-ed0b7aca8eda",
@@ -1502,7 +1572,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-6fe70bed4028",
@@ -1521,7 +1592,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-05d7a1af5382",
@@ -1540,7 +1612,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-53ed85b8ed7b",
@@ -1559,7 +1632,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-49b1377a55dd",
@@ -1578,7 +1652,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-920181a8ca61",
@@ -1592,12 +1667,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-009ef2830d1e",
@@ -1611,12 +1687,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-eb2db84285bf",
@@ -1630,12 +1707,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-f4f3d1d5cc58",
@@ -1649,12 +1727,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "Sprawdź, czy działa — niedziałający zaznacz jako uszkodzony.",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-de3925fbf776",
@@ -1668,12 +1747,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-2201108d7315",
@@ -1687,12 +1767,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-a90378887f19",
@@ -1706,12 +1787,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-full-4da117c8f271",
@@ -1725,12 +1807,13 @@
       "countMode": "presence",
       "unit": "szt.",
       "criticality": "extra",
-      "storageNote": "",
-      "place": "Przestrzeń ładunkowa — luzem",
+      "storageNote": "Przechowuj w plecaku ADR.",
+      "place": "Plecak ADR — zawartość",
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "vehicle",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-a4842cec2128",
@@ -1749,7 +1832,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-48679cd1fef0",
@@ -1768,7 +1852,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-84af868d9755",
@@ -1787,7 +1872,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-025e6567c74f",
@@ -1806,7 +1892,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-5e2b9c6a8106",
@@ -1825,7 +1912,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     },
     {
       "id": "equipment-driver-6ce1bbe27801",
@@ -1844,7 +1932,8 @@
       "countRequired": true,
       "asksCardDigits": false,
       "owner": "driver",
-      "icon": "box"
+      "icon": "box",
+      "photoRequired": false
     }
   ]
 };

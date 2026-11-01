@@ -165,7 +165,7 @@
     const buttons=[...(root?.querySelectorAll('button')||[])].map(node=>[node,node.disabled]);
     buttons.forEach(([node])=>node.disabled=true);
     try{await work();}catch(error){feedback(error.message||'Nie potwierdzono operacji.',true);}
-    finally{busy=false;buttons.forEach(([node,disabled])=>{if(node.isConnected)node.disabled=disabled;});enhanceSelectors();}
+    finally{busy=false;buttons.forEach(([node,disabled])=>{if(node.isConnected)node.disabled=disabled||node.dataset.confirmedDisabled==='true';});enhanceSelectors();}
   }
   async function open(name='menu',context={}){
     if(!enabled()||state().status!=='connected')return;
@@ -228,11 +228,12 @@
   }
   async function inventory(taskId,handover=false,completed=false){
     const path=`inventory/driver/survey/${id(taskId)}/`,readSurvey=()=>request('GET',path,undefined,true),data=await readSurvey();
+    const review=window.SuperSpedytorInventoryReview;
     const stages=data.stages||[],rows=stages.flatMap(s=>s.products||[]),readOnly=completed||data.status==='completed'||data.task?.status==='completed'||state().read_only===true;
     const slots=data.slots||[],scope='task:'+taskId,generation=epoch;
     const assertView=()=>{if(!current()||generation!==epoch||String(screenContext.taskId)!==String(taskId))fail('Zmieniono konto lub zadanie. Otwórz właściwy protokół ponownie.');};
     const reload=async()=>{const scroll=body().scrollTop;await task(taskId);assertView();body().scrollTop=scroll;};
-    const photoURL=photo=>photo?.url||photo?.photo||photo?.file_url;
+    const photoURL=review.photoURL;
     const gallery=(photos,label,remove='')=>photos.length?`<div class="lw-inventory-photos">${photos.map((photo,index)=>{
       const url=media(photoURL(photo));
       return `<figure>${url?`<a href="${e(url)}" aria-label="${e(label)} — zdjęcie ${index+1}, otwórz podgląd"><img data-inv-preview src="${e(url)}" alt="${e(label)} — zdjęcie ${index+1}" loading="lazy"><span>Otwórz zdjęcie ${index+1}</span></a><p class="lw-preview-error" hidden>Miniatura niedostępna. Otwórz zdjęcie, aby sprawdzić plik.</p>`:'<p>Zdjęcie zapisane w TMS, ale adres podglądu jest niedostępny.</p>'}${remove&&!readOnly?button('Usuń zdjęcie',`${remove}="${e(id(photo.id))}"`,true):''}</figure>`;
@@ -240,8 +241,14 @@
     const slotOptions=(selected,omit)=>slots.filter(s=>String(s.id)!==String(omit)).map(s=>`<option value="${e(id(s.id))}" ${String(selected)===String(s.id)?'selected':''}>${e(s.label||s.code||'Miejsce '+s.id)}</option>`).join('');
     const hand=handover?await handoverDetails(taskId,readOnly):null;
     const sections=handover?(hand.photo_sections||[]):(data.shot_sections||[]),shotPhotos=handover?(hand.photos||[]):(data.shot_photos||[]);
-    const shotView=shot=>{const key=typeof shot==='string'?shot:shot.code||shot.key||shot.id,photos=shotPhotos.filter(p=>p.shot===key),label=typeof shot==='string'?shot:shot.label||shot.title||key;return `<div class="lw-inventory-row" data-inventory-shot-view="${e(key)}"><strong>${e(label)} — zdjęcie</strong><p>${photos.length} zdjęć w TMS</p>${gallery(photos,label)}${readOnly?'':button('Dodaj zdjęcie',`data-inventory-shot="${e(key)}"`,true)}</div>`;};
-    for(const step of window.SuperSpedytorInventoryWalkthrough.build(stages,sections,slots)){
+    const shotView=shot=>{const key=typeof shot==='string'?shot:shot.code||shot.key||shot.id,photos=shotPhotos.filter(p=>p.shot===key),label=typeof shot==='string'?shot:shot.label||shot.title||key;return `<div class="lw-inventory-row" data-inventory-shot-view="${e(key)}"><strong>${e(label)} — zdjęcie</strong><p>${photos.length} zdjęć w TMS</p>${gallery(photos,label)}${readOnly||shot?.embedded?'':button('Dodaj zdjęcie',`data-inventory-shot="${e(key)}"`,true)}</div>`;};
+    const walkthrough=window.SuperSpedytorInventoryWalkthrough.build(stages,sections,slots);
+    const rowShots=new Map();
+    walkthrough.filter(step=>step.type==='stage').forEach(step=>Object.entries(step.photosByRow).forEach(([ri,shots])=>rowShots.set(stages[step.stageIndex].products[ri].key,shots.map(shot=>typeof shot==='string'?shot:shot.code||shot.key||shot.id))));
+    const evidence=(row,source=data)=>[...(row.photos||[]),...(handover?(hand?.photos||[]):source.shot_photos||[]).filter(photo=>(rowShots.get(row.key)||[]).includes(photo.shot))];
+    const progress=()=>{const count=[...root.querySelectorAll('[data-inv]')].filter(n=>n.dataset.reviewState==='confirmed').length;const node=root.querySelector('[data-inv-progress]');if(node){node.querySelector('strong').textContent=count+' z '+rows.length+' pozycji potwierdzonych';node.querySelector('progress').value=count;}};
+    body().insertAdjacentHTML('beforeend',`<section class="panel lw-inventory-progress" data-inv-progress aria-live="polite"><strong>0 z ${rows.length} pozycji potwierdzonych</strong><progress value="0" max="${rows.length||1}" aria-label="Potwierdzone pozycje"></progress><p>Wybierz stan każdej pozycji. Karty i licencje wymagają zdjęcia z tego protokołu. Zielone potwierdzenie pojawia się po odczycie zapisu z TMS.</p></section>`);
+    for(const step of walkthrough){
       if(step.type==='photos'){
         const section=step.section;
         body().insertAdjacentHTML('beforeend',`<section class="panel" data-inventory-photo-section="${e(section.kind||'other')}"><h3>${e(section.label||section.title||section.name||'Zdjęcia pojazdu')}</h3>${section.shots.map(shotView).join('')}</section>`);
@@ -250,45 +257,83 @@
       const {stage,stageIndex:si}=step;
       const place=stage.slot||stage.products?.[0]?.slot||{},placeName=stage.title||stage.name||place.label||'Wyposażenie';
       body().insertAdjacentHTML('beforeend',`<section class="panel" data-inv-stage="${si}"><h3>${e(placeName)}</h3>${place.storage_note?`<p>${e(place.storage_note)}</p>`:''}${place.reference_photo?gallery([{url:place.reference_photo}],'Wzór miejsca: '+placeName):''}${(stage.products||[]).map((row,ri)=>{
-        const product=row.product||{},presence=product.count_mode==='presence',present=Number(row.good||0)+Number(row.average||0),condition=Number(row.bad||0)>0?'damaged':present>0?'present':'missing';
+        const product=row.product||{},presence=product.count_mode==='presence',confirmed=review.ready(row,evidence(row));
+        const choices=[['present','Jest','#16a34a'],['worn','Zużyte','#b07800'],['damaged','Uszkodzone','#dc2626'],['missing','Brak','#c95000'],...(!presence?[['mixed','Różne stany','#7d6991']]:[])];
+        const selected=confirmed?review.condition(row):'';
         const counts=[['good','Dobre'],['average','Zużyte'],['bad','Uszkodzone']].map(([key,label])=>presence?`<input type="hidden" data-count="${key}" value="${Number(row[key]||0)}">`:`<label>${label}<input aria-label="${e(product.name)} — ${label}" type="number" min="0" max="9999" step="1" data-count="${key}" value="${Number(row[key]||0)}" ${readOnly?'disabled':''}></label>`).join('');
         const elsewhere=row.found_at_slot&&!slots.some(s=>String(s.id)===String(row.found_at_slot))?`<option value="${e(id(row.found_at_slot))}" selected>Miejsce zapisane w TMS (${e(row.found_at_slot)})</option>`:'';
-        return `<div class="lw-inventory-row" data-inv="${si}:${ri}" data-inventory-key="${e(row.key)}"><strong>${e(product.name||row.name||row.key)}</strong>${product.criticality==='mandatory'?'<p>Wyposażenie obowiązkowe</p>':''}<p>Oczekiwane: ${e(row.expected??'brak danych')} ${e(product.unit||'szt.')} · ${row.confirmed?'potwierdzone w TMS':'do sprawdzenia'}</p>${product.storage_note?`<p>${e(product.storage_note)}</p>`:''}${product.default_photo?gallery([{url:product.default_photo}],'Wzór: '+product.name):''}<div class="lw-counts">${counts}</div>${presence?`<label class="lw-field">Stan wyposażenia<select data-inv-presence data-status ${readOnly?'disabled':''}>${[['present','Jest','#16a34a'],['damaged','Uszkodzone','#dc2626'],['missing','Brak','#c95000']].map(([value,label,color])=>`<option value="${value}" data-color="${color}" ${condition===value?'selected':''}>${label}</option>`).join('')}</select></label>`:''}<p data-inv-missing aria-live="polite"></p><label class="lw-field" data-inv-found-field>Leży gdzie indziej?<select data-inv-found ${readOnly?'disabled':''}><option value="none" ${!row.found_at_slot?'selected':''}>Nie — brakuje w tym miejscu</option>${slotOptions(row.found_at_slot,row.slot?.id)}${elsewhere}</select></label>${Number(row.missing)>0?`<label class="lw-field">Wcześniejszy brak: ${e(row.missing)} — odnalazłem<input type="number" min="0" max="${Number(row.missing)}" step="1" data-count="recovered" value="${Number(row.recovered||0)}" ${readOnly?'disabled':''}></label>`:`<input type="hidden" data-count="recovered" value="${Number(row.recovered||0)}">`}${gallery(row.photos||[],product.name,'data-inv-photo-delete')}<div class="lw-actions">${readOnly?'':`${product.id&&(row.photos||[]).length<6?button('Dodaj zdjęcie wyposażenia',`data-inv-photo="${si}:${ri}"`,true):''}${button('Potwierdź tę pozycję',`data-inv-save="${si}:${ri}"`,true)}`}</div></div>`;
+        const reference=review.referencePhotos(row),required=review.photoRequired(row);
+        return `<div class="lw-inventory-row" data-inv="${si}:${ri}" data-inventory-key="${e(row.key)}"><div class="lw-inventory-heading"><strong>${e(product.name||row.name||row.key)}</strong><span class="lw-inventory-state" data-inv-state role="status"></span></div>${product.criticality==='mandatory'?'<p>Wyposażenie obowiązkowe</p>':''}<p>Oczekiwane: ${e(row.expected??'brak danych')} ${e(product.unit||'szt.')}</p>${review.isBackpackContent(row)?'<p class="lw-inventory-place">Miejsce przechowywania: Plecak ADR</p>':product.storage_note?`<p>${e(product.storage_note)}</p>`:''}<div data-inv-reference><p><strong>Wzór z TMS — tak wygląda przedmiot</strong></p>${reference.length?gallery(reference,'Wzór: '+product.name):'<p>Brak zdjęcia wzorcowego w TMS.</p>'}</div><label class="lw-field">Stan wyposażenia *<select data-inv-presence data-status ${readOnly?'disabled':''}><option value="" ${!selected?'selected':''}>Wybierz stan — wymagane</option>${choices.map(([value,label,color])=>`<option value="${value}" data-color="${color}" ${selected===value?'selected':''}>${label}</option>`).join('')}</select></label>${!presence?'<p>Ilości z TMS — sprawdź i popraw, jeśli stan faktyczny jest inny.</p>':''}<div class="lw-counts">${counts}</div><p data-inv-missing aria-live="polite"></p><label class="lw-field" data-inv-found-field>Leży gdzie indziej?<select data-inv-found ${readOnly?'disabled':''}><option value="none" ${!row.found_at_slot?'selected':''}>Nie — brakuje w tym miejscu</option>${slotOptions(row.found_at_slot,row.slot?.id)}${elsewhere}</select></label>${Number(row.missing)>0?`<label class="lw-field">Wcześniejszy brak: ${e(row.missing)} — odnalazłem<input type="number" min="0" max="${Number(row.missing)}" step="1" data-count="recovered" value="${Number(row.recovered||0)}" ${readOnly?'disabled':''}></label>`:`<input type="hidden" data-count="recovered" value="${Number(row.recovered||0)}">`}<p class="lw-photo-requirement ${required?'required':''}" data-inv-photo-requirement>${required?(evidence(row).length?'Wymagane zdjęcie dodane do bieżącego protokołu.':'Zdjęcie obowiązkowe przed potwierdzeniem. Przy stanie „Brak” sfotografuj miejsce przechowywania.'):'Zdjęcie tej pozycji jest opcjonalne.'}</p>${gallery(row.photos||[],product.name,'data-inv-photo-delete')}<p class="lw-inventory-feedback" data-inv-feedback role="status" aria-live="polite"></p><div class="lw-actions">${readOnly?'':`${product.id&&(row.photos||[]).length<6?button(required?(evidence(row).length?'Dodaj kolejne zdjęcie':'Dodaj wymagane zdjęcie'):'Dodaj zdjęcie wyposażenia',`data-inv-photo="${si}:${ri}"`,true):''}${button('Potwierdź tę pozycję',`data-inv-save="${si}:${ri}"`,true)}`}</div></div>`;
       }).join('')}</section>`);
-      for(const [ri,shots]of Object.entries(step.photosByRow))root.querySelector(`[data-inv="${si}:${ri}"]`).insertAdjacentHTML('beforeend',shots.map(shotView).join(''));
+      for(const [ri,shots]of Object.entries(step.photosByRow))root.querySelector(`[data-inv="${si}:${ri}"]`).insertAdjacentHTML('beforeend',shots.map(shot=>shotView(typeof shot==='string'?{code:shot,label:shot,embedded:true}:{...shot,embedded:true})).join(''));
     }
+    // Container grouping changes presentation only. Keep the TMS row key, slot,
+    // quantities and API identity intact, including repeated products.
+    const adrNodes=[...root.querySelectorAll('[data-inv]')].filter(node=>{const [si,ri]=node.dataset.inv.split(':').map(Number);return review.isBackpackContent(stages[si].products[ri]);});
+    if(adrNodes.length){const source=adrNodes[0].closest('.panel'),group=document.createElement('section');group.className='panel';group.dataset.invBackpack='true';group.innerHTML='<h3>Plecak ADR — zawartość</h3><p>Sprawdź poszczególne elementy w plecaku ADR.</p>';source.after(group);const parents=new Set(adrNodes.map(n=>n.closest('.panel')));adrNodes.forEach(n=>group.append(n));parents.forEach(panel=>{if(!panel.querySelector('[data-inv],[data-inventory-shot-view]'))panel.remove();});}
     if(!rows.length)body().insertAdjacentHTML('beforeend',empty('TMS nie zwrócił pozycji wyposażenia dla tego zadania.'));
+    const rowValues=node=>{const values={};node.querySelectorAll('[data-count]').forEach(n=>values[n.dataset.count]=n.value.trim()===''?NaN:Number(n.value));const missing=Math.max(0,Number(rows.find(r=>r.key===node.dataset.inventoryKey)?.expected||0)-values.good-values.average-values.bad),found=node.querySelector('[data-inv-found]').value;values.found_at_slot=missing&&found!=='none'?Number(id(found)):null;return values;};
+    const updates=new Map();
     root.querySelectorAll('[data-inv]').forEach(node=>{
       const [si,ri]=node.dataset.inv.split(':').map(Number),row=stages[si].products[ri];
-      const update=()=>{const present=['good','average','bad'].reduce((sum,key)=>sum+Number(node.querySelector(`[data-count="${key}"]`).value||0),0),missing=Math.max(0,Number(row.expected||0)-present),found=node.querySelector('[data-inv-found]');node.querySelector('[data-inv-missing]').textContent=missing?`${found.value==='none'?'Brakuje w tym miejscu':'W innym miejscu'}: ${missing} ${row.product?.unit||'szt.'}`:'Stan ilościowy bez braków.';node.querySelector('[data-inv-found-field]').hidden=!missing||(!slots.some(s=>String(s.id)!==String(row.slot?.id))&&!row.found_at_slot);};
-      node.querySelector('[data-inv-presence]')?.addEventListener('change',event=>{const patch=event.target.value==='present'?[1,0,0]:event.target.value==='damaged'?[0,0,1]:[0,0,0];['good','average','bad'].forEach((key,index)=>{const input=node.querySelector(`[data-count="${key}"]`);input.value=patch[index];input.dispatchEvent(new Event('input',{bubbles:true}));});update();});
-      node.querySelectorAll('[data-count],[data-inv-found]').forEach(input=>{input.addEventListener('input',update);input.addEventListener('change',update);});update();
+      const update=()=>{
+        const values=rowValues(node),selection=node.querySelector('[data-inv-presence]').value,present=values.good+values.average+values.bad,missing=Math.max(0,Number(row.expected||0)-present),found=node.querySelector('[data-inv-found]');
+        const verified=review.ready(row,evidence(row))&&review.sameValues(row,values)&&selection===review.condition(values);
+        node.dataset.reviewState=verified?'confirmed':'pending';node.classList.toggle('lw-inventory-confirmed',verified);
+        node.querySelector('[data-inv-state]').textContent=verified?'✓ Potwierdzone w TMS':row.confirmed?'Zmiany wymagają potwierdzenia':'Do sprawdzenia';
+        const save=node.querySelector('[data-inv-save]');if(save){save.dataset.confirmedDisabled=String(verified);save.disabled=readOnly||verified;save.textContent=verified?'✓ Pozycja potwierdzona':'Potwierdź tę pozycję';}
+        node.querySelector('[data-inv-missing]').textContent=!selection?'Wybierz stan i sprawdź ilość.':missing?`${found.value==='none'?'Brakuje w tym miejscu':'W innym miejscu'}: ${missing} ${row.product?.unit||'szt.'}`:'Stan ilościowy bez braków.';
+        node.querySelector('[data-inv-found-field]').hidden=!selection||!missing||(!slots.some(s=>String(s.id)!==String(row.slot?.id))&&!row.found_at_slot);
+        if(verified)clearDraft(scope,[...node.querySelectorAll('[data-draft-field]')].map(n=>n.dataset.draftField));progress();
+      };
+      updates.set(row.key,update);
+      node.querySelector('[data-inv-presence]').addEventListener('change',event=>{
+        const value=event.target.value;if(value&&value!=='mixed'){
+          const total=row.product?.count_mode==='presence'?(value==='missing'?0:1):['good','average','bad'].reduce((sum,key)=>sum+Number(node.querySelector(`[data-count="${key}"]`).value||0),0);
+          const key={present:'good',worn:'average',damaged:'bad'}[value];
+          ['good','average','bad'].forEach(k=>{const input=node.querySelector(`[data-count="${k}"]`);input.value=k===key?total:0;input.dispatchEvent(new Event('input',{bubbles:true}));});
+        }update();queueMicrotask(update);
+      });
+      node.querySelectorAll('[data-count],[data-inv-found]').forEach(input=>{input.addEventListener('input',()=>{update();queueMicrotask(update);});input.addEventListener('change',()=>{update();queueMicrotask(update);});});update();
     });
     const allRows=read=>(read.stages||[]).flatMap(s=>s.products||[]);
     const answers=sourceRows=>Object.fromEntries(sourceRows.map(row=>[row.key,Object.fromEntries(['good','average','bad','recovered','confirmed','found_at_slot'].map(k=>[k,row[k]??(k==='found_at_slot'?null:k==='confirmed'?false:0)]))]));
     bind('[data-inv-save]',async node=>{
-      if(readOnly)return;assertView();
-      const [si,ri]=node.dataset.invSave.split(':').map(Number),row=stages[si].products[ri],element=node.closest('[data-inv]'),values={};
+      if(readOnly||node.dataset.confirmedDisabled==='true')return;assertView();
+      const [si,ri]=node.dataset.invSave.split(':').map(Number),row=stages[si].products[ri],element=node.closest('[data-inv]'),notice=element.querySelector('[data-inv-feedback]');
+      const values=rowValues(element),selection=element.querySelector('[data-inv-presence]').value;
       const draftValues=Object.fromEntries([...element.querySelectorAll('[data-draft-field]')].map(n=>[n.dataset.draftField,n.value]));
-      element.querySelectorAll('[data-count]').forEach(n=>{const value=Number(n.value);if(n.value.trim()===''||!Number.isInteger(value)||value<0||value>9999)fail('Podaj całkowite ilości od 0 do 9999.');values[n.dataset.count]=value;});
-      if(values.recovered>Number(row.missing||0))fail('Odnaleziona ilość nie może przekroczyć wcześniejszego braku.');
-      const found=element.querySelector('[data-inv-found]').value,missing=Math.max(0,Number(row.expected||0)-values.good-values.average-values.bad);
-      values.found_at_slot=missing&&found!=='none'?Number(id(found)):null;
-      // The API replaces the complete answers dictionary. Merge this row into a
-      // fresh server read, never into stale quantities of the other rows.
-      const latest=allRows(await readSurvey());if(!latest.some(r=>r.key===row.key))fail('Wyposażenie zmieniło się w TMS. Odśwież protokół.');
-      const payload=answers(latest);payload[row.key]={...payload[row.key],...values,confirmed:true};
-      await request('PATCH',path+'draft/',{answers:payload});
-      const saved=allRows(await readSurvey()).find(r=>r.key===row.key);
-      if(!saved?.confirmed||Object.entries(values).some(([key,value])=>key==='found_at_slot'?(saved[key]??null)!==value:Number(saved[key])!==value))fail('Odczyt nie potwierdził zapisanych ilości i miejsca. Odśwież przed ponowieniem.');
-      confirmDraft(scope,draftValues);await reload();feedback('Pozycja potwierdzona w odczycie TMS.');
+      try{
+        notice.classList.remove('error');
+        const problem=review.validate(row,selection,values,evidence(row));if(problem)fail(problem);
+        notice.textContent='Zapisuję i sprawdzam potwierdzenie TMS…';
+        // The API replaces the dictionary. Merge into a fresh read and make an
+        // identical repeated confirmation a no-op, never a second PATCH.
+        const latestRead=await readSurvey(),latest=allRows(latestRead),latestRow=latest.find(r=>r.key===row.key);
+        if(handover)Object.assign(hand,await request('GET',`inventory/driver/handover/${id(taskId)}/`));
+        if(!latestRow)fail('Wyposażenie zmieniło się w TMS. Odśwież protokół.');
+        const latestProblem=review.validate(latestRow,selection,values,evidence(latestRow,latestRead));if(latestProblem)fail(latestProblem);
+        let saved=latestRow;
+        if(!review.ready(latestRow,evidence(latestRow,latestRead))||!review.sameValues(latestRow,values)){
+          const payload=answers(latest);payload[row.key]={...payload[row.key],...values,confirmed:true};
+          await request('PATCH',path+'draft/',latestRead.capabilities?.row_draft_patch?{row_key:row.key,answer:payload[row.key]}:{answers:payload});
+          const read=await readSurvey();saved=allRows(read).find(r=>r.key===row.key);
+          if(handover)Object.assign(hand,await request('GET',`inventory/driver/handover/${id(taskId)}/`));
+          if(!saved||!review.ready(saved,evidence(saved,read))||!review.sameValues(saved,values))fail('TMS nie potwierdził zapisu tej pozycji i wymaganych zdjęć. Zachowano wprowadzone dane.');
+        }
+        assertView();Object.assign(row,saved);confirmDraft(scope,draftValues);updates.get(row.key)();
+        notice.textContent=element.dataset.reviewState==='confirmed'?'✓ Pozycja potwierdzona w TMS.':'TMS zapisał poprzedni stan. Potwierdź także wprowadzone później zmiany.';
+        feedback('Pozycja potwierdzona w odczycie TMS.');
+      }catch(error){notice.textContent=error.message;notice.classList.add('error');notice.scrollIntoView({block:'nearest'});throw error;}
     });
     bind('[data-inv-photo]',async node=>{
       if(readOnly)return;assertView();const [si,ri]=node.dataset.invPhoto.split(':').map(Number),row=stages[si].products[ri],productId=id(row.product.id);
-      const before=new Set((row.photos||[]).map(p=>String(p.id))),file=await capture();if(!file)return;assertView();
-      const created=list(await upload(path+'photos/',file,{product_id:productId}));
-      const saved=allRows(await readSurvey()).find(r=>r.key===row.key);
-      if(!created.length||created.some(p=>!p.id||before.has(String(p.id))||!saved?.photos?.some(r=>String(r.id)===String(p.id))))fail('Nie potwierdzono nowego zdjęcia wyposażenia. Odśwież przed ponowieniem.');
+      const documentShot=(rowShots.get(row.key)||[])[0],before=new Set(evidence(row).map(p=>String(p.id))),file=await capture();if(!file)return;assertView();
+      const photoPath=documentShot?(handover?`inventory/driver/handover/${id(taskId)}/photos/`:path+'shots/'):path+'photos/';
+      const created=list(await upload(photoPath,file,documentShot?{shot:documentShot}:{product_id:productId}));
+      const read=await readSurvey(),saved=allRows(read).find(r=>r.key===row.key),documentRead=handover&&documentShot?await request('GET',`inventory/driver/handover/${id(taskId)}/`):null;
+      const photos=documentRead?[...(saved?.photos||[]),...(documentRead.photos||[]).filter(p=>p.shot===documentShot)]:saved?evidence(saved,read):[];
+      if(!created.length||created.some(p=>!p.id||before.has(String(p.id))||!photos.some(r=>String(r.id)===String(p.id))))fail('Nie potwierdzono nowego zdjęcia wyposażenia. Odśwież przed ponowieniem.');
       await reload();feedback('Zdjęcie wyposażenia odczytane z TMS.');
     });
     bind('[data-inv-photo-delete]',async node=>{
@@ -329,7 +374,7 @@
     });
     root.querySelectorAll('[data-inv-preview]').forEach(img=>img.onerror=()=>{img.hidden=true;img.closest('figure').querySelector('.lw-preview-error').hidden=false;});
     if(!readOnly&&rows.length)body().insertAdjacentHTML('beforeend',button('Zakończ protokół w TMS','data-inv-finish'));
-    bind('[data-inv-finish]',async()=>{if(formDrafts.get(draftKey('task:'+taskId))?.size)fail('Zapisz zmienione pola przed zakończeniem protokołu.');if(rows.some(r=>!r.confirmed))fail('Sprawdź i potwierdź każdą pozycję wyposażenia.');if(!confirm('Zakończyć i wysłać protokół w TMS?'))return;await request('POST',path+'submit/',{});const read=await request('GET',`driver-tasks/${id(taskId)}/`);if(read.status!=='completed')fail('Nie potwierdzono zakończenia protokołu w zadaniu. Sprawdź wymagane zdjęcia i potwierdzenia.');await task(taskId);feedback('TMS potwierdził zakończenie protokołu.');});
+    bind('[data-inv-finish]',async()=>{if(formDrafts.get(draftKey('task:'+taskId))?.size)fail('Zapisz zmienione pola przed zakończeniem protokołu.');if(rows.some(r=>!review.ready(r,evidence(r))))fail('Sprawdź i potwierdź każdą pozycję oraz dodaj wymagane zdjęcia kart i licencji.');if(!confirm('Zakończyć i wysłać protokół w TMS?'))return;await request('POST',path+'submit/',{});const read=await request('GET',`driver-tasks/${id(taskId)}/`);if(read.status!=='completed')fail('Nie potwierdzono zakończenia protokołu w zadaniu. Sprawdź wymagane zdjęcia i potwierdzenia.');await task(taskId);feedback('TMS potwierdził zakończenie protokołu.');});
   }
   async function handoverDetails(taskId,readOnly){
     const path=`inventory/driver/handover/${id(taskId)}/`,hand=await request('GET',path),choices=hand.choices||{};

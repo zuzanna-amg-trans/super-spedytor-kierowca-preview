@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "63d47b4d1373e7644517f1a926c211696946e434",
+  "sourceCommit": "7d0701f275fa095228d1b5676e2f854eea441d30",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "377eef4c9f732bf64a552b6c158cd8d54179c97aec1dfb86de37238dd4fc22c6",
+  "assetManifestSha256": "70d034eb90803ec15539db0d154129dc382833be284361296a5e0af6d92d9c5e",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -198,8 +198,8 @@
     },
     {
       "path": "full-inventory-catalog.js",
-      "sha256": "5d1bb907e564bd08af3717c6a9e9eab718cb001b46627c3cf8995b308658e26c",
-      "size": 57448
+      "sha256": "768db8209a6ea090440435572cc4725578f8ec88e1e22c70b11b012d770b1194",
+      "size": 60196
     },
     {
       "path": "handover-v2.css",
@@ -208,13 +208,18 @@
     },
     {
       "path": "handover-v2.js",
-      "sha256": "c6f10ecf3d15412f5b86e9aa42ad927659163c202ebe6eb1b7bd64aea7695273",
-      "size": 36493
+      "sha256": "ccb48d647dbd44245bf2d16722c9cb741db47344ee46d92a6ef3ffecc3c3fc44",
+      "size": 36843
     },
     {
       "path": "index.html",
-      "sha256": "1ee38d2728e6d3db264f82d4060d1549b26291eec73985f6cf8fbbb359051249",
-      "size": 15356
+      "sha256": "4eafa39c14fdde9fe5ce49cad34e26c1c3e159a0f6fdcef9e69610c6d1693ccb",
+      "size": 15402
+    },
+    {
+      "path": "inventory-review.js",
+      "sha256": "54526ce14d8b3711eba9b67bdafc67279d9020b491cf8b92886d7c4f474ef453",
+      "size": 2890
     },
     {
       "path": "inventory-walkthrough.js",
@@ -233,13 +238,13 @@
     },
     {
       "path": "live-workspace.css",
-      "sha256": "7e9eaf4b2a62ee1b1a270c727be17a3149648ae3e24a7544a718c1ae225fbd78",
-      "size": 14262
+      "sha256": "6b587ac6375912df6d1d68cceef92cf8d747538afaf39713c5406531a152cafd",
+      "size": 15540
     },
     {
       "path": "live-workspace.js",
-      "sha256": "a1da85b890cca12635a29422548c38a6a36875e98badfe660f7d3fbd41261957",
-      "size": 92232
+      "sha256": "8bc23f486e8bd3c582644df8c20f381ad425889c2847fe5b91933c87f4d0273e",
+      "size": 98601
     },
     {
       "path": "mobile-readability.css",
@@ -443,8 +448,8 @@
     },
     {
       "path": "vehicle-inspection-v2.js",
-      "sha256": "7b70b73af10cecf502ec4411ddfe49d78661243d383963be658c841a3c214a67",
-      "size": 13674
+      "sha256": "4ea026add27752b92195008eeaa205c441206b819976284be8f0caa29ffc4640",
+      "size": 13894
     },
     {
       "path": "vendor/OpenCV-LICENSE.txt",

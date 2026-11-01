@@ -127,6 +127,7 @@
           if(!/^(\d{4}|BRAK)$/.test(digits))return {kind:'card',key:item.id,message:'Wpisz 4 ostatnie cyfry karty albo BRAK, jeśli nie można ich odczytać. Bez pełnego numeru i PIN-u.'};
           if(digits==='BRAK'&&!has(state.notes?.[item.id]))return {kind:'note',key:item.id,message:'Opisz, dlaczego nie można odczytać numeru karty.'};
         }
+        if(item.photoRequired&&!hasPhoto(state.photos?.['equipment:'+item.id]))return {kind:'equipment-photo',key:item.id,message:`Dodaj wymagane zdjęcie: ${item.name}. Przy braku sfotografuj miejsce przechowywania.`};
         if(status!=='damaged'&&!(Number(state.quantities?.[item.id]?.bad)>0&&!['missing','not-applicable'].includes(status)))continue;
         const photos=state.issuePhotos?.[item.id]||{};
         if(!hasPhoto(photos.wide))return {kind:'issue-wide',key:item.id,message:`Musisz dodać zdjęcie całego uszkodzonego elementu: ${item.name}.`};
