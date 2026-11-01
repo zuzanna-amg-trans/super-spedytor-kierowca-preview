@@ -480,3 +480,48 @@
 .transshipment-current-context.receiving small{font-size:12px}.transshipment-current-context.receiving em{font-size:12px}
 .transshipment-current-context.receiving>span .icon{width:28px;height:28px}
 }
+
+
+/* Keep the current task in view; party and route details expand on demand. */
+.transshipment-current-context,
+.transshipment-current-context.receiving,
+.transshipment-current-context.issuing{position:static;display:block;padding:0;margin:10px 0 14px;border-width:1px;border-radius:10px;box-shadow:none}
+.transshipment-current-context>summary{display:flex;align-items:center;gap:8px;min-height:48px;padding:9px 11px;cursor:pointer;list-style:none;font-size:14px;line-height:1.35}
+.transshipment-current-context>summary::-webkit-details-marker{display:none}
+.transshipment-current-context>summary>.icon{width:20px;height:20px;flex-shrink:0}
+.transshipment-current-context>summary>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere}
+.transshipment-current-context>summary strong{display:inline;margin:0;font-size:14px;line-height:inherit}
+.transshipment-context-toggle{display:flex;align-items:center;gap:3px;flex-shrink:0;font-size:12px}
+.transshipment-context-toggle .icon{width:15px;height:15px;transform:rotate(90deg)}
+.transshipment-current-context[open] .transshipment-context-toggle .icon{transform:rotate(-90deg)}
+.transshipment-context-details{padding:0 12px 12px;border-top:1px solid #bbcddd}
+.transshipment-context-details p{margin:10px 0;font-size:14px;line-height:1.5}
+.transshipment-context-details p span{display:block;margin-top:3px;overflow-wrap:anywhere}
+.transshipment-context-details p strong{font-size:15px}
+.transshipment-context-details .transshipment-order-ribbon{margin:10px 0 0;padding:10px;gap:10px}
+.transshipment-context-details .transshipment-order-ribbon h3{font-size:17px}
+.transshipment-context-details .transshipment-order-ribbon p{font-size:14px}
+.transshipment-execution-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px}
+.transshipment-execution-header>.secondary-button{display:flex;align-items:center;gap:6px;width:auto;min-height:44px;padding:8px 10px;font-size:14px!important}
+.transshipment-execution-header>.secondary-button .icon{width:17px;height:17px}
+.transshipment-execution-header>span{text-align:right;font-size:14px;font-weight:750;line-height:1.4}
+.app-content .transshipment-execution-header small{display:block;font-size:12px;font-weight:500;line-height:1.4;color:#65705d}
+.transshipment-guided .transshipment-cmr-card,.transshipment-guided .transshipment-piece-card{margin-top:12px;padding:16px}
+.app-content.transshipment-guided .transshipment-task-label h3{font-size:23px;line-height:1.3}
+.transshipment-guided .transshipment-task-label>span{width:38px;height:38px}
+.transshipment-guided .transshipment-task-label>span .icon{width:25px;height:25px}
+.app-content.transshipment-guided .transshipment-task-copy{font-size:16px;line-height:1.5}
+.transshipment-guided .transshipment-piece-photo{height:135px}
+.transshipment-guided .cmr-linked-piece{padding:9px;margin:10px 0;font-size:12px}
+.transshipment-guided .cmr-linked-piece strong{font-size:13px}
+.transshipment-guided .cmr-linked-piece .icon{width:20px;height:20px}
+.transshipment-guided .transshipment-accepted-cmr{padding:0;margin:10px 0;background:#eef5e9;border:1px solid #c7d7bc}
+.transshipment-guided .transshipment-accepted-cmr>summary{display:flex;align-items:center;gap:7px;min-height:44px;padding:10px;font-size:13px;list-style:none}
+.transshipment-guided .transshipment-accepted-cmr>summary::-webkit-details-marker{display:none}
+.transshipment-guided .transshipment-accepted-cmr>summary>.icon{width:18px;height:18px;flex-shrink:0}
+.transshipment-guided .transshipment-accepted-cmr>summary>span:last-child{margin-left:auto;font-size:12px}
+.transshipment-guided .transshipment-accepted-cmr[open]{padding:0 10px 10px}
+.transshipment-guided .transshipment-accepted-cmr[open]>summary{padding-left:0;padding-right:0}
+.transshipment-guided .transfer-photo-step{padding:14px 0;scroll-margin-top:12px}
+.transshipment-guided .transfer-photo-step h3{font-size:23px}
+.transshipment-step-hint{margin:0;font-size:14px;line-height:1.45}
