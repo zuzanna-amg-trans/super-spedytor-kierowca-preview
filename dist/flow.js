@@ -2775,7 +2775,7 @@ function render(){
     const serviceBinders={survey:bindServiceView,history:bindServiceHistoryView,inventory:bindInventoryView,handover:bindVehicleHandoverView};
     const serviceLabels={survey:'SERWIS / ANKIETA',history:'SERWIS / HISTORIA',inventory:'SERWIS / INWENTARYZACJA',handover:'SERWIS / PRZEKAZANIE AUTA'};
     const panel=serviceViews[state.servicePanel]?state.servicePanel:'survey';
-    $('#app').innerHTML=serviceViews[panel]();
+    $('#app').innerHTML=carWashEntryView()+serviceViews[panel]();
     $('#app-action').innerHTML=serviceActions[panel]();
     $('#design-context').innerHTML=serviceNotes[panel]();
     $('#preview-label').textContent=serviceLabels[panel];
@@ -2787,6 +2787,7 @@ function render(){
     $('#mobile-scenario').disabled=true;
     $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='service'));
     serviceBinders[panel]();
+    $('#car-wash-entry').onclick=openCarWashPreview;
     $('#app-scroll').scrollTop=scroll;
     return;
   }
@@ -4093,6 +4094,18 @@ function leaveTestingWorkspace(){
   state.serviceOpen=false;
   state.routeStop=null;
   render();
+}
+function carWashEntryView(){return `<button type="button" id="car-wash-entry" class="cw-service-entry" data-service-panel="car-wash"><span>${icon('camera')}</span><span><strong>Wydatki · Mycie auta</strong><small>15 EUR po akceptacji · podgląd dokumentacji</small></span>${icon('arrow')}</button>`;}
+function openCarWashPreview(){
+  if(typeof productionScope!=='undefined'&&productionScope)return;
+  if(!window.SuperSpedytorCarWash?.open){toast('Kreator mycia jest niedostępny. Odśwież aplikację.');return;}
+  if(backendMode&&!backendTestWorkspace){toast('Otwórz Serwis w Testuj widoki, aby sprawdzić szkic mycia.');return;}
+  closeModal(false);
+  window.SuperSpedytorCarWash.open({
+    host:$('.device'),
+    demo:true,
+    context:{driver_id:'demo-driver',driver_full_name:'Jan Testowy',vehicle_id:'demo-vehicle',vehicle_registration:'DEMO 001',round_id:'demo-round'}
+  });
 }
 function showDesignedView(viewId){
   if(productionScope)return;

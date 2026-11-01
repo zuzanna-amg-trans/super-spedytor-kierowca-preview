@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "054f9c79d26e0cb971482d94837d05a8849fb2e3",
+  "sourceCommit": "4b97c4c48f93265505c8bf20d1c23e565e1fa225",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "b5ccac60aa2376458e60d1d835dabbb5a66de97495c5903b4712dbfff81470fb",
+  "assetManifestSha256": "88262956237c662c6cd929361aa3121fd1512bb831f412ef3cbb854971fcb466",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -65,6 +65,16 @@
       "path": "car-route-alert-demo.js",
       "sha256": "7174361b4c3a248acf34b345e908a2217e3b508a7bb2bba7fc510433af9339b9",
       "size": 2655
+    },
+    {
+      "path": "car-wash.css",
+      "sha256": "3554f9bd98431eee79df1a69c544be2303136da6ac26af7fb9e1c316da3ead50",
+      "size": 6929
+    },
+    {
+      "path": "car-wash.js",
+      "sha256": "d3385a0f37aeea648d29d4899b1ed4a531182dadf4708296ed85b95e7e20e6f4",
+      "size": 57722
     },
     {
       "path": "cmr-collection.js",
@@ -153,8 +163,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "15131c3a549fad2bcc8693bd240b295fcdcbedb993b50ee687897e2ab26d342c",
-      "size": 454120
+      "sha256": "f785533f48db3a87d00646ef4112c6d7f3886251c752a2fad8349701b0823625",
+      "size": 455079
     },
     {
       "path": "full-inventory-catalog.js",
@@ -173,8 +183,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "d421d7017aa3aec668a5bb87a516166cec791ca04b9fd329072ff65afa16b71b",
-      "size": 14876
+      "sha256": "ee8e5d3ef2a8894d3aa27175289f9c3e4d4324b8d1041559213d21dc920c7675",
+      "size": 14960
     },
     {
       "path": "inventory-walkthrough.js",
