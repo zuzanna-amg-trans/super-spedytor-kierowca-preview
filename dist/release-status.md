@@ -1,30 +1,27 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T19:53:36.791Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T20:04:58.454Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
-| Android | 0.1.45 (50) | 0.1.43 (48) | TAK | Do przygotowania |
-| Apple iOS | 0.4.19 (29) | 0.4.17 (27) | TAK | Do przygotowania |
+| Android | 0.1.45 (50) | 0.1.45 (50) | NIE | Wysłane do sklepu |
+| Apple iOS | 0.4.19 (29) | 0.4.19 (29) | NIE | Wysłane do sklepu |
 
 Wysłanie nowej paczki i publiczna publikacja są oddzielnymi krokami. Wspólna gotowość: **NIE**.
 
 ## Android
 
-Następny krok: Dokończyć odbiór B939, odczytać aktualne maksimum kodów Play i przygotować podpisany AAB z bieżącej wspólnej wersji. Następnie zatrzymać się przed publicznym zgłoszeniem.
+Następny krok: Tester wewnętrzny: zaktualizować w Google Play do 0.1.45 (50) i sprawdzić oba podglądy oraz zapis zdjęcia na testowym spotkaniu. Odbiór B939 i zgłoszenie do publicznego Google Play są osobne.
 
 Stan sklepu: świeży odczyt.
-- Podpis Androida 49 zablokowany do odbioru B939; nie wolno potwierdzać odbioru za użytkowniczkę.
-- Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.
+- Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.
 - Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.
-- Brak potwierdzonej paczki kandydata.
+- Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu.
 
 ## Apple iOS
 
-Następny krok: Odświeżyć podpisany kandydat 28 o bieżącą ikonę i sprawdzić komplet paczki oraz materiałów Apple. Publiczny App Store nadal ocenia 0.4.15 (25); ewentualna podmiana wymaga osobnej decyzji.
+Następny krok: Tester wewnętrzny: uaktualnić w TestFlight do 0.4.19 (29) i sprawdzić rozpoczęte spotkanie. Dostęp grupy zewnętrznej zależy od stanu beta review; publiczna wersja w App Store jest odrębnym zgłoszeniem.
 
 Stan sklepu: świeży odczyt.
-- Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.
-- Wersja paczki kandydata różni się od planowanego numeru wydania.
 - Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.
-- Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.
+- Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu.
