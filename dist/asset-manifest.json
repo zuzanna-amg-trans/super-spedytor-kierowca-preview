@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "3cedfc1b83ee71d48198aeee4421f5d92719e823",
+  "sourceCommit": "054f9c79d26e0cb971482d94837d05a8849fb2e3",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "757f9ea11b31e639234fd67de914e06e51949dfd0c3da8a72560ec3365f0f229",
+  "assetManifestSha256": "b5ccac60aa2376458e60d1d835dabbb5a66de97495c5903b4712dbfff81470fb",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -168,8 +168,8 @@
     },
     {
       "path": "handover-v2.js",
-      "sha256": "7a91f342b344c2ba772dd385f570cfa1543530ded8dbeeeb400c62d5881cef11",
-      "size": 36266
+      "sha256": "c6f10ecf3d15412f5b86e9aa42ad927659163c202ebe6eb1b7bd64aea7695273",
+      "size": 36493
     },
     {
       "path": "index.html",
@@ -388,8 +388,8 @@
     },
     {
       "path": "vehicle-inspection-v2.js",
-      "sha256": "6f60903a42cb0bd2850fa4563b14eec6ddba3e774febde8aa7e09775d94c0bdf",
-      "size": 13434
+      "sha256": "7b70b73af10cecf502ec4411ddfe49d78661243d383963be658c841a3c214a67",
+      "size": 13674
     },
     {
       "path": "vendor/OpenCV-LICENSE.txt",

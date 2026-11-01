@@ -122,7 +122,11 @@
         }
         if(status==='elsewhere'&&!has(state.locations?.[item.id]))return {kind:'location',key:item.id,message:'Wskaż miejsce, w którym znaleziono wyposażenie.'};
         if(status==='elsewhere'&&state.locations?.[item.id]==='other'&&!has(state.notes?.[item.id]))return {kind:'location',key:item.id,message:'Opisz inne miejsce przechowywania w uwagach.'};
-        if(item.asksCardDigits&&!['missing','not-applicable'].includes(status)&&!/^\d{4}$/.test(state.cardDigits?.[item.id]||''))return {kind:'card',key:item.id,message:'Wpisz dokładnie 4 ostatnie cyfry karty. Nie wpisuj całego numeru ani PIN-u.'};
+        if(item.asksCardDigits&&!['missing','not-applicable'].includes(status)){
+          const digits=state.cardDigits?.[item.id]||'';
+          if(!/^(\d{4}|BRAK)$/.test(digits))return {kind:'card',key:item.id,message:'Wpisz 4 ostatnie cyfry karty albo BRAK, jeśli nie można ich odczytać. Bez pełnego numeru i PIN-u.'};
+          if(digits==='BRAK'&&!has(state.notes?.[item.id]))return {kind:'note',key:item.id,message:'Opisz, dlaczego nie można odczytać numeru karty.'};
+        }
         if(status!=='damaged'&&!(Number(state.quantities?.[item.id]?.bad)>0&&!['missing','not-applicable'].includes(status)))continue;
         const photos=state.issuePhotos?.[item.id]||{};
         if(!hasPhoto(photos.wide))return {kind:'issue-wide',key:item.id,message:`Musisz dodać zdjęcie całego uszkodzonego elementu: ${item.name}.`};
