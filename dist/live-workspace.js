@@ -633,8 +633,10 @@
     const scope='trans:'+id(pointId)+':'+id(offer.id),refresh=()=>open('transshipment',{meetingId,pointId,offerId:offer.id,referenceOnly});
     bindDraft(scope);
     bind('[data-trans-media-retry]',async n=>{
-      const panel=n.closest('.transshipment-accepted-cmr')?'.transshipment-accepted-cmr':n.closest('.transshipment-cargo-reference')?'.transshipment-cargo-reference':null;
-      await refresh();if(panel&&root?.querySelector(panel))root.querySelector(panel).open=true;
+      const section = n.closest('.transshipment-references > details');
+      const panel = section && ['transshipment-accepted-cmr', 'transshipment-cargo-reference', 'transshipment-saved-reference']
+        .find(name => section.classList.contains(name));
+      await refresh();if(panel&&root?.querySelector('.'+panel))root.querySelector('.'+panel).open=true;
     });
     bind('[data-trans-cmr-cancel]',async()=>{transCmrReviews.delete(reviewKey);await refresh();});
     const updateCmrButton=()=>{const node=root?.querySelector('[data-trans-cmr-accept]'),check=root?.querySelector('[data-trans-cmr-reviewed]');if(node)node.disabled=!tms.writable(state())||!check?.checked||!cmrFiles.length||Boolean(mediaError);};
@@ -643,7 +645,7 @@
       const failed=()=>{image.hidden=true;const error=image.closest('figure')?.querySelector('[data-trans-media-error]');if(error)error.hidden=false;};
       image.addEventListener('error',failed);if(image.complete&&!image.naturalWidth)failed();
     });
-    root.querySelectorAll('[data-trans-loading-gallery]').forEach(gallery=>{
+    root.querySelectorAll('[data-trans-loading-gallery], [data-trans-saved-gallery]').forEach(gallery=>{
       const items=[...gallery.querySelectorAll('[data-trans-gallery-item]')],previous=gallery.querySelector('[data-trans-gallery-prev]'),next=gallery.querySelector('[data-trans-gallery-next]');let page=0;
       const show=()=>{items.forEach((item,i)=>item.hidden=i!==page);previous.disabled=page===0;next.disabled=page===items.length-1;gallery.querySelector('[data-trans-gallery-count]').textContent=`Zdjęcie ${page+1} z ${items.length}`;};
       previous.onclick=()=>{if(page>0){page--;show();}};next.onclick=()=>{if(page<items.length-1){page++;show();}};
@@ -699,6 +701,8 @@
       const pending=transPhotos.get(key)||{owner,pointId,offerId:offer.id,type,file};
       if(!pending.received)pending.file=file;
       transPhotos.set(key,pending);
+      const localPreview = root.querySelector('[data-trans-local-preview]');
+      if (localPreview) localPreview.innerHTML = transMedia.localTransferPhoto(pending.file);
       const checked=async()=>{
         const fresh=await request('GET',path),selected=fresh.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
         if(String(fresh.id)!==String(pointId)||fresh.operation_type!==point.operation_type||!selected)fail('Zlecenie lub punkt przeładunku zmienił się. Otwórz spotkanie ponownie.');

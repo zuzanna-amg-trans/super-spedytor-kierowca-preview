@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T20:45:25.199Z",
-  "sourceCommit": "b0cfcafa7df1e5a70c3169bc758321b2da9032b4",
+  "generatedAt": "2026-11-01T20:58:19.522Z",
+  "sourceCommit": "8c41f547136075a046387e1c088e4ffefa2b330d",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -80,6 +80,7 @@
         "Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.",
         "Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.",
         "Kandydat 51 zachowuje sześć wymaganych rzeczywistych odbiorów zakresu; brak potwierdzonego odbioru Android Auto POI/Tacho nie pozwala uruchomić podpisywania.",
+        "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
         "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
@@ -89,8 +90,8 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Po rzeczywistych wymaganych odbiorach zakresu odświeżyć maksimum Play i uruchomić istniejący workflow build-only dla 0.1.46 (51), bez publicznego zgłoszenia.",
-      "sourceFingerprint": "3539d4c393be1e5d7e9414023511fe6799a3a624213a2edda3b43860982af785",
+      "nextAction": "Po rzeczywistych wymaganych odbiorach zakresu odświeżyć maksimum Play i uruchomić istniejący workflow build-only dla 0.1.46 (51), bez publicznego zgłoszenia. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.",
+      "sourceFingerprint": "d13b8a2e42201d5eef648eca3447a7016c3d3a49cc31c4daab6ca41b9ba712e9",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -98,8 +99,8 @@
     },
     "ios": {
       "target": {
-        "version": "0.4.20",
-        "build": 30
+        "version": "0.4.21",
+        "build": 31
       },
       "candidate": {
         "version": "0.4.20",
@@ -167,6 +168,8 @@
         "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "blockers": [
+        "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
+        "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
         "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
@@ -175,8 +178,8 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Odbiór kliknięcia w 0.4.20 (30) potwierdzony: z Tacho do Operacji z jawnym brakiem aktywnej trasy. Dalszy test rzeczywistej zmiany celu wymaga aktywnej trasy własnego konta; CarPlay wymaga podłączenia auta. Publiczne App Review pozostaje osobne.",
-      "sourceFingerprint": "51b0738ab86b1a97e4d264bf2d3034e617168fd7ab4326990354080bcd1fd17e",
+      "nextAction": "Sprawdzić podpisaną paczkę 31 z galerią zdjęć z przeładunku i przekazać istniejącym grupom TestFlight. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.",
+      "sourceFingerprint": "f0d465b6c9203b25bb479174c395f2ae2a68cfe7ea0fd0a048e8df81b62afc36",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -231,6 +234,19 @@
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki."
       ]
+    },
+    {
+      "id": "TRANSFER-SAVED-PHOTO-2026-11-01",
+      "summary": "Kierowca widzi miniaturę pobranego z TMS zdjęcia przeładunku od razu po zapisie oraz po powrocie do spotkania. Zdjęcia ładunku, plomby i dokumentu mają oddzielne opisy; zdjęcia sprzed aktualnego przyjazdu pozostają przy poprzedniej próbie.",
+      "android": {
+        "status": "implemented",
+        "evidence": "tests/transshipment-media.test.cjs; tests/transshipment-live.browser.cjs; wspólny widok i natywny odczyt ssmedia / ssfile."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "tests/transshipment-media.test.cjs; tests/transshipment-live.browser.cjs; ten sam widok w WKWebView; TestFlight ma osobny odczyt."
+      },
+      "blockers": []
     },
     {
       "id": "TS-2026-11-01-RESUME",

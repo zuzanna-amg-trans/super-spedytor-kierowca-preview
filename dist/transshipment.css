@@ -576,6 +576,7 @@
 .transshipment-live .transshipment-media-file>a{display:block;min-height:44px;font-size:14px;overflow-wrap:anywhere}
 .transshipment-live .transshipment-loading-gallery .transshipment-media-file img{max-height:200px}
 .transshipment-live .transfer-cmr-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
+.transshipment-live .transfer-cmr-controls[hidden]{display:none}
 .transshipment-live .transfer-cmr-controls button{min-width:44px;min-height:44px}
 .transshipment-live .transfer-cmr-controls b{font-size:13px}
 .transshipment-live .cmr-preview-error[hidden]{display:none}
@@ -590,4 +591,5 @@
 .transshipment-live .transshipment-references summary::after{content:'›';font-size:18px}
 .transshipment-live .transshipment-references details[open]>summary::after{transform:rotate(90deg)}
 .transshipment-reference-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px}
+.transshipment-reference-links [data-media-panel="transfer"]{grid-column:1 / -1}
 .transshipment-live .transshipment-reference-links .secondary-button{padding:6px;font-size:13px!important;line-height:1.3}

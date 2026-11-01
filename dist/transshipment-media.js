@@ -55,5 +55,66 @@
     if(!urls.length&&(list(offer.loading_photos).length||offer.loading_photo_url||list(documentRows).some(d=>d?.document_type==='photo_loading'&&(d.offer==null||String(d.offer)===String(offer.id)))))return '<p class="cmr-preview-error" role="status">TMS wskazuje zdjęcia z załadunku, ale nie udostępnił ich plików do podglądu.</p><button class="secondary-button" data-trans-media-retry>Odśwież zdjęcia</button>';
     return gallery+(error?'<p class="small-note">Lista zdjęć może być niepełna.</p><button class="secondary-button" data-trans-media-retry>Odśwież zdjęcia</button>':'');
   }
-  return {source,documents,sameDocuments,photos,cmrMarkup,cargoMarkup};
+  const transferLabels = new Map([
+    ['photo_transshipment', 'Zdjęcie ładunku'],
+    ['photo_transshipment_label', 'Zdjęcie plomby'],
+    ['photo_transshipment_cmr', 'Zdjęcie CMR'],
+  ]);
+
+  function timestamp(value) {
+    return typeof value === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? Date.parse(value) : NaN;
+  }
+
+  function transferPhotos(point, offer, rows) {
+    const start = timestamp(point.actual_arrival_datetime || point.actual_start_datetime);
+    const end = timestamp(point.actual_end_datetime);
+    const files = [];
+    for (const row of list(rows)) {
+      if (!row || !transferLabels.has(row.document_type)) continue;
+      if (row.offer != null && String(row.offer) !== String(offer.id)) continue;
+      const uploaded = timestamp(row.uploaded_at);
+      // TMS normally attaches documents to the order. Use the point's actual
+      // arrival, never its planned window, to separate repeat visits.
+      const boundPoint = row.route_point_id ?? row.route_point;
+      if (boundPoint != null) {
+        if (String(boundPoint) !== String(point.id)) continue;
+      } else {
+        if (!Number.isFinite(start) || !Number.isFinite(uploaded) || uploaded < start) continue;
+        if (point.status === 'completed' && !Number.isFinite(end)) continue;
+        if (Number.isFinite(end) && uploaded > end) continue;
+      }
+      files.push({id: row.id, time: Number.isFinite(uploaded) ? uploaded : 0,
+        label: transferLabels.get(row.document_type), url: source(row.file || row.file_url)});
+    }
+    return files.sort((a, b) => b.time - a.time || Number(b.id) - Number(a.id));
+  }
+
+  function transferMarkup(files, {confirmed, error, orderNumber}) {
+    const retry = '<button class="secondary-button" data-trans-media-retry>Odśwież zdjęcia z przeładunku</button>';
+    if (error) return '<p class="cmr-preview-error" role="alert">Nie udało się pobrać zdjęć z przeładunku.</p>' + retry;
+    if (!files.length && confirmed) return '<p role="status">TMS potwierdził zdjęcie. Jego podgląd nie jest jeszcze dostępny.</p>' + retry;
+    if (!files.length) return '<p class="small-note">W tym przeładunku nie ma jeszcze zapisanych zdjęć.</p>';
+    const figures = files.map((file, index) => {
+      const caption = e(file.label) + ' · ' + e(orderNumber);
+      const content = file.url
+        ? `<a data-trans-media-open href="${e(file.url)}" aria-label="Powiększ: ${caption}"><img data-trans-media-image src="${e(file.url)}" alt="${caption}" ${index ? 'loading="lazy"' : ''}></a>
+           <p data-trans-media-error class="cmr-preview-error" hidden>Nie udało się wczytać zdjęcia. ${retry}</p>
+           <a data-trans-media-open href="${e(file.url)}">Powiększ zdjęcie</a>`
+        : '<p role="status">Zdjęcie zapisane w TMS. Plik do podglądu jest chwilowo niedostępny.</p>' + retry;
+      return `<figure class="transshipment-media-file" data-trans-gallery-item="${index}" ${index ? 'hidden' : ''}><figcaption>${caption}</figcaption>${content}</figure>`;
+    }).join('');
+    return `<div class="transshipment-loading-gallery" data-trans-saved-gallery>${figures}
+      <div class="transfer-cmr-controls" ${files.length === 1 ? 'hidden' : ''}>
+        <button data-trans-gallery-prev disabled aria-label="Poprzednie zdjęcie z przeładunku">‹</button>
+        <b data-trans-gallery-count>Zdjęcie 1 z ${files.length}</b>
+        <button data-trans-gallery-next ${files.length === 1 ? 'disabled' : ''} aria-label="Następne zdjęcie z przeładunku">›</button>
+      </div></div>`;
+  }
+
+  function localTransferPhoto(file) {
+    const token = file?.token;
+    if (typeof token !== 'string' || !/^(?:[a-f\d]{32}|[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12})$/i.test(token)) return '';
+    return `<figure class="transshipment-media-file"><figcaption>Podgląd zdjęcia z telefonu</figcaption><img src="ssfile://local/${token}" alt="Właśnie wykonane zdjęcie"></figure>`;
+  }
+  return {source,documents,sameDocuments,photos,cmrMarkup,cargoMarkup,transferPhotos,transferMarkup,localTransferPhoto};
 });
