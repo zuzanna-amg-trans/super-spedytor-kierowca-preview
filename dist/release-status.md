@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T22:16:18.135Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T22:27:50.561Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -20,6 +20,7 @@ Stan sklepu: świeży odczyt.
 - B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.
 - Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
+- B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.
 - B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.
 - Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.
 - Fizyczny CarPlay nie jest podłączony.
@@ -36,6 +37,7 @@ Stan sklepu: świeży odczyt.
 - B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.
 - Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
+- B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.
 - B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.
 - Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.
 - Fizyczny CarPlay nie jest podłączony.

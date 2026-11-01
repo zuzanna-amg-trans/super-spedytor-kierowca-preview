@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T22:16:18.135Z",
-  "sourceCommit": "0794334d5c3d40b26538a3d619c43a7e459ccef1",
+  "generatedAt": "2026-11-01T22:27:50.561Z",
+  "sourceCommit": "3a9a2a1d58f7b4dd3a79eebd7238ce2373b87056",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -83,6 +83,7 @@
         "B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
+        "B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.",
         "B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
@@ -96,7 +97,7 @@
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
         "docs/release/evidence/b939-dev-production-2026-11-01.json"
       ],
-      "sourceFingerprint": "d13b8a2e42201d5eef648eca3447a7016c3d3a49cc31c4daab6ca41b9ba712e9",
+      "sourceFingerprint": "37c3ea0a41441ff96b1fc4f2011c5c136d98de9d2defe4a42d5c8dd017c62ef0",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -177,6 +178,7 @@
         "B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
+        "B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.",
         "B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
@@ -191,7 +193,7 @@
         "docs/release/evidence/b939-dev-production-2026-11-01.json",
         "docs/release/evidence/route-notification-open-30.json"
       ],
-      "sourceFingerprint": "2d0c2638ad8b85fa8228e10165ac347b2e0f56a19989fc09804d343a56d4858b",
+      "sourceFingerprint": "6b12f97544550c900c668cae662e6244d5b1f8a0e150adaf20c69db1eb41e19f",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -199,6 +201,23 @@
     }
   },
   "changes": [
+    {
+      "id": "B939-DEV-READONLY",
+      "summary": "Podgląd DEV otwiera zatwierdzony widok własnej inwentaryzacji i jej zdjęcia przez transport tylko do odczytu.",
+      "android": {
+        "status": "implemented",
+        "evidence": "dist/live-workspace.js",
+        "reason": "Natywny mostek zachowuje obsługę inwentaryzacji; podgląd przeglądarkowy używa własnego mostka bez podszywania się pod Androida."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "dist/live-workspace.js",
+        "reason": "Ten sam interfejs i zachowany mostek natywny; w DEV przeglądarkowym dostępne są tylko odczyty własnych rekordów."
+      },
+      "blockers": [
+        "B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane."
+      ]
+    },
     {
       "id": "MOBILE-2026-11-01-01",
       "summary": "Bieżący wspólny zakres: przeładunki z podglądem CMR i zdjęć, potwierdzenia inwentaryzacji oraz pomarańczowa ikona AMG",

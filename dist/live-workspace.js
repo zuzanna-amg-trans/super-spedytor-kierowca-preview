@@ -1,14 +1,15 @@
 (function(){
   'use strict';
-  const allWorkflows=()=>window.SuperSpedytorNative?.liveWorkflowsEnabled?.()===true;
-  const enabled=()=>allWorkflows()||window.SuperSpedytorNative?.liveInventoryEnabled?.()===true;
+  const availableBridge=window.SuperSpedytorNative||window.SuperSpedytorWeb;
+  const allWorkflows=()=>availableBridge?.liveWorkflowsEnabled?.()===true;
+  const enabled=()=>allWorkflows()||availableBridge?.liveInventoryEnabled?.()===true;
   if(!enabled())return;
-  const bridge=window.SuperSpedytorNative;
+  const bridge=availableBridge;
   const e=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const statusLabel=value=>({pending:'Do zrobienia',in_progress:'W trakcie',completed:'Wykonane',expired:'Termin minął',cancelled:'Anulowane',rejected:'Do poprawy',active:'Aktywne'})[value]||value||'—';
   const dateTime=value=>{const d=new Date(value);return value&&!Number.isNaN(d.valueOf())?d.toLocaleString('pl-PL',{dateStyle:'short',timeStyle:'short'}):String(value||'');};
   const list=value=>Array.isArray(value)?value:Array.isArray(value?.results)?value.results:[];
-  const media=value=>{if(typeof value!=='string')return '';try{const u=new URL(value,'https://tms.amg.eco');return u.protocol==='https:'&&u.hostname==='tms.amg.eco'&&!u.username&&!u.password&&u.pathname.startsWith('/media/')?u.href.replace(/^https:/,'ssmedia:'):'';}catch{return '';}};
+  const media=value=>{if(typeof value!=='string')return '';try{const web=bridge===window.SuperSpedytorWeb,origin=web?'https://dev.amg-trans.eu':'https://tms.amg.eco',u=new URL(value,origin);if(u.origin!==origin||u.username||u.password||!u.pathname.startsWith('/media/'))return '';return web?u.href:u.href.replace(/^https:/,'ssmedia:');}catch{return '';}};
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
   const tms=window.SuperSpedytorTmsResults;
   let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null,chatTimer=null;
