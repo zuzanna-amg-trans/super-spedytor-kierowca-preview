@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T21:06:44.126Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T21:48:56.028Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -20,7 +20,6 @@ Stan sklepu: świeży odczyt.
 - Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
 - Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.
-- Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.
 - Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.
 - Fizyczny CarPlay nie jest podłączony.
 - Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.
@@ -29,13 +28,12 @@ Stan sklepu: świeży odczyt.
 
 ## Apple iOS
 
-Następny krok: Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.
+Następny krok: Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.
 
 Stan sklepu: świeży odczyt.
 - Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
 - Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.
-- Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.
 - Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.
 - Fizyczny CarPlay nie jest podłączony.
 - Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.

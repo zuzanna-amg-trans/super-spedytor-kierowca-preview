@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T21:06:44.126Z",
-  "sourceCommit": "789327bc9c29ed3a87ac1e3c37343d054d61532e",
+  "generatedAt": "2026-11-01T21:48:56.028Z",
+  "sourceCommit": "51b57633758073e1acbde32e46e248055c1a45d8",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -83,7 +83,6 @@
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
@@ -171,14 +170,13 @@
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.",
+      "nextAction": "Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.",
       "sourceFingerprint": "2d0c2638ad8b85fa8228e10165ac347b2e0f56a19989fc09804d343a56d4858b",
       "freshStoreRead": true,
       "uploadRequired": true,
@@ -214,7 +212,6 @@
         "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "blockers": [
-        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony."
       ]
