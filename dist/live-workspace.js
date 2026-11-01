@@ -1,6 +1,7 @@
 (function(){
   'use strict';
-  const enabled=()=>window.SuperSpedytorNative?.liveWorkflowsEnabled?.()===true;
+  const allWorkflows=()=>window.SuperSpedytorNative?.liveWorkflowsEnabled?.()===true;
+  const enabled=()=>allWorkflows()||window.SuperSpedytorNative?.liveInventoryEnabled?.()===true;
   if(!enabled())return;
   const bridge=window.SuperSpedytorNative;
   const e=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -164,8 +165,9 @@
   }
   async function open(name='menu',context={}){
     if(!enabled()||state().status!=='connected')return;
+    if(!allWorkflows()&&name!=='service')return;
     const titles={menu:'Twoje sprawy',scanner:'Skaner',service:'Serwis i zadania',tacho:'Tacho',chat:'Czat',collection:'Dokumenty CMR',transshipment:'Przeładunki',fueling:'Tankowanie i parkingi',expenses:'Wydatki',files:'Pliki na telefonie',help:'Pomoc'};
-    if(!mount(titles[name]||titles.menu,name))return;screenContext=context;
+    if(!mount(!allWorkflows()?'Inwentaryzacja':titles[name]||titles.menu,name))return;screenContext=context;
     const generation=++epoch;
     try{
       if(name==='tacho')await tacho();
@@ -187,7 +189,7 @@
   async function tasks(){
     const [pending,history]=await Promise.all([request('GET','driver-tasks/pending/'),request('GET','driver-tasks/history/')]);
     const all=[...list(pending?.tasks),...list(pending?.all_tasks),...list(history)];
-    const unique=[...new Map(all.filter(t=>t?.id).map(t=>[String(t.id),t])).values()];
+    const unique=[...new Map(all.filter(t=>t?.id&&(allWorkflows()||(t.definition_slug||t.definition?.slug)==='vehicle-inventory')).map(t=>[String(t.id),t])).values()];
     const todo=unique.filter(t=>['pending','in_progress'].includes(t.status));
     const completed=unique.filter(t=>!['pending','in_progress'].includes(t.status));
     body().innerHTML=`<div class="section-heading"><h3>Do zrobienia</h3><span>${todo.length}</span></div>`+(todo.map(t=>card(t.definition_name||t.definition?.name||'Zadanie',`${t.is_overdue?'Zaległe · ':''}${t.date||''} · ${t.status_display||statusLabel(t.status)}`,'Otwórz',`data-lw-task="${e(id(t.id))}"`)).join('')||empty('TMS nie zwrócił otwartych zadań dla tego konta.'))+`<div class="section-heading"><h3>Historia</h3><span>${completed.length}</span></div>`+completed.slice(0,30).map(t=>card(t.definition_name||t.definition?.name||'Wykonane zadanie',`${t.completed_at?dateTime(t.completed_at):t.date||''} · ${t.status_display||statusLabel(t.status)}`,'Podgląd',`data-lw-task="${e(id(t.id))}"`)).join('')+button('Rejestr wykonanych ankiet','data-lw-history',true);
@@ -197,6 +199,7 @@
     const data=await request('GET',`driver-tasks/${id(taskId)}/`);
     screenContext={taskId};
     const definition=data.definition||{},steps=definition.steps_config||[];
+    if(!allWorkflows()&&definition.slug!=='vehicle-inventory')fail('Wybierz zadanie inwentaryzacji pojazdu przypisane do Twojego konta.');
     body().innerHTML=`<section class="panel"><small>${e(data.date||'')}</small><h3>${e(definition.name||data.definition_name||'Zadanie')}</h3><p>${e(definition.description||'')}</p><p>Stan w TMS: <strong>${e(data.status_display||statusLabel(data.status))}</strong></p></section>`;
     const done=!['pending','in_progress'].includes(data.status);
     if(done)clearDraft('task:'+taskId);
@@ -221,7 +224,7 @@
   }
   async function inventory(taskId,handover=false,completed=false){
     const path=`inventory/driver/survey/${id(taskId)}/`,readSurvey=()=>request('GET',path,undefined,true),data=await readSurvey();
-    const stages=data.stages||[],rows=stages.flatMap(s=>s.products||[]),readOnly=completed||data.status==='completed'||data.task?.status==='completed';
+    const stages=data.stages||[],rows=stages.flatMap(s=>s.products||[]),readOnly=completed||data.status==='completed'||data.task?.status==='completed'||state().read_only===true;
     const slots=data.slots||[],scope='task:'+taskId,generation=epoch;
     const assertView=()=>{if(!current()||generation!==epoch||String(screenContext.taskId)!==String(taskId))fail('Zmieniono konto lub zadanie. Otwórz właściwy protokół ponownie.');};
     const reload=async()=>{const scroll=body().scrollTop;await task(taskId);assertView();body().scrollTop=scroll;};
@@ -540,14 +543,16 @@
   }
   document.addEventListener('click',event=>{
     if(!enabled()||state().status!=='connected')return;
+    if(event.target.closest('[data-service-panel="inventory"]')){event.preventDefault();event.stopImmediatePropagation();open('service');return;}
     const nav=event.target.closest('[data-nav]'),workspace=event.target.closest('#workspace-choose,[data-live-menu]'),designed=event.target.closest('[data-designed-view]');
     if(!nav&&!workspace&&!designed)return;
     const name=nav?.dataset.nav;
+    if(!allWorkflows()&&name!=='service'&&designed?.dataset.designedView!=='inventory'){if(nav)close();return;}
     if(name==='now'){close();return;}
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({scanner:'scanner',tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();

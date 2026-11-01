@@ -634,7 +634,7 @@ const vehicleHandoverSnapshot={
   assignmentVersion:12,
   status:'awaiting_receiver',
   createdAt:'2026-10-13T08:30:00+02:00',
-  vehicle:{id:'vehicle-demo-01',registration:'DEMO 01',name:'Pojazd demonstracyjny',makeModel:'Ciągnik demonstracyjny'},
+  vehicle:{id:'vehicle-demo-01',registration:'DEMO 01',name:'Pojazd demonstracyjny',makeModel:'Mercedes Sprinter · DEMO'},
   transferor:{id:'driver-demo-a',code:'K-DEMO-A',displayName:'Marek Nowak',confirmedAt:'2026-10-13T08:34:00+02:00'},
   receiver:{id:'driver-demo-b',code:'K-DEMO-B',displayName:'Piotr Wiśniewski'},
   handoverPlace:'Baza AMG · miejsce demonstracyjne',
@@ -652,6 +652,8 @@ const vehicleHandoverSnapshot={
   })))
 };
 vehicleHandoverSnapshot.contents={vehicleId:vehicleHandoverSnapshot.vehicle.id,ownerVersion:7,orders:JSON.parse(JSON.stringify(transshipmentPlan.orders.filter(order=>['DEMO/TS/310','DEMO/TS/530'].includes(order.id))))};
+// The shared snapshot drives both inventory and vehicle handover.
+Object.assign(vehicleHandoverSnapshot,window.SuperSpedytorFullInventoryCatalog?.snapshot?.()||{});
 const vehicleInventorySnapshot={
   source:vehicleHandoverSnapshot.source,
   inventoryId:'INV/DEMO/2026/001',
@@ -660,7 +662,9 @@ const vehicleInventorySnapshot={
   author:vehicleHandoverSnapshot.receiver,
   inspectionPlace:vehicleHandoverSnapshot.handoverPlace,
   photoRequirements:vehicleHandoverSnapshot.photoRequirements,
-  equipment:vehicleHandoverSnapshot.equipment
+  equipment:vehicleHandoverSnapshot.equipment,
+  equipmentStages:vehicleHandoverSnapshot.equipmentStages,
+  catalogRevision:vehicleHandoverSnapshot.catalogRevision
 };
 const handoverEquipmentGroups=handoverSourceGroups.map(group=>({
   id:group.id,
@@ -2089,7 +2093,7 @@ const inspectionConfirmationKey=(mode=inspectionMode())=>mode==='inventory'?'aut
 const inspectionV2Controllers={inventory:null,handover:null,'handover-receive':null};
 let normalHandoverRole='issue',vehicleExchangeActive=false,vehicleExchangeController=null;
 // Every handover uses the contents-aware protocol. Inventory retains its comparison view.
-const inspectionV2Enabled=()=>(inspectionMode()==='handover'||appQuery.get('handoverVersion')!=='1')&&Boolean(window.SuperSpedytorHandoverV2);
+const inspectionV2Enabled=()=>(inspectionSnapshot().catalogRevision||inspectionMode()==='handover'||appQuery.get('handoverVersion')!=='1')&&Boolean(window.SuperSpedytorHandoverV2);
 function openVehicleExchange(){vehicleExchangeActive=true;openService('handover');}
 function exchangeController(){
   if(!vehicleExchangeController){
