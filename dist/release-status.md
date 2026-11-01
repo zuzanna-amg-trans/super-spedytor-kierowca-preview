@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T22:27:50.561Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T22:46:41.470Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@ Stan sklepu: świeży odczyt.
 - Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.
 - Kandydat 51 zachowuje sześć wymaganych rzeczywistych odbiorów zakresu; brak potwierdzonego odbioru Android Auto POI/Tacho nie pozwala uruchomić podpisywania.
 - Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.
-- B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.
+- B939: wdrożenie produkcyjne jest autoryzowane po odbiorze DEV. Adapter odczytu 437b413b i ankieta TESTB939 4455 są wdrożone; zapis dwóch potwierdzeń przeszedł odczyt. Końcowy odczyt szczegółów wymaga ręcznego połączenia nowej strony DEV. Następnie wdrożenie i weryfikacja produkcji.
 - Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
 - B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.
@@ -34,7 +34,7 @@ Następny krok: Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.
 
 Stan sklepu: świeży odczyt.
 - Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.
-- B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.
+- B939: wdrożenie produkcyjne jest autoryzowane po odbiorze DEV. Adapter odczytu 437b413b i ankieta TESTB939 4455 są wdrożone; zapis dwóch potwierdzeń przeszedł odczyt. Końcowy odczyt szczegółów wymaga ręcznego połączenia nowej strony DEV. Następnie wdrożenie i weryfikacja produkcji.
 - Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.
 - Wersja paczki kandydata różni się od planowanego numeru wydania.
 - B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.

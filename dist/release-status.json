@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T22:27:50.561Z",
-  "sourceCommit": "3a9a2a1d58f7b4dd3a79eebd7238ce2373b87056",
+  "generatedAt": "2026-11-01T22:46:41.470Z",
+  "sourceCommit": "754e4aff2f843e8168dd1f4d28115c54ada2ed1b",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -53,7 +53,7 @@
         "version": "0.1.45",
         "build": 50,
         "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff",
-        "observedAt": "2026-11-01T21:52:00Z",
+        "observedAt": "2026-11-01T22:39:00Z",
         "statusLabel": "Test wewnętrzny dostępny",
         "artifactSha256": "31ae7b79c0bf7ca87224c9752af20e64ebe3abe5d62c542a53dd660890738463",
         "fingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
@@ -73,14 +73,14 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T21:53:00Z",
+        "observedAt": "2026-11-01T22:39:00Z",
         "evidence": "docs/release/evidence/b939-dev-production-2026-11-01.json"
       },
       "blockers": [
         "Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.",
         "Kandydat 51 zachowuje sześć wymaganych rzeczywistych odbiorów zakresu; brak potwierdzonego odbioru Android Auto POI/Tacho nie pozwala uruchomić podpisywania.",
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
-        "B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.",
+        "B939: wdrożenie produkcyjne jest autoryzowane po odbiorze DEV. Adapter odczytu 437b413b i ankieta TESTB939 4455 są wdrożone; zapis dwóch potwierdzeń przeszedł odczyt. Końcowy odczyt szczegółów wymaga ręcznego połączenia nowej strony DEV. Następnie wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.",
@@ -152,7 +152,7 @@
         "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
         "artifactSha256": "969db77714067b1a50d49153ed849cd3b918be6067dc1299ab616f0d346f70c7",
         "evidence": "docs/release/evidence/transfer-saved-photo-31.json",
-        "observedAt": "2026-11-01T21:01:19Z",
+        "observedAt": "2026-11-01T22:39:00Z",
         "statusLabel": "TestFlight wewnętrzny: Testing; zewnętrzny: Waiting for Review.",
         "fingerprint": "89a6b28c3220ccb21f2d89182f4559f726d36d203030d4d23577626479ba8c32",
         "matchesCurrent": false
@@ -170,12 +170,12 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T21:53:00Z",
+        "observedAt": "2026-11-01T22:39:00Z",
         "evidence": "docs/release/evidence/b939-dev-production-2026-11-01.json"
       },
       "blockers": [
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
-        "B939: produkcja jest autoryzowana po odbiorze DEV. Zaktualizowano zatwierdzony podgląd oraz włączono ankietę tylko na DEV; aktualny TESTB939 to 4455. Pozostaje odczyt po ręcznym zalogowaniu do ramki aplikacji oraz wdrożenie i weryfikacja produkcji.",
+        "B939: wdrożenie produkcyjne jest autoryzowane po odbiorze DEV. Adapter odczytu 437b413b i ankieta TESTB939 4455 są wdrożone; zapis dwóch potwierdzeń przeszedł odczyt. Końcowy odczyt szczegółów wymaga ręcznego połączenia nowej strony DEV. Następnie wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "B939: odbiór zatwierdzonego widoku DEV musi potwierdzić dane i zdjęcia z ankiety 4455. Produkcja jest autoryzowana dopiero po udanym odbiorze; sklepy nadal wstrzymane.",
@@ -206,12 +206,12 @@
       "summary": "Podgląd DEV otwiera zatwierdzony widok własnej inwentaryzacji i jej zdjęcia przez transport tylko do odczytu.",
       "android": {
         "status": "implemented",
-        "evidence": "dist/live-workspace.js",
+        "evidence": "docs/release/evidence/b939-dev-readonly-2026-11-01.json",
         "reason": "Natywny mostek zachowuje obsługę inwentaryzacji; podgląd przeglądarkowy używa własnego mostka bez podszywania się pod Androida."
       },
       "ios": {
         "status": "implemented",
-        "evidence": "dist/live-workspace.js",
+        "evidence": "docs/release/evidence/b939-dev-readonly-2026-11-01.json",
         "reason": "Ten sam interfejs i zachowany mostek natywny; w DEV przeglądarkowym dostępne są tylko odczyty własnych rekordów."
       },
       "blockers": [
