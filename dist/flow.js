@@ -2713,14 +2713,24 @@ function settleBackendPointWrite(write,previousWriteKey,context){
 }
 async function liveOrderStatus(point,action){
   if(backendReadOnly())return;
-  // Status zlecenia jak w przeglądarce (usePointStatusUpdate): po starcie at_loading/at_unloading,
-  // po zakończeniu załadunku en_route_to_unloading. Błąd nie blokuje — punkt jest już zapisany.
   const update=liveOperationModel?.orderStatusAfterWrite(point,action);
   if(!update||!window.SuperSpedytorNative?.backendRequest)return;
+  const target=update.path.match(/^documents\/transport\/([1-9]\d*)\/driver-update-status\/$/);
+  if(!target)return;
+  const account=String(backendState?.profile?.id??'');
+  const sameOwner=()=>account&&backendState?.status==='connected'&&String(backendState.profile?.id??'')===account;
+  const send=(method,path,body)=>nativeCall(rid=>window.SuperSpedytorNative.backendRequest(rid,method,path,body?JSON.stringify(body):''));
   try{
-    const result=await nativeRequest('POST',update.path,{status:update.status});
-    if(!liveOperationModel.isSuccess(result))toast(`Status zlecenia nie zapisał się: ${liveOperationModel.errorMessage(result,'')}`);
-  }catch{}
+    if(!sameOwner())return;
+    const result=await send('POST',update.path,{status:update.status});
+    if(!sameOwner())return;
+    if(!liveOperationModel.isSuccess(result)||result.status===202||result.cached||result.queued)throw Error('TMS nie potwierdził przyjęcia statusu.');
+    const path=update.path.replace(/driver-update-status\/$/,'');
+    const read=await send('GET',path);
+    if(!sameOwner())return;
+    if(!liveOperationModel.isSuccess(read)||read.cached||String(read.body?.id)!==target[1]||read.body?.status!==update.status)
+      throw Error('Odczyt TMS nie potwierdził nowego statusu zlecenia.');
+  }catch(error){if(sameOwner())toast('Nie potwierdzono statusu zlecenia. Punkt trasy zapisano osobno; odśwież dane przed ponowieniem.');}
 }
 function liveLoadingPhotosGallery(){
   const record=current();

@@ -10,7 +10,8 @@
   const list=value=>Array.isArray(value)?value:Array.isArray(value?.results)?value.results:[];
   const media=value=>{if(typeof value!=='string')return '';try{const u=new URL(value,'https://tms.amg.eco');return u.protocol==='https:'&&u.hostname==='tms.amg.eco'&&!u.username&&!u.password&&u.pathname.startsWith('/media/')?u.href.replace(/^https:/,'ssmedia:'):'';}catch{return '';}};
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
-  let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null;
+  const tms=window.SuperSpedytorTmsResults;
+  let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null,chatTimer=null;
   const localEvidence=new Map();let evidenceOwner="",standaloneScan=null;
   // Drafts belong to the current authenticated account and live only in memory.
   // A readback for one field must not erase edits in the other fields.
@@ -55,10 +56,13 @@
   const errorText=body=>typeof body?.detail==='string'?body.detail:typeof body?.error==='string'?body.error:typeof body?.message==='string'?body.message:Object.entries(body||{}).filter(([,v])=>typeof v==='string'||Array.isArray(v)).map(([k,v])=>`${k}: ${Array.isArray(v)?v.join(', '):v}`).join('; ').slice(0,500);
   async function request(method,path,body,fresh=false){
     if(!current())fail('Sesja kierowcy zmieniła się. Otwórz widok ponownie.');
+    if(method!=='GET'&&!tms.writable(state()))fail(state().read_only?'Ta sesja TMS działa tylko do odczytu.':'Brak połączenia z TMS. Nie wysłano zmiany; zachowano szkic.');
     const generation=epoch;
-    const response=await nativeRequest(method,path,body);
+    // These screens confirm owner-system records. An offline queue receipt or
+    // cached GET is not a response from TMS and must never certify a write.
+    const response=await nativeCall(rid=>bridge.backendRequest(rid,method,path,body?JSON.stringify(body):''));
     if(!current()||generation!==epoch)fail('Zmieniono konto lub widok. Sprawdź stan rekordu po ponownym otwarciu.');
-    if(fresh&&response?.cached)fail('Brak połączenia z TMS. Zapis na telefonie nie potwierdza aktualnego stanu protokołu.');
+    if(response?.cached||response?.queued||response?.status===202)fail('TMS nie potwierdził operacji. Zachowano szkic; odśwież rekord przed ponowieniem.');
     if(!Number.isInteger(response?.status)||response.status<200||response.status>=300)fail(errorText(response?.body)||response?.message||'Nie potwierdzono operacji. Odśwież rekord przed powtórzeniem.');
     return response.body;
   }
@@ -69,11 +73,10 @@
     // Inventory needs the server's created-record ID and a matching readback.
     // A queued 202 receipt cannot establish either. Keep the native local file
     // on failure; do not also enqueue an automatic second upload of this item.
-    const inventoryUpload=/^inventory\/driver\/(survey|handover)\/[1-9]\d*\//.test(path);
-    if(inventoryUpload&&(navigator.onLine===false||state().offline))fail('Brak połączenia z TMS. Zdjęcie pozostaje w plikach na telefonie; nie dodano go jeszcze do protokołu.');
-    const result=inventoryUpload?await nativeCall(rid=>bridge.backendUpload(rid,path,file.token,JSON.stringify(values))):await nativeUpload(path,file.token,values);
+    if(!tms.writable(state())||navigator.onLine===false)fail('Brak połączenia lub uprawnień zapisu w TMS. Zdjęcie pozostaje w plikach na telefonie; nie dodano go jeszcze do protokołu ani czatu.');
+    const result=await nativeCall(rid=>bridge.backendUpload(rid,path,file.token,JSON.stringify(values)));
     if(!current()||generation!==epoch)fail('Zmieniono konto lub widok. Sprawdź wynik po ponownym otwarciu.');
-    if(!Number.isInteger(result?.status)||result.status<200||result.status>=300)fail(errorText(result?.body)||'Nie potwierdzono przyjęcia pliku.');
+    if(!tms.confirmedResponse(result))fail(errorText(result?.body)||'Nie potwierdzono przyjęcia pliku przez TMS. Zachowano kopię na telefonie.');
     return result.body;
   }
   async function capture(scan=false){
@@ -97,7 +100,7 @@
   window.visualViewport?.addEventListener('scroll',position);
   function close(){
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav==='now'));
-    epoch++;clearInterval(tachoTimer);tachoTimer=null;root?.remove();root=null;screen='';busy=false;
+    epoch++;clearInterval(tachoTimer);tachoTimer=null;clearInterval(chatTimer);chatTimer=null;root?.remove();root=null;screen='';busy=false;
     const action=document.getElementById('app-action');if(action)action.style.display='';
     window.SuperSpedytorRouteActivity?.resume?.();
   }
@@ -107,7 +110,7 @@
       root=document.createElement('section');root.className='live-workspace';root.setAttribute('aria-label',title);
       document.querySelector('.device').append(root);
     }
-    screen=name;root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;position();
+    screen=name;root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;clearInterval(chatTimer);chatTimer=null;position();
     window.SuperSpedytorRouteActivity?.suspend?.();
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===name));
     root.innerHTML=`<header class="lw-header"><button data-lw-close aria-label="Wróć do operacji">‹</button><div><small>SUPER SPEDYTOR</small><h2>${e(title)}</h2></div><button data-lw-refresh aria-label="Odśwież widok">↻</button></header><div class="lw-feedback" aria-live="polite"></div><div class="lw-body"><p class="lw-empty" role="status">Pobieram dane Twojego konta…</p></div>`;
@@ -417,6 +420,7 @@
     bind('[data-lw-thread]',n=>chat(n.dataset.lwThread));
   }
   async function chat(offerId){
+    clearInterval(chatTimer);chatTimer=null;screenContext={offerId};
     const path=`chat/threads/${id(offerId)}/messages/`,data=await request('GET',path),messages=window.SuperSpedytorLiveChatView.chronological(list(data));
     screenContext={offerId};root.classList.add('lw-chat-open');
     body().innerHTML=`<div class="lw-messages" role="log" aria-label="Rozmowa zlecenia">${messages.map(m=>window.SuperSpedytorLiveChatView.message(m,bridge)).join('')||empty('W tym wątku nie ma wiadomości.')}</div><section class="lw-chat-composer chat-composer"><label class="lw-field" for="lw-chat-message">Wiadomość<textarea id="lw-chat-message" data-draft-field="message" maxlength="10000" rows="1" placeholder="Napisz wiadomość…"></textarea></label>${button('Wyślij','data-chat-send')}<details class="lw-chat-tools"><summary>Dołącz zdjęcie, plik lub nagranie</summary><div class="lw-actions">${button('Zdjęcie','data-chat-photo',true)}${button('Plik PDF lub zdjęcie','data-chat-file',true)}${button('Nagraj wiadomość','data-chat-audio',true)}</div></details></section>`;
@@ -427,11 +431,23 @@
     input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(100,input.scrollHeight)+'px';});
     bindDraft('chat:'+offerId);input.style.height=Math.min(100,input.scrollHeight)+'px';
     position();
-    bind('[data-chat-send]',async()=>{const draft=root.querySelector('#lw-chat-message').value,text=draft.trim();if(!text)fail('Wpisz wiadomość.');if(!confirm('Wysłać tę wiadomość do czatu zlecenia?'))return;await request('POST',path,{body:text});const read=list(await request('GET',path));if(!read.some(m=>(m.body||m.text)===text&&!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości w odczycie czatu.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Wiadomość odczytana z czatu po wysłaniu.');});
-    bind('[data-chat-photo]',async()=>{const file=await capture();if(!file)return;try{if(!confirm('Wysłać wybrane zdjęcie do tego czatu zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości ze zdjęciem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość ze zdjęciem odczytana z czatu.');}finally{keepEvidence(file);}});
-    const sendFile=async audio=>{const file=await (audio?recordVoice():chooseFile());if(file?.status==='cancelled')return;if(file?.status!=='ok'||!file.token)fail(file?.message||'Nie udało się przygotować pliku.');keepEvidence(file);if(!confirm('Wysłać ten plik lub nagranie do czatu wskazanego zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!read.some(m=>!messages.some(old=>String(old.id)===String(m.id))))fail('Nie potwierdzono nowej wiadomości z załącznikiem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość odczytana z czatu po wysyłce.');};
+    bind('[data-chat-send]',async()=>{const draft=root.querySelector('#lw-chat-message').value,text=draft.trim();if(!text)fail('Wpisz wiadomość.');if(!confirm('Wysłać tę wiadomość do czatu zlecenia?'))return;const created=await request('POST',path,{body:text});const read=list(await request('GET',path));if(!tms.messageReadback(created,read,text))fail('Nie potwierdzono nowej wiadomości w odczycie czatu. Zachowano szkic; odśwież rozmowę przed ponowieniem.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Wiadomość odczytana z czatu po wysłaniu.');});
+    bind('[data-chat-photo]',async()=>{const file=await capture();if(!file)return;try{if(!confirm('Wysłać wybrane zdjęcie do tego czatu zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;const created=await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!tms.messageReadback(created,read,draft.trim(),true))fail('Nie potwierdzono nowej wiadomości ze zdjęciem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość ze zdjęciem odczytana z czatu.');}finally{keepEvidence(file);}});
+    const sendFile=async audio=>{const generation=epoch,account=owner;const file=await (audio?recordVoice():chooseFile());if(!current()||generation!==epoch||account!==owner||String(screenContext.offerId)!==String(offerId))fail('Zmieniono konto lub rozmowę podczas wybierania pliku. Nie wysłano załącznika.');if(file?.status==='cancelled')return;if(file?.status!=='ok'||!file.token)fail(file?.message||'Nie udało się przygotować pliku.');keepEvidence(file);if(!confirm('Wysłać ten plik lub nagranie do czatu wskazanego zlecenia?'))return;const draft=root.querySelector('#lw-chat-message').value;const created=await upload(path,file,{body:draft.trim()});const read=list(await request('GET',path));if(!tms.messageReadback(created,read,draft.trim(),true))fail('Nie potwierdzono nowej wiadomości z załącznikiem. Plik pozostaje na telefonie.');confirmDraft('chat:'+offerId,{message:draft});await chat(offerId);feedback('Nowa wiadomość odczytana z czatu po wysyłce.');};
     bind('[data-chat-file]',()=>sendFile(false));bind('[data-chat-audio]',()=>sendFile(true));
-
+    const generation=epoch;let polling=false;
+    chatTimer=setInterval(async()=>{
+      if(polling||busy||document.hidden||!root||screen!=='chat'||generation!==epoch||String(screenContext.offerId)!==String(offerId))return;
+      if(!current()){close();return;}polling=true;
+      try{
+        const fresh=window.SuperSpedytorLiveChatView.chronological(list(await request('GET',path)));
+        if(!root||generation!==epoch||String(screenContext.offerId)!==String(offerId))return;
+        const log=root.querySelector('.lw-messages'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<80;
+        const html=fresh.map(m=>window.SuperSpedytorLiveChatView.message(m,bridge)).join('')||empty('W tym wątku nie ma wiadomości.');
+        if(log.innerHTML!==html){log.innerHTML=html;if(bottom)log.scrollTop=log.scrollHeight;}
+      }catch(error){if(current()&&generation===epoch)feedback('Nie udało się odświeżyć rozmowy. '+error.message,true);}
+      finally{polling=false;}
+    },10000);
   }
   async function collection(){
     const [data,transfers]=await Promise.all([request('GET','documents/cmr-collection/?page_size=100'),request('GET','documents/cmr-transfers/pending/')]);
