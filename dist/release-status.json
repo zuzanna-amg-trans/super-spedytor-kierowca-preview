@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T21:03:15.790Z",
-  "sourceCommit": "bc0610292c6eefae22c1b12129117894db127b6e",
+  "generatedAt": "2026-11-01T21:06:44.126Z",
+  "sourceCommit": "789327bc9c29ed3a87ac1e3c37343d054d61532e",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -73,8 +73,8 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T20:00:11Z",
-        "evidence": "docs/release/evidence/transshipment-resume-29-50.json"
+        "observedAt": "2026-11-01T21:01:33Z",
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
       },
       "blockers": [
         "Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.",
@@ -90,7 +90,7 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Po rzeczywistych wymaganych odbiorach zakresu odświeżyć maksimum Play i uruchomić istniejący workflow build-only dla 0.1.46 (51), bez publicznego zgłoszenia. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.",
+      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50.",
       "sourceFingerprint": "d13b8a2e42201d5eef648eca3447a7016c3d3a49cc31c4daab6ca41b9ba712e9",
       "freshStoreRead": true,
       "uploadRequired": true,
@@ -99,56 +99,56 @@
     },
     "ios": {
       "target": {
-        "version": "0.4.21",
-        "build": 31
+        "version": "0.4.22",
+        "build": 32
       },
       "candidate": {
-        "version": "0.4.20",
-        "build": 30,
-        "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1",
-        "artifactSha256": "0f6b103fcfa823f4255d14a3b52396703672691dc0c1b29cab8cba84ceaad7dd",
-        "observedAt": "2026-11-01T20:26:04.998024+00:00",
-        "evidence": "docs/release/evidence/route-notification-open-30.json",
-        "statusLabel": "Podpisany i zweryfikowany dokładny pakiet przesłany do Apple",
+        "version": "0.4.21",
+        "build": 31,
+        "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+        "artifactSha256": "969db77714067b1a50d49153ed849cd3b918be6067dc1299ab616f0d346f70c7",
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json",
+        "observedAt": "2026-11-01T20:54:46.464594+00:00",
+        "statusLabel": "Podpisany zakres poprawki względem zainstalowanego 30; według rejestru pełna integracja wymaga kolejnej paczki.",
         "checks": {
           "tests": {
             "passed": true,
-            "evidence": "docs/release/evidence/route-notification-open-30.json",
-            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
+            "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
           },
           "signature": {
             "passed": true,
-            "evidence": "docs/release/evidence/route-notification-open-30.json",
-            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
+            "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
           },
           "bundle": {
             "passed": true,
-            "evidence": "docs/release/evidence/route-notification-open-30.json",
-            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
+            "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
           },
           "metadata": {
             "passed": false,
-            "evidence": "docs/release/evidence/route-notification-open-30.json",
-            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
+            "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
           },
           "backendAcceptance": {
             "passed": false,
-            "evidence": "docs/release/evidence/route-notification-open-30.json",
-            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
+            "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
           }
         },
-        "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
+        "fingerprint": "89a6b28c3220ccb21f2d89182f4559f726d36d203030d4d23577626479ba8c32",
         "matchesCurrent": false
       },
       "uploaded": {
-        "version": "0.4.20",
-        "build": 30,
-        "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1",
-        "artifactSha256": "0f6b103fcfa823f4255d14a3b52396703672691dc0c1b29cab8cba84ceaad7dd",
-        "observedAt": "2026-11-01T20:26:04.998024+00:00",
-        "evidence": "docs/release/evidence/route-notification-open-30.json",
-        "statusLabel": "TestFlight wewnętrzny: Testing; poprawka kliknięcia powiadomienia dostępna do instalacji",
-        "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
+        "version": "0.4.21",
+        "build": 31,
+        "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
+        "artifactSha256": "969db77714067b1a50d49153ed849cd3b918be6067dc1299ab616f0d346f70c7",
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json",
+        "observedAt": "2026-11-01T21:01:19Z",
+        "statusLabel": "TestFlight wewnętrzny: Testing; zewnętrzny: Waiting for Review.",
+        "fingerprint": "89a6b28c3220ccb21f2d89182f4559f726d36d203030d4d23577626479ba8c32",
         "matchesCurrent": false
       },
       "production": {
@@ -164,8 +164,8 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T20:26:04.998024+00:00",
-        "evidence": "docs/release/evidence/route-notification-open-30.json"
+        "observedAt": "2026-11-01T21:01:19Z",
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
       },
       "blockers": [
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
@@ -178,8 +178,8 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Sprawdzić podpisaną paczkę 31 z galerią zdjęć z przeładunku i przekazać istniejącym grupom TestFlight. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.",
-      "sourceFingerprint": "f0d465b6c9203b25bb479174c395f2ae2a68cfe7ea0fd0a048e8df81b62afc36",
+      "nextAction": "Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.",
+      "sourceFingerprint": "2d0c2638ad8b85fa8228e10165ac347b2e0f56a19989fc09804d343a56d4858b",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -240,11 +240,11 @@
       "summary": "Kierowca widzi miniaturę pobranego z TMS zdjęcia przeładunku od razu po zapisie oraz po powrocie do spotkania. Zdjęcia ładunku, plomby i dokumentu mają oddzielne opisy; zdjęcia sprzed aktualnego przyjazdu pozostają przy poprzedniej próbie.",
       "android": {
         "status": "implemented",
-        "evidence": "tests/transshipment-media.test.cjs; tests/transshipment-live.browser.cjs; wspólny widok i natywny odczyt ssmedia / ssfile."
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
       },
       "ios": {
         "status": "implemented",
-        "evidence": "tests/transshipment-media.test.cjs; tests/transshipment-live.browser.cjs; ten sam widok w WKWebView; TestFlight ma osobny odczyt."
+        "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
       },
       "blockers": []
     },

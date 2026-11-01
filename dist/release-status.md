@@ -1,17 +1,17 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T21:03:15.790Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T21:06:44.126Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
 | Android | 0.1.46 (51) | 0.1.45 (50) | TAK | Do przygotowania |
-| Apple iOS | 0.4.21 (31) | 0.4.20 (30) | TAK | Do przygotowania |
+| Apple iOS | 0.4.22 (32) | 0.4.21 (31) | TAK | Do przygotowania |
 
 Wysłanie nowej paczki i publiczna publikacja są oddzielnymi krokami. Wspólna gotowość: **NIE**.
 
 ## Android
 
-Następny krok: Po rzeczywistych wymaganych odbiorach zakresu odświeżyć maksimum Play i uruchomić istniejący workflow build-only dla 0.1.46 (51), bez publicznego zgłoszenia. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.
+Następny krok: Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50.
 
 Stan sklepu: świeży odczyt.
 - Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.
@@ -29,7 +29,7 @@ Stan sklepu: świeży odczyt.
 
 ## Apple iOS
 
-Następny krok: Sprawdzić podpisaną paczkę 31 z galerią zdjęć z przeładunku i przekazać istniejącym grupom TestFlight. Pełna historia Tacho ma osobny odbiór własnych danych z API DEV przed dystrybucją pakietu zawierającego ten zakres.
+Następny krok: Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV.
 
 Stan sklepu: świeży odczyt.
 - Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.
