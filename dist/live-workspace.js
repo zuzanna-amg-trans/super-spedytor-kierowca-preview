@@ -67,7 +67,7 @@
     if(!Number.isInteger(response?.status)||response.status<200||response.status>=300)fail(errorText(response?.body)||response?.message||'Nie potwierdzono operacji. Odśwież rekord przed powtórzeniem.');
     return response.body;
   }
-  async function upload(path,file,fields){
+  async function upload(path,file,fields,expectedStatus){
     if(!file?.token||!current())fail('Brak zdjęcia lub bieżącej sesji.');
     const generation=epoch;
     const values=Object.fromEntries(Object.entries(fields||{}).map(([k,v])=>[k,String(v)]));
@@ -77,7 +77,7 @@
     if(!tms.writable(state())||navigator.onLine===false)fail('Brak połączenia lub uprawnień zapisu w TMS. Zdjęcie pozostaje w plikach na telefonie; nie dodano go jeszcze do protokołu ani czatu.');
     const result=await nativeCall(rid=>bridge.backendUpload(rid,path,file.token,JSON.stringify(values)));
     if(!current()||generation!==epoch)fail('Zmieniono konto lub widok. Sprawdź wynik po ponownym otwarciu.');
-    if(!tms.confirmedResponse(result))fail(errorText(result?.body)||'Nie potwierdzono przyjęcia pliku przez TMS. Zachowano kopię na telefonie.');
+    if(!tms.confirmedResponse(result)||(expectedStatus&&result.status!==expectedStatus))fail(errorText(result?.body)||'Nie potwierdzono przyjęcia pliku przez TMS. Zachowano kopię na telefonie.');
     return result.body;
   }
   async function capture(scan=false){
@@ -178,7 +178,7 @@
       else if(name==='chat')context.offerId?await chat(context.offerId):await chats();
       else if(name==='service')context.taskId?await task(context.taskId):await tasks();
       else if(name==='collection')await collection();
-      else if(name==='transshipment')context.pointId?await transPoint(context.pointId,context.meetingId,context.offerId):context.meetingId?await meeting(context.meetingId):await transshipments();
+      else if(name==='transshipment')context.pointId?await transPoint(context.pointId,context.meetingId,context.offerId,context.referenceOnly):context.meetingId?await meeting(context.meetingId):await transshipments();
       else if(name==='expenses')await expenses(null,context.sourceRoutePoint);
       else if(name==='fueling')await routeStops();
       else if(name==='scanner')scanner();
@@ -590,6 +590,7 @@
     body().innerHTML=transView.meeting(data,{writable:tms.writable(state())});
     root.querySelector('[data-lw-close]').onclick=()=>open('transshipment');
     bind('[data-trans-detail]',n=>open('transshipment',{meetingId:pointId,pointId:n.dataset.transDetail}));
+    bind('[data-trans-reference]',n=>open('transshipment',{meetingId:pointId,pointId:n.dataset.transReference,referenceOnly:n.dataset.mediaPanel}));
     bind('[data-trans-arrive]',async()=>{
       const pointIds=(data.point_ids||[]).map(v=>Number(id(v)));if(!pointIds.length)fail('Brak punktów spotkania. Odśwież dane.');
       if(!confirm('Potwierdzić przyjazd na to spotkanie?'))return;
@@ -609,30 +610,34 @@
       await open('transshipment',{meetingId:pointId});feedback('Przeładunek zakończony — potwierdzenie odczytane z TMS.');
     });
   }
-  async function transPoint(pointId,meetingId,offerId){
+  async function transPoint(pointId,meetingId,offerId,referenceOnly=false){
     const path=`routes/points/${id(pointId)}/`,meetingPath=`routes/transshipment-steps/mine/?point_id=${id(meetingId)}`;
     const [point,meetingData]=await Promise.all([request('GET',path),request('GET',meetingPath)]);
     if(String(point.id)!==String(pointId)||!['transshipment_in','transshipment_out'].includes(point.operation_type)||!meetingData.steps?.some(s=>String(s.point_id)===String(pointId)&&['release','receive'].includes(s.kind)))fail('Dane nie pasują do wybranego przeładunku. Otwórz spotkanie ponownie.');
     const offers=point.transshipment_offers||[],offer=offers.find(o=>String(o.id)===String(offerId))||offers.find(o=>transView.offerState(point,o).phase!=='done')||offers[0];
-    screenContext={meetingId,pointId,offerId:offer?.id};
+    screenContext={meetingId,pointId,offerId:offer?.id,referenceOnly};
     const pendingPhotos=[...transPhotos.values()].filter(p=>p.owner===owner&&String(p.pointId)===String(pointId));
     const reviewKey=owner+'|'+pointId+'|'+offer?.id,mediaEpoch=epoch;
-    let cmrReview=transCmrReviews.get(reviewKey)||null,cmrFiles=[],cmrError='';
+    let cmrReview=transCmrReviews.get(reviewKey)||null,documentRows=[],mediaError='';
     if(cmrReview&&offer?.cmr_confirmed_at){transCmrReviews.delete(reviewKey);cmrReview=null;}
-    if(offer&&(cmrReview||offer.cmr_confirmed_at)){
-      try{cmrFiles=transMedia.documents(await request('GET',`documents/transport/${id(offer.id)}/list_documents/`),offer.id);}
-      catch(error){if(!current()||epoch!==mediaEpoch)throw error;cmrError='Nie udało się pobrać skanów CMR. '+error.message;}
+    if(offer&&(referenceOnly||cmrReview||offer.cmr_confirmed_at)){
+      try{documentRows=await request('GET',`documents/transport/${id(offer.id)}/list_documents/`);if(!Array.isArray(documentRows))fail('TMS nie zwrócił listy dokumentów.');}
+      catch(error){if(!current()||epoch!==mediaEpoch)throw error;documentRows=[];mediaError=error.message;}
     }
-    body().innerHTML=transView.pointView(point,meetingData,{offerId:offer?.id,writable:tms.writable(state()),pendingPhotos,cmrReview,cmrFiles,cmrError,native:bridge});
+    const cmrFiles=offer?transMedia.documents(documentRows,offer.id):[];
+    body().innerHTML=transView.pointView(point,meetingData,{offerId:offer?.id,writable:tms.writable(state()),pendingPhotos,cmrReview,cmrFiles,documentRows,mediaError,referenceOnly,native:bridge});
     root.querySelector('[data-lw-close]').onclick=()=>open('transshipment',{meetingId});
     bind('[data-trans-back]',()=>open('transshipment',{meetingId}));
-    bind('[data-trans-offer-select]',n=>open('transshipment',{meetingId,pointId,offerId:n.dataset.transOfferSelect}));
+    bind('[data-trans-offer-select]',n=>open('transshipment',{meetingId,pointId,offerId:n.dataset.transOfferSelect,referenceOnly}));
     if(!offer)return;
-    const scope='trans:'+id(pointId)+':'+id(offer.id),refresh=()=>open('transshipment',{meetingId,pointId,offerId:offer.id});
+    const scope='trans:'+id(pointId)+':'+id(offer.id),refresh=()=>open('transshipment',{meetingId,pointId,offerId:offer.id,referenceOnly});
     bindDraft(scope);
-    bind('[data-trans-media-retry]',refresh);
+    bind('[data-trans-media-retry]',async n=>{
+      const panel=n.closest('.transshipment-accepted-cmr')?'.transshipment-accepted-cmr':n.closest('.transshipment-cargo-reference')?'.transshipment-cargo-reference':null;
+      await refresh();if(panel&&root?.querySelector(panel))root.querySelector(panel).open=true;
+    });
     bind('[data-trans-cmr-cancel]',async()=>{transCmrReviews.delete(reviewKey);await refresh();});
-    const updateCmrButton=()=>{const node=root?.querySelector('[data-trans-cmr-accept]'),check=root?.querySelector('[data-trans-cmr-reviewed]');if(node)node.disabled=!tms.writable(state())||!check?.checked||!cmrFiles.length||Boolean(cmrError);};
+    const updateCmrButton=()=>{const node=root?.querySelector('[data-trans-cmr-accept]'),check=root?.querySelector('[data-trans-cmr-reviewed]');if(node)node.disabled=!tms.writable(state())||!check?.checked||!cmrFiles.length||Boolean(mediaError);};
     root.querySelector('[data-trans-cmr-reviewed]')?.addEventListener('change',updateCmrButton);
     root.querySelectorAll('[data-trans-media-image]').forEach(image=>{
       const failed=()=>{image.hidden=true;const error=image.closest('figure')?.querySelector('[data-trans-media-error]');if(error)error.hidden=false;};
@@ -643,6 +648,7 @@
       const show=()=>{items.forEach((item,i)=>item.hidden=i!==page);previous.disabled=page===0;next.disabled=page===items.length-1;gallery.querySelector('[data-trans-gallery-count]').textContent=`Zdjęcie ${page+1} z ${items.length}`;};
       previous.onclick=()=>{if(page>0){page--;show();}};next.onclick=()=>{if(page<items.length-1){page++;show();}};
     });
+    if(referenceOnly)return;
     const scan=async(code,manual,kind,reviewed=false)=>{
       const expected=transView.expectedCode(point,offer,kind);
       if(!transView.matchingCode(code,expected))fail('To nie jest plomba bieżącego '+(kind==='cmr'?'CMR':'ładunku')+'. Sprawdź numer pokazany na ekranie.');
@@ -664,7 +670,7 @@
     });
     bind('[data-trans-cmr-accept]',async()=>{
       transWritable();
-      if(!cmrReview||!cmrFiles.length||cmrError||!root.querySelector('[data-trans-cmr-reviewed]')?.checked)fail('Najpierw obejrzyj skan i porównaj cały dokument.');
+      if(!cmrReview||!cmrFiles.length||mediaError||!root.querySelector('[data-trans-cmr-reviewed]')?.checked)fail('Najpierw obejrzyj skan i porównaj cały dokument.');
       const fresh=await request('GET',path),freshOffer=fresh.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
       if(!freshOffer||freshOffer.cmr_confirmed_at||String(fresh.id)!==String(pointId)) {transCmrReviews.delete(reviewKey);await refresh();fail('Stan CMR zmienił się. Sprawdź aktualne potwierdzenie.');}
       const freshFiles=transMedia.documents(await request('GET',`documents/transport/${id(offer.id)}/list_documents/`),offer.id);
@@ -688,19 +694,40 @@
     });
     const sendPhoto=async(file,type)=>{
       const generation=epoch,key=owner+'|'+pointId+'|'+offer.id+'|'+type;
-      transPhotos.set(key,{owner,pointId,offerId:offer.id,type,file});
+      const photoKey=transView.photoTypes[type]?.key;
+      if(!photoKey)fail('Nieznany rodzaj zdjęcia przeładunku.');
+      const pending=transPhotos.get(key)||{owner,pointId,offerId:offer.id,type,file};
+      if(!pending.received)pending.file=file;
+      transPhotos.set(key,pending);
+      const checked=async()=>{
+        const fresh=await request('GET',path),selected=fresh.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
+        if(String(fresh.id)!==String(pointId)||fresh.operation_type!==point.operation_type||!selected)fail('Zlecenie lub punkt przeładunku zmienił się. Otwórz spotkanie ponownie.');
+        return {fresh,selected};
+      };
       try{
-        await upload(`documents/transport/${id(offer.id)}/upload_document/`,file,{document_type:type,route_point_id:pointId});
-        const read=await request('GET',path),saved=read.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
-        const photoKey={photo_transshipment:'cargo',photo_transshipment_label:'label',photo_transshipment_cmr:'cmr'}[type];
-        if(!photoKey||saved?.photos?.[photoKey]!==true)fail('Nie potwierdzono zdjęcia w tym zleceniu. Zachowano plik na telefonie.');
+        const {fresh,selected}=await checked();
+        if(selected.photos?.[photoKey]===true){
+          transPhotos.delete(key);await refresh();feedback('TMS już potwierdził zdjęcie w tym kroku.');return;
+        }
+        if(fresh.status!=='in_progress'||transView.offerState(fresh,selected).phase!=='photos'||!transView.offerState(fresh,selected).missing.includes(type))fail('Ten krok nie oczekuje już na to zdjęcie.');
+        if(!pending.received){
+          // The owner web client attaches a transshipment photo to the offer.
+          // route_point_id is reserved for loading/unloading inventory documents.
+          const created=await upload(`documents/transport/${id(offer.id)}/upload_document/`,pending.file,{document_type:type},201);
+          pending.received=true;
+          if(!/^[1-9]\d*$/.test(String(created?.id))||created.document_type!==type||(created.offer!=null&&String(created.offer)!==String(offer.id)))fail('TMS nie zwrócił potwierdzenia tego dokumentu. Sprawdź zapis przed ponowieniem.');
+        }
+        const {selected:saved}=await checked();
+        if(saved.photos?.[photoKey]!==true)fail('TMS przyjął plik, ale nie potwierdził jeszcze zdjęcia w tym kroku. Sprawdź zapis bez ponownej wysyłki.');
         transPhotos.delete(key);await refresh();feedback('Zdjęcie zapisane i odczytane z TMS.');
       }catch(error){if(!current()||generation!==epoch)return;await refresh();throw error;}
     };
     bind('[data-trans-photo]',async n=>{transWritable();const type=n.dataset.documentType;if(!transView.offerState(point,offer).missing.includes(type))return;const file=await capture();if(file)await sendPhoto(file,type);});
     bind('[data-trans-photo-retry]',async n=>{transWritable();const type=n.dataset.documentType,file=transPhotos.get(owner+'|'+pointId+'|'+offer.id+'|'+type)?.file;if(!file)fail('Nie znaleziono zachowanego zdjęcia.');await sendPhoto(file,type);});
-    const focusMedia=root.querySelector(cmrReview?'.transshipment-cmr-preview':'.transshipment-piece-card .transshipment-loading-gallery');
-    if(focusMedia){const viewport=body(),target=cmrReview?focusMedia:focusMedia.closest('.transshipment-piece-card');viewport.scrollTop+=target.getBoundingClientRect().top-viewport.getBoundingClientRect().top-8;}
+    // Only a driver-initiated seal check focuses the CMR. On resume the
+    // current task, CMR action and reference photos stay together in view.
+    const review=cmrReview&&root.querySelector('.transshipment-cmr-preview');
+    if(review){const viewport=body();viewport.scrollTop+=review.getBoundingClientRect().top-viewport.getBoundingClientRect().top-8;}
   }
   document.addEventListener('click',event=>{
     if(!enabled()||state().status!=='connected')return;

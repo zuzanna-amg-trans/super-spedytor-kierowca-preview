@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "3fecbda2db0c38fc9b51178730af602a3601630f",
+  "sourceCommit": "d125b510561addaef87df7b36c5c9650755761fb",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "ac329b502a99c657a193bd2e789bd0c9b662cf67fdb0b80888f1480573457da8",
+  "assetManifestSha256": "511f9edc5a3faa0ae2e049903620f157795d1fe0e96aaec40103d2328111cd13",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -243,8 +243,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "8bc23f486e8bd3c582644df8c20f381ad425889c2847fe5b91933c87f4d0273e",
-      "size": 98601
+      "sha256": "89c515adefd1c6b3f93d28bb87b985941396a839096e72f924e5a8c879215670",
+      "size": 100708
     },
     {
       "path": "mobile-readability.css",
@@ -403,13 +403,13 @@
     },
     {
       "path": "transshipment-live-view.js",
-      "sha256": "d262987f794130cad974a40e6fec377a9d65e85a2a152a95b3fb414077884bca",
-      "size": 18463
+      "sha256": "8037ac84a6aef45982d938fb410721a994ce2baf47fa9ed97bce258454b630c1",
+      "size": 19441
     },
     {
       "path": "transshipment-media.js",
-      "sha256": "9f826f81043a923e7ab36746954148a374b8390566926549ff6762c3dcda4b69",
-      "size": 5257
+      "sha256": "9c4ef81c5ae295efe89c5cfe29044a097fea440c42b8c1f3a63ec74f926fdc1a",
+      "size": 6391
     },
     {
       "path": "transshipment-ui.js",
@@ -418,8 +418,8 @@
     },
     {
       "path": "transshipment.css",
-      "sha256": "730c77a2e536dbfcdd7cf24a81fd4f5f7460b49230809f0aafabf013f96a3e07",
-      "size": 44272
+      "sha256": "555bd252d40593bc74f9f966ce806e305ac88442e281772b2c7cc47efcadf155",
+      "size": 45466
     },
     {
       "path": "transshipment.js",
