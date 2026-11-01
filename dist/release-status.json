@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "MOBILE-2026-11-01-01",
+  "generatedAt": "2026-11-01T19:45:46.363Z",
+  "sourceCommit": "463a6ce77813ae886a860f94da1bef1e1385482c",
+  "stopBefore": "public-store-submission",
+  "bothReady": false,
+  "platforms": {
+    "android": {
+      "target": {
+        "version": "0.1.45",
+        "build": 50
+      },
+      "candidate": null,
+      "uploaded": {
+        "version": "0.1.43",
+        "build": 48,
+        "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
+        "observedAt": "2026-11-01T18:27:08Z",
+        "statusLabel": "Internal Testing; zgłoszenie produkcyjne w ocenie według zapisanego odczytu",
+        "artifactSha256": "bbc35d0757456b011a14c67997809e495bb02a07d39a090f20d2223d655c2114",
+        "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json",
+        "fingerprint": "73675669ca56ab52ca1fc4370bdbf68460603086e854ef1390951117ebcb2631",
+        "matchesCurrent": false
+      },
+      "production": {
+        "version": "0.1.43",
+        "build": 48,
+        "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
+        "observedAt": "2026-11-01T18:27:08Z",
+        "status": "in_review",
+        "statusLabel": "W ocenie — zapisany odczyt, wymaga odświeżenia",
+        "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json",
+        "fingerprint": "73675669ca56ab52ca1fc4370bdbf68460603086e854ef1390951117ebcb2631",
+        "matchesCurrent": false
+      },
+      "storeRead": {
+        "status": "blocked",
+        "observedAt": null,
+        "reason": "Brak świeżej sesji właściwego konta Google Play w dostępnych profilach. Nie potwierdzono aktualnego stanu konsoli."
+      },
+      "blockers": [
+        "Podpis Androida 49 zablokowany do odbioru B939; nie wolno potwierdzać odbioru za użytkowniczkę.",
+        "Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.",
+        "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
+        "Brak świeżej sesji właściwego konta Google Play w dostępnych profilach. Nie potwierdzono aktualnego stanu konsoli.",
+        "Brak potwierdzonej paczki kandydata."
+      ],
+      "nextAction": "Dokończyć odbiór B939, odczytać aktualne maksimum kodów Play i przygotować podpisany AAB z bieżącej wspólnej wersji. Następnie zatrzymać się przed publicznym zgłoszeniem.",
+      "sourceFingerprint": "b5acdcdc1dc6cf10da0022b51a37761424d26949853ffb7b219dabfc1dcc1762",
+      "freshStoreRead": false,
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
+      "readyForSubmission": false
+    },
+    "ios": {
+      "target": {
+        "version": "0.4.19",
+        "build": 29
+      },
+      "candidate": {
+        "version": "0.4.18",
+        "build": 28,
+        "sourceCommit": "551e7e00b7482382c4cdc0252ad6a9d252b15be0",
+        "observedAt": "2026-11-01T19:34:54Z",
+        "statusLabel": "Lokalny podpisany kandydat; nie obejmuje późniejszej pomarańczowej ikony",
+        "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json",
+        "checks": {},
+        "fingerprint": "0a2c1088d7ef8e2b0ef5f262a27d2ed507a0bef39b7f7739030d60b49bee1fd4",
+        "matchesCurrent": false
+      },
+      "uploaded": {
+        "version": "0.4.17",
+        "build": 27,
+        "sourceCommit": "b2a6b604ad1b27dcaa4188736381c5c533cf8e79",
+        "observedAt": "2026-11-01T19:17:32Z",
+        "statusLabel": "TestFlight wewnętrzny: Testing; zewnętrzny: Waiting for Review",
+        "evidence": "docs/ios/transshipment-media-0.4.17.md; docs/release/evidence/mobile-baseline-2026-11-01.json",
+        "fingerprint": "ebb6eab28da11c6816a52ab72cbf9304f209e161670278416506f9390dba86e9",
+        "matchesCurrent": false
+      },
+      "production": {
+        "version": "0.4.15",
+        "build": 25,
+        "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
+        "observedAt": "2026-11-01T19:30:00Z",
+        "status": "in_review",
+        "statusLabel": "Waiting for Review; wybrany build 25; automatyczna publikacja po akceptacji",
+        "evidence": "https://appstoreconnect.apple.com/apps/6827520989/distribution/ios/version/inflight",
+        "fingerprint": "c5d3ef4c9ec3ec54f1c0c7e2386f2c746baf6983e6cd09fbb25e9a74062212f9",
+        "matchesCurrent": false
+      },
+      "storeRead": {
+        "status": "confirmed",
+        "observedAt": "2026-11-01T19:30:00Z",
+        "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json"
+      },
+      "blockers": [
+        "Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.",
+        "Wersja paczki kandydata różni się od planowanego numeru wydania.",
+        "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
+      ],
+      "nextAction": "Odświeżyć podpisany kandydat 28 o bieżącą ikonę i sprawdzić komplet paczki oraz materiałów Apple. Publiczny App Store nadal ocenia 0.4.15 (25); ewentualna podmiana wymaga osobnej decyzji.",
+      "sourceFingerprint": "a26d8ebc5f6c0a97694a1889d450c42d31f037d00d995af41bb158c28620f0b3",
+      "freshStoreRead": true,
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
+      "readyForSubmission": false
+    }
+  },
+  "changes": [
+    {
+      "id": "MOBILE-2026-11-01-01",
+      "summary": "Bieżący wspólny zakres: przeładunki z podglądem CMR i zdjęć, potwierdzenia inwentaryzacji oraz pomarańczowa ikona AMG",
+      "android": {
+        "status": "implemented",
+        "evidence": "Wspólne dist/, natywna polityka dokumentów Androida, źródła 3fecbda2db0c38fc9b51178730af602a3601630f; przygotowanie paczki pozostaje otwarte."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "Wspólne dist/, natywna polityka dokumentów iOS, źródła 3fecbda2db0c38fc9b51178730af602a3601630f; przygotowanie paczki pozostaje otwarte."
+      },
+      "blockers": [
+        "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta."
+      ]
+    }
+  ]
+}
