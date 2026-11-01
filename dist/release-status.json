@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T20:16:32.515Z",
-  "sourceCommit": "a759a927942c5c7e143ac476bf909df5ebe0a977",
+  "generatedAt": "2026-11-01T20:30:49.964Z",
+  "sourceCommit": "7739b7bf29cc8df475cd97940f457b3fb3672346",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -79,8 +79,12 @@
       "blockers": [
         "Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.",
         "Kod 50 jest już w Play; poprawka otwierania powiadomień wymaga nowej paczki i ponownego doboru numeru co najmniej 51. Istniejące odbiory publiczne pozostają osobne.",
+        "Workflow podpisywania kandydata jest przypięty do zajętego kodu 50; kolejna paczka wymaga wolnego numeru co najmniej 51.",
+        "Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony.",
+        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
+        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Fizyczny CarPlay nie jest podłączony.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
       "nextAction": "Przygotować kolejny kandydat po aktualnym kodzie 50 z poprawką kliknięcia powiadomienia. Nie oznaczać starej paczki 50 jako zawierającej nową poprawkę.",
@@ -96,53 +100,53 @@
         "build": 30
       },
       "candidate": {
-        "version": "0.4.19",
-        "build": 29,
-        "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff",
-        "artifactSha256": "aa3facf3023fb840b32197878da5f96c9305bc0e5ee0fa587e4905ca0da99847",
-        "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-        "observedAt": "2026-11-01T19:42:34.199075+00:00",
-        "statusLabel": "Zweryfikowana i podpisana paczka testowa",
+        "version": "0.4.20",
+        "build": 30,
+        "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1",
+        "artifactSha256": "0f6b103fcfa823f4255d14a3b52396703672691dc0c1b29cab8cba84ceaad7dd",
+        "observedAt": "2026-11-01T20:26:04.998024+00:00",
+        "evidence": "docs/release/evidence/route-notification-open-30.json",
+        "statusLabel": "Podpisany i zweryfikowany dokładny pakiet przesłany do Apple",
         "checks": {
           "tests": {
             "passed": true,
-            "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/route-notification-open-30.json",
+            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
           },
           "signature": {
             "passed": true,
-            "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/route-notification-open-30.json",
+            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
           },
           "bundle": {
             "passed": true,
-            "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/route-notification-open-30.json",
+            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
           },
           "metadata": {
             "passed": false,
-            "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/route-notification-open-30.json",
+            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
           },
           "backendAcceptance": {
             "passed": false,
-            "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/route-notification-open-30.json",
+            "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1"
           }
         },
-        "fingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
-        "matchesCurrent": false
+        "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
+        "matchesCurrent": true
       },
       "uploaded": {
-        "version": "0.4.19",
-        "build": 29,
-        "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff",
-        "artifactSha256": "aa3facf3023fb840b32197878da5f96c9305bc0e5ee0fa587e4905ca0da99847",
-        "evidence": "docs/release/evidence/transshipment-resume-29-50.json",
-        "observedAt": "2026-11-01T19:50:16Z",
-        "statusLabel": "TestFlight wewnętrzny: Testing; grupa zewnętrzna: Waiting for Review",
-        "fingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
-        "matchesCurrent": false
+        "version": "0.4.20",
+        "build": 30,
+        "sourceCommit": "7da939f4937b0c865bc1d9b2dcb60d125aa47ad1",
+        "artifactSha256": "0f6b103fcfa823f4255d14a3b52396703672691dc0c1b29cab8cba84ceaad7dd",
+        "observedAt": "2026-11-01T20:26:04.998024+00:00",
+        "evidence": "docs/release/evidence/route-notification-open-30.json",
+        "statusLabel": "TestFlight wewnętrzny: Testing; poprawka kliknięcia powiadomienia dostępna do instalacji",
+        "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
+        "matchesCurrent": true
       },
       "production": {
         "version": "0.4.15",
@@ -157,20 +161,21 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T19:50:16Z",
-        "evidence": "docs/release/evidence/transshipment-resume-29-50.json"
+        "observedAt": "2026-11-01T20:26:04.998024+00:00",
+        "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "blockers": [
-        "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony.",
-        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
+        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
+        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Fizyczny CarPlay nie jest podłączony.",
+        "Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu."
       ],
-      "nextAction": "Nowa poprawka otwierania aktualnej operacji po kliknięciu push: przygotowany kandydat 0.4.20 (30); wymaga uploadu i odbioru kliknięcia na telefonie. Nie zmieniać trwającego publicznego zgłoszenia 0.4.15 (25).",
+      "nextAction": "Zainstalować 0.4.20 (30) w TestFlight, zalogować własne konto, przejść do Tacho, odebrać test push w tle i sprawdzić przejście do aktualnej operacji po dotknięciu. Fizyczny CarPlay oraz publiczne App Review pozostają osobne.",
       "sourceFingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
       "freshStoreRead": true,
-      "uploadRequired": true,
-      "stage": "do_przygotowania",
+      "uploadRequired": false,
+      "stage": "wyslane_do_sklepu",
       "readyForSubmission": false
     }
   },
@@ -195,14 +200,16 @@
       "summary": "Kliknięcie powiadomienia o trasie otwiera istniejący widok bieżącej operacji po odczycie własnej sesji kierowcy; powiadomienie nie wskazuje adresu ani rekordu do zapisu.",
       "android": {
         "status": "implemented",
-        "evidence": "Natywny PendingIntent route_change, odświeżenie BackendSession oraz SuperSpedytorBackend.openCurrentRoute; tests/route-notification-open.test.cjs."
+        "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "ios": {
         "status": "implemented",
-        "evidence": "UNUserNotificationCenterDelegate kolejkuje otwarcie przy starcie aplikacji; RoutePushRegistration odświeża sesję i otwiera zatwierdzony widok operacji; tests/route-notification-open.test.cjs."
+        "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "blockers": [
-        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony."
+        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
+        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Fizyczny CarPlay nie jest podłączony."
       ]
     },
     {
