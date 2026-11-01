@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "7d0701f275fa095228d1b5676e2f854eea441d30",
+  "sourceCommit": "d97e25887cca952501debd511ebf46c15b3237ef",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-11-01T19:18:34.455Z",
+  "builtAt": "2026-11-01T19:23:41.727Z",
   "assetManifestSha256": "70d034eb90803ec15539db0d154129dc382833be284361296a5e0af6d92d9c5e",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "7d0701f275fa095228d1b5676e2f854eea441d30",
-    "initialIntegrationSha": "63d47b4d1373e7644517f1a926c211696946e434",
+    "candidateSha": "d97e25887cca952501debd511ebf46c15b3237ef",
+    "initialIntegrationSha": "7d0701f275fa095228d1b5676e2f854eea441d30",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "63d47b4d1373e7644517f1a926c211696946e434",
+    "baseSha": "7d0701f275fa095228d1b5676e2f854eea441d30",
     "branches": [
       {
         "name": "main",
@@ -86,7 +86,7 @@
       },
       {
         "name": "codex/full-vehicle-inventory",
-        "sha": "f1d0db3321be20de1a196bc81fc4525fcb4e35c6"
+        "sha": "551e7e00b7482382c4cdc0252ad6a9d252b15be0"
       },
       {
         "name": "codex/ios-inventory-complete",
@@ -191,7 +191,7 @@
       "codex/transshipment-clear-step"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-7d0701f275fa095228d1b5676e2f854eea441d30/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-d97e25887cca952501debd511ebf46c15b3237ef/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
