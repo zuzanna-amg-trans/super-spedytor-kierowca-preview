@@ -674,7 +674,7 @@
       const fresh=await request('GET',path),freshOffer=fresh.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
       if(!freshOffer||freshOffer.cmr_confirmed_at||String(fresh.id)!==String(pointId)) {transCmrReviews.delete(reviewKey);await refresh();fail('Stan CMR zmienił się. Sprawdź aktualne potwierdzenie.');}
       const freshFiles=transMedia.documents(await request('GET',`documents/transport/${id(offer.id)}/list_documents/`),offer.id);
-      if(JSON.stringify(freshFiles)!==JSON.stringify(cmrFiles)){await refresh();fail('Pliki CMR zmieniły się. Porównaj aktualny komplet przed potwierdzeniem.');}
+      if(!transMedia.sameDocuments(freshFiles,cmrFiles)){await refresh();fail('Pliki CMR zmieniły się. Porównaj aktualny komplet przed potwierdzeniem.');}
       if(cmrReview.code){
         if(!transView.matchingCode(cmrReview.code,transView.expectedCode(fresh,freshOffer,'cmr'))){transCmrReviews.delete(reviewKey);await refresh();fail('Wymagana plomba CMR zmieniła się. Sprawdź ją ponownie.');}
         await scan(cmrReview.code,cmrReview.manual,'cmr',true);return;

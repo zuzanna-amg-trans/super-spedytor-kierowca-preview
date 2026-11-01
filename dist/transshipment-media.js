@@ -3,10 +3,17 @@
   const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const list=v=>Array.isArray(v)?v:[];
   // Only owner API media. Never turn an arbitrary document field into a request.
+  function validQuery(u){
+    if(!u.search)return !u.href.includes('?');
+    // SignedMediaStorage: 16-byte MD5 in canonical unpadded base64url,
+    // followed by the positive Unix expiry. Keep this exact query for nginx.
+    const match=/^\?md5=[A-Za-z0-9_-]{21}[AQgw]&expires=([1-9]\d{0,18})$/.exec(u.search);
+    return !!match&&Number.isSafeInteger(Number(match[1]))&&Number(match[1])>Date.now()/1000;
+  }
   function source(value){
     if(typeof value!=='string'||value.length>4000||value.includes('\\'))return null;
     try{const u=new URL(value,'https://tms.amg.eco');
-      if(u.protocol!=='https:'||u.host!=='tms.amg.eco'||u.username||u.password||u.search||u.hash||!u.pathname.startsWith('/media/')||/(?:%2f|%5c|%2e)/i.test(u.pathname))return null;
+      if(u.protocol!=='https:'||u.host!=='tms.amg.eco'||u.username||u.password||!validQuery(u)||u.hash||!u.pathname.startsWith('/media/')||/(?:%2f|%5c|%2e)/i.test(u.pathname))return null;
       return u.href.replace(/^https:/,'ssmedia:');
     }catch{return null;}
   }
@@ -19,11 +26,18 @@
       return [{id:d.id,url,pdf,name:pdf?'CMR.pdf':'CMR',label:d.document_type==='photo_transshipment_cmr'?'CMR z przeładunku':'CMR z załadunku'}];
     });
   }
+  // A renewed signature changes download access, not the file the driver saw.
+  function sameDocuments(a,b){return a.length===b.length&&a.every((v,i)=>v.id===b[i].id&&new URL(v.url).pathname===new URL(b[i].url).pathname);}
   function photos(offer,documentRows=[]){
     // The point can omit its gallery. The driver-scoped document list is for
     // this exact offer; never mix documents from a different offer or slot.
     const docs=list(documentRows).filter(d=>d?.document_type==='photo_loading'&&(d.offer==null||String(d.offer)===String(offer.id)));
-    return [...new Set([...list(offer.loading_photos),offer.loading_photo_url,...docs.map(d=>d.file||d.file_url)].map(source).filter(Boolean))];
+    const files=new Map();
+    for(const addr of [...list(offer.loading_photos),offer.loading_photo_url,...docs.map(d=>d.file||d.file_url)].map(source).filter(Boolean)){
+      const u=new URL(addr),expiry=Number(u.searchParams.get('expires')||0),previous=files.get(u.pathname);
+      if(!previous||expiry>previous.expiry)files.set(u.pathname,{addr,expiry});
+    }
+    return [...files.values()].map(f=>f.addr);
   }
   function cmrMarkup(files,{native=null,error='',orderNumber='',forReview=true}={}){
     if(error)return `<p class="cmr-preview-error" role="alert">${e(error)}</p><button class="secondary-button" data-trans-media-retry>Spróbuj pobrać podgląd ponownie</button>`;
@@ -41,5 +55,5 @@
     if(!urls.length&&(list(offer.loading_photos).length||offer.loading_photo_url||list(documentRows).some(d=>d?.document_type==='photo_loading'&&(d.offer==null||String(d.offer)===String(offer.id)))))return '<p class="cmr-preview-error" role="status">TMS wskazuje zdjęcia z załadunku, ale nie udostępnił ich plików do podglądu.</p><button class="secondary-button" data-trans-media-retry>Odśwież zdjęcia</button>';
     return gallery+(error?'<p class="small-note">Lista zdjęć może być niepełna.</p><button class="secondary-button" data-trans-media-retry>Odśwież zdjęcia</button>':'');
   }
-  return {source,documents,photos,cmrMarkup,cargoMarkup};
+  return {source,documents,sameDocuments,photos,cmrMarkup,cargoMarkup};
 });

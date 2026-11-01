@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T19:45:46.363Z",
-  "sourceCommit": "463a6ce77813ae886a860f94da1bef1e1385482c",
+  "generatedAt": "2026-11-01T19:49:58.579Z",
+  "sourceCommit": "c904a26e01712360b4c562e36be919d4527d67e8",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -16,8 +16,8 @@
         "version": "0.1.43",
         "build": 48,
         "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
-        "observedAt": "2026-11-01T18:27:08Z",
-        "statusLabel": "Internal Testing; zgłoszenie produkcyjne w ocenie według zapisanego odczytu",
+        "observedAt": "2026-11-01T19:44:02Z",
+        "statusLabel": "Paczka 48 potwierdzona w Google Play; Internal Testing według wcześniejszego odczytu",
         "artifactSha256": "bbc35d0757456b011a14c67997809e495bb02a07d39a090f20d2223d655c2114",
         "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json",
         "fingerprint": "73675669ca56ab52ca1fc4370bdbf68460603086e854ef1390951117ebcb2631",
@@ -27,28 +27,27 @@
         "version": "0.1.43",
         "build": 48,
         "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
-        "observedAt": "2026-11-01T18:27:08Z",
+        "observedAt": "2026-11-01T19:44:02Z",
         "status": "in_review",
-        "statusLabel": "W ocenie — zapisany odczyt, wymaga odświeżenia",
+        "statusLabel": "W trakcie sprawdzania; kod 48; publikowanie zaplanowane wyłączone",
         "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json",
         "fingerprint": "73675669ca56ab52ca1fc4370bdbf68460603086e854ef1390951117ebcb2631",
         "matchesCurrent": false
       },
       "storeRead": {
-        "status": "blocked",
-        "observedAt": null,
-        "reason": "Brak świeżej sesji właściwego konta Google Play w dostępnych profilach. Nie potwierdzono aktualnego stanu konsoli."
+        "status": "confirmed",
+        "observedAt": "2026-11-01T19:44:02Z",
+        "evidence": "docs/release/evidence/mobile-baseline-2026-11-01.json"
       },
       "blockers": [
         "Podpis Androida 49 zablokowany do odbioru B939; nie wolno potwierdzać odbioru za użytkowniczkę.",
         "Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Brak świeżej sesji właściwego konta Google Play w dostępnych profilach. Nie potwierdzono aktualnego stanu konsoli.",
         "Brak potwierdzonej paczki kandydata."
       ],
       "nextAction": "Dokończyć odbiór B939, odczytać aktualne maksimum kodów Play i przygotować podpisany AAB z bieżącej wspólnej wersji. Następnie zatrzymać się przed publicznym zgłoszeniem.",
-      "sourceFingerprint": "b5acdcdc1dc6cf10da0022b51a37761424d26949853ffb7b219dabfc1dcc1762",
-      "freshStoreRead": false,
+      "sourceFingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
+      "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
       "readyForSubmission": false
@@ -102,7 +101,7 @@
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
       "nextAction": "Odświeżyć podpisany kandydat 28 o bieżącą ikonę i sprawdzić komplet paczki oraz materiałów Apple. Publiczny App Store nadal ocenia 0.4.15 (25); ewentualna podmiana wymaga osobnej decyzji.",
-      "sourceFingerprint": "a26d8ebc5f6c0a97694a1889d450c42d31f037d00d995af41bb158c28620f0b3",
+      "sourceFingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",

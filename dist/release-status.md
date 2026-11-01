@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T19:45:46.363Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-01T19:49:58.579Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -13,11 +13,10 @@ Wysłanie nowej paczki i publiczna publikacja są oddzielnymi krokami. Wspólna 
 
 Następny krok: Dokończyć odbiór B939, odczytać aktualne maksimum kodów Play i przygotować podpisany AAB z bieżącej wspólnej wersji. Następnie zatrzymać się przed publicznym zgłoszeniem.
 
-Stan sklepu: wymaga ponownego odczytu.
+Stan sklepu: świeży odczyt.
 - Podpis Androida 49 zablokowany do odbioru B939; nie wolno potwierdzać odbioru za użytkowniczkę.
 - Numeracja źródeł zmieniła się; zaktualizuj rejestr i sprawdź dostępność numeru w sklepie.
 - Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.
-- Brak świeżej sesji właściwego konta Google Play w dostępnych profilach. Nie potwierdzono aktualnego stanu konsoli.
 - Brak potwierdzonej paczki kandydata.
 
 ## Apple iOS
