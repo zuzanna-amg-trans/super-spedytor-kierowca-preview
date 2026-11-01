@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "7739b7bf29cc8df475cd97940f457b3fb3672346",
+  "sourceCommit": "b0cfcafa7df1e5a70c3169bc758321b2da9032b4",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "b35d50137606864a1deb2360e98876230a3842c7f02677d2b737f47065fbfec6",
+  "assetManifestSha256": "335db7ef15ddddcce413ce894994398df51dfebfd2bc07a300e1a20113def40b",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -193,8 +193,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "99cc9edd22f3740d280e27faea5e99410278a4794c15061bf89cbf254d5e480c",
-      "size": 456132
+      "sha256": "c069c69b442abe417df61153b4c57a34a35120cc4fdf64fc53e0b06df35e1617",
+      "size": 456222
     },
     {
       "path": "full-inventory-catalog.js",
@@ -213,8 +213,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "a622b46c8ba6d66764c4cc844a90c797db85692cc45867ef2d70ba986881f71a",
-      "size": 15490
+      "sha256": "b81af2ed8b50da7aeccf2afb0b65f2f7fc188c309ac7bef30b48f86837104246",
+      "size": 15581
     },
     {
       "path": "inventory-review.js",
@@ -343,8 +343,18 @@
     },
     {
       "path": "tacho-designed-view.js",
-      "sha256": "ed985d8c0d22dd084c5e005ee20a38a82ef5a909bf0dfdb3ce0f97865b8ceeba",
-      "size": 9393
+      "sha256": "fa743e58f1451a79b229588ea3c54ee60d1a50f81d0b873818eca6040fa830b6",
+      "size": 9482
+    },
+    {
+      "path": "tacho-history-demo.js",
+      "sha256": "8c39c8cef83406edeb3cff978918f850e332c2f9415c11431ddd8bdf452efb61",
+      "size": 2040
+    },
+    {
+      "path": "tacho-history.js",
+      "sha256": "4321b06ee18b807b771db1d3b92fddfa1454393795e5116fac31912922345446",
+      "size": 4467
     },
     {
       "path": "tacho-live-model.js",
@@ -353,8 +363,8 @@
     },
     {
       "path": "tacho-readonly-model.js",
-      "sha256": "2697a1ce37a31096f5902d606577979babb04cc2e560ab45caf4ce5cc7db0ff1",
-      "size": 10595
+      "sha256": "26805094d052ce490bd2fe43fdeac9a5ce3755ea02a68f8e889dcd0ce4ef32a0",
+      "size": 10718
     },
     {
       "path": "tacho-readonly.css",
@@ -363,8 +373,8 @@
     },
     {
       "path": "tacho-readonly.js",
-      "sha256": "ca796cf137cfb05abb4265371231662e1570b653eecfb5fad24ae9622b2c28ef",
-      "size": 20170
+      "sha256": "8acab1839821fff0f96dfba069ead8f1d26ed9d024642f9eda3060671a06d33f",
+      "size": 20248
     },
     {
       "path": "tacho.css",
@@ -373,8 +383,8 @@
     },
     {
       "path": "tacho.js",
-      "sha256": "82300a8a4284f97691644ea5422717e5bd8ca2fbec3b57df8845e71a33577854",
-      "size": 36509
+      "sha256": "b090d59e3194c0495e0d92a9b269bd6d4555b9a87f2c19b2c9f6d2ffa4ce118c",
+      "size": 36919
     },
     {
       "path": "translator-launcher.css",

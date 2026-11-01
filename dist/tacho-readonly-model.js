@@ -43,7 +43,7 @@
   function empty(state='no_data',reason='no_data'){
     return {state,reason,ready:false,observedAt:null,sourceNames:[],mode:null,modeLabel:null,status:null,
       currentSince:null,currentSinceLabel:null,shiftStartedAt:null,shiftStartedAtLabel:null,
-      lastActivity:null,restProgress:null,currentDurationSeconds:null,continuousDriveSeconds:null,timeToBreakSeconds:null,shiftDriveSeconds:null,
+      lastActivity:null,historyData:null,restProgress:null,currentDurationSeconds:null,continuousDriveSeconds:null,timeToBreakSeconds:null,shiftDriveSeconds:null,
       shiftDriveLimitSeconds:null,shiftDriveRemainingSeconds:null,dailyWorkSeconds:null,
       weekDriveSeconds:null,fortnightDriveSeconds:null,dailyHistoryComplete:false,weeklyHistoryComplete:false,alerts:[]};
   }
@@ -54,6 +54,7 @@
     const c=payload.compliance;
     if(!object(c)||!['ok','warning','violation','no_data'].includes(c.status))return empty('error','malformed');
     const view=empty();view.observedAt=timestamp(c.last_data_at);
+    view.historyData={activity_history:payload.activity_history,last_daily_rest:payload.last_daily_rest};
     const sourceKeys=Array.isArray(c.sources)?c.sources.filter(s=>typeof s==='string'&&own(SOURCES,s)):[];
     if(object(c.current)&&typeof c.current.source==='string'&&own(SOURCES,c.current.source))sourceKeys.push(c.current.source);
     view.sourceNames=[...new Set(sourceKeys)].map(s=>SOURCES[s]);

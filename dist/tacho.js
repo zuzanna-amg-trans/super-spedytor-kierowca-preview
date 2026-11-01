@@ -230,6 +230,8 @@
   }
 
   function tachoView(){
+    const query=new URLSearchParams(window.location.search);
+    if(query.get('preview')==='1'&&query.get('tachohistorypreview')==='1'&&query.get('backend')!=='1'&&!window.SuperSpedytorNative?.backendEnabled?.())return window.SuperSpedytorTachoHistoryDemo.render();
     return `<div class="app-content tacho-screen">
       <header class="tacho-heading"><span class="tacho-kicker">${tachoIcon('clock')}Panel kierowcy · dane demonstracyjne</span><h2>Czas pod kontrolą</h2><p>Najpierw to, co ważne teraz. Niżej pełny bilans jazdy i odpoczynków.</p></header>
       ${tachoState.active?activeBreakCard():defaultDrivingCard()}
@@ -293,6 +295,7 @@
   }
 
   function bindTachoView(){
+    tqa('[data-live-open-rest]').forEach(button=>button.addEventListener('click',()=>openBreakOptions({arrival:tachoState.arrivedAtParking})));
     tq('#tacho-start-suggested')?.addEventListener('click',()=>startBreak(currentRecommendation().suggestedTypeId,false,{arrival:tachoState.arrivedAtParking}));
     tq('#tacho-report')?.addEventListener('click',()=>openBreakOptions({arrival:tachoState.arrivedAtParking}));
     tq('#tacho-split-sim')?.addEventListener('click',openSplitSimulation);

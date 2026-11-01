@@ -1,7 +1,7 @@
 'use strict';
 // Approved phone Tacho cards, populated exclusively by the current driver's
 // response. Unknown facts stay in their original cards without DEMO values.
-((root,factory)=>{const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.SuperSpedytorDesignedTacho=api;})(typeof window==='undefined'?null:window,()=>{
+((root,factory)=>{const history=typeof module==='object'&&module.exports?require('./tacho-history.js'):root.SuperSpedytorTachoHistory;const api=factory(history);if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.SuperSpedytorDesignedTacho=api;})(typeof window==='undefined'?null:window,historyApi=>{
   const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const known=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0;
@@ -10,6 +10,7 @@
   function render(data,view){
     const available=view.ready&&Boolean(data.compliance?.current),ready=available&&!view.stale,c=available?data.compliance:{},rest=ready?view.rest:null;
     const daily=c.daily||{},weekly=c.weekly||{},coverage=c.coverage||{};
+    const history=historyApi.build(data);
     const stale=available&&view.stale,sourceCaption=stale?'Według ostatniego odczytu TMS':'Twój bilans jazdy i odpoczynków';
     const snapshot=view.restSnapshot,snapshotDuration=c.current?.work_mode==='rest'&&snapshot?.elapsedS!=null?snapshot.elapsedS:c.current?.duration_s;
     const snapshotText=known(snapshotDuration)?`${Math.floor(snapshotDuration/3600)}:${String(Math.floor(snapshotDuration%3600/60)).padStart(2,'0')}:${String(Math.floor(snapshotDuration%60)).padStart(2,'0')}`:'—';
@@ -28,8 +29,8 @@
       <article class="tacho-metric tacho-nine-metric"><small>Skrócone odpoczynki 9 h</small><strong>${reductions===null?'—':reductions+' z 3'}</strong><p>${reductions===null?'Brak pełnej historii':stale?sourceCaption:'zostało '+Math.max(0,3-reductions)+' do odpoczynku tygodniowego'}</p></article>
       <article class="tacho-extension-card"><span class="tacho-extension-mark">10 h</span><span class="tacho-extension-copy"><small>Przedłużenia jazdy do 10 h</small><strong>${tens===null?'—':tens+' z 2 wykorzystane'}</strong></span><b>${tens===null?'Brak pełnej historii':stale?'Wg odczytu':'Zostało '+Math.max(0,2-tens)}</b></article>
       ${metric('Ten tydzień',weekly.drive_s,201600,'tacho-week-metric',stale?sourceCaption:known(weekly.remaining_s)?'zostało '+duration(weekly.remaining_s):'Brak pozostałego czasu')}${metric('Dwa kolejne tygodnie',weekly.fortnight_drive_s,324000,'tacho-fortnight-metric',stale?sourceCaption:known(weekly.fortnight_remaining_s)?'zostało '+duration(weekly.fortnight_remaining_s):'Brak pozostałego czasu')}</div>
-      ${heading('Dzisiejsza aktywność','Bieżący okres z TMS')}<section class="tacho-activity-card"><div class="tacho-period-list">${current}</div><p>Pełna lista okresów dzisiejszej aktywności nie jest dostępna w tym odczycie.</p></section>
-      ${heading('Odpoczynki','Najważniejsze terminy')}<section class="tacho-rest-list">${restRow('Ostatni odpoczynek dobowy','—',daily.shift_start?'Zakończony '+clock(daily.shift_start)+' · brak długości':'Brak danych','check')}${restRow('Następny odpoczynek dobowy',daily.rest_due_at?clock(daily.rest_due_at):'—',daily.rest_due_at?'termin według TMS':'Brak danych','clock')}</section>
+      ${heading('Dzisiejsza aktywność',history.caption)}<section class="tacho-activity-card"><div class="tacho-period-list" aria-label="Okresy dzisiejszej aktywności">${history.available?historyApi.renderPeriods(history):current}</div><p>${e(history.note)}</p></section>
+      ${heading('Odpoczynki','Najważniejsze terminy')}<section class="tacho-rest-list">${historyApi.renderLastRest(history)}${restRow('Następny odpoczynek dobowy',daily.rest_due_at?clock(daily.rest_due_at):'—',daily.rest_due_at?'termin według TMS':'Brak danych','clock')}</section>
       <div class="tacho-source-note">${icon('info')}<p><strong>Dane pochodzą z TMS.</strong> Czas odpoczynku wynika z odczytanej godziny rozpoczęcia. Przy nieaktualnym źródle pozostaje widoczny ostatni potwierdzony stan. Koniec wybranego odpoczynku nie potwierdza pozostałych limitów jazdy i pracy.</p></div></div>`;
   }
   return {render};

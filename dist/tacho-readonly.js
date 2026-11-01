@@ -2,10 +2,11 @@
 
 ((root,factory)=>{
   const model=typeof module==='object'&&module.exports?require('./tacho-readonly-model.js'):root.SuperSpedytorReadOnlyTachoModel;
-  const api=factory(root,model);
+  const history=typeof module==='object'&&module.exports?require('./tacho-history.js'):root.SuperSpedytorTachoHistory;
+  const api=factory(root,model,history);
   if(typeof module==='object'&&module.exports)module.exports=api;
   if(root)root.SuperSpedytorReadOnlyTacho=api;
-})(typeof window==='undefined'?null:window,(browser,model)=>{
+})(typeof window==='undefined'?null:window,(browser,model,historyApi)=>{
   const e=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const icon=name=>name==='refresh'?'<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7L20 9"/></svg>':`<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const activityIcon=mode=>{
@@ -28,6 +29,7 @@
     const ready=state==='ready'&&view?.ready===true;
     if(state==='ready'&&!ready)state='error';
     const data=ready?view:null,duration=model.formatDuration;
+    const history=historyApi.build((ready||state==='stale'||state==='no_data')?view?.historyData:null);
     const source=(view?.sourceNames||[]).map(name=>`<span>${e(name)}</span>`).join('')||'<span>Źródło nieokreślone</span>';
     const stamp=view?.observedAt==null?'Brak daty odczytu':`Odczyt z ${e(model.formatTimestamp(view.observedAt))}`;
     const meta=`<div class="tro-snapshot-meta"><span>${icon('clock')}${stamp}</span><div class="tro-source-chips" aria-label="Źródła danych">${source}</div></div>`;
@@ -75,10 +77,10 @@
         ${metric('Dwa kolejne tygodnie',data?.fortnightDriveSeconds,'tacho-fortnight-metric')}
       </section>
       ${ready&&(!data.dailyHistoryComplete||!data.weeklyHistoryComplete)?'<p class="tro-coverage-note">Historia może być niepełna. Panel nie potwierdza dostępnych przedłużeń jazdy ani skróconych odpoczynków.</p>':''}
-      ${heading('Dzisiejsza aktywność','Bieżący okres wg TMS')}
-      <section class="tacho-activity-card"><div class="tacho-period-list" aria-label="Bieżąca aktywność z TMS">${currentActivity}</div>${metric('Praca w zmianie',data?.dailyWorkSeconds,'tro-work-summary')}<p class="tro-history-note">Pełna lista dzisiejszych okresów jest niedostępna.</p></section>
+      ${heading('Dzisiejsza aktywność',history.caption)}
+      <section class="tacho-activity-card"><div class="tacho-period-list" aria-label="Okresy dzisiejszej aktywności">${history.available?historyApi.renderPeriods(history):currentActivity}</div>${metric('Praca w zmianie',data?.dailyWorkSeconds,'tro-work-summary')}<p class="tro-history-note">${e(history.note)}</p></section>
       ${heading('Odpoczynki','Najważniejsze terminy')}
-      <section class="tacho-rest-list">${rest?`<div class="tacho-rest-row"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>${continuousRest?'Bieżący odpoczynek od':'Odcinek odpoczynku od'}</small><strong>${e(data.currentSinceLabel||'Brak godziny w TMS')}</strong></div><b>Wg odczytu</b></div><div class="tacho-rest-row ${hasRestEnd?'':'tro-unavailable'}"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>${hasRestEnd?(plan.planConfirmed?'Koniec odpoczynku wg TMS':'Szacowany koniec odpoczynku'):'Termin zakończenia odpoczynku'}</small><strong>${e(plan?.endAtLabel||'Wymaga potwierdzenia w TMS')}</strong></div><b>${hasRestEnd?duration(plan.totalDurationSeconds):'Brak rozliczenia'}</b></div>`:`<div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>Ostatni odpoczynek dobowy</small><strong>—</strong></div><b>${unknown}</b></div><div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>Następny odpoczynek dobowy</small><strong>—</strong></div><b>Brak terminu</b></div>`}</section>
+      <section class="tacho-rest-list">${historyApi.renderLastRest(history)}${rest?`<div class="tacho-rest-row"><span class="tacho-rest-icon" aria-hidden="true">${icon('parking')}</span><div><small>${continuousRest?'Bieżący odpoczynek od':'Odcinek odpoczynku od'}</small><strong>${e(data.currentSinceLabel||'Brak godziny w TMS')}</strong></div><b>Wg odczytu</b></div><div class="tacho-rest-row ${hasRestEnd?'':'tro-unavailable'}"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>${hasRestEnd?(plan.planConfirmed?'Koniec odpoczynku wg TMS':'Szacowany koniec odpoczynku'):'Termin zakończenia odpoczynku'}</small><strong>${e(plan?.endAtLabel||'Wymaga potwierdzenia w TMS')}</strong></div><b>${hasRestEnd?duration(plan.totalDurationSeconds):'Brak rozliczenia'}</b></div>`:`<div class="tacho-rest-row tro-unavailable"><span class="tacho-rest-icon" aria-hidden="true">${icon('clock')}</span><div><small>Następny odpoczynek dobowy</small><strong>—</strong></div><b>Brak terminu</b></div>`}</section>
       ${alerts}${note}
     </div>`;
   }

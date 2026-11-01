@@ -401,14 +401,14 @@ function updateServiceNavIndicator(){
   button.setAttribute('aria-label',due?'Serwis — dzisiejsza ankieta do wypełnienia':'Serwis — dzisiejsza ankieta wykonana');
 }
 function maybeShowDailyServiceReminder(){
-  if(backendMode||(previewMode&&appQuery.get('restpreview')==='1'))return;
+  if(backendMode||(previewMode&&(appQuery.get('restpreview')==='1'||appQuery.get('tachohistorypreview')==='1')))return;
   if(state.modal||state.serviceOpen||!serviceReminderDue())return;
   recordServiceReminderShown();
   openModal('daily-service',{});
 }
 function scheduleServiceReminder(){
   clearTimeout(serviceReminderTimer);
-  if(backendMode||(previewMode&&appQuery.get('restpreview')==='1')||serviceCompletedToday())return;
+  if(backendMode||(previewMode&&(appQuery.get('restpreview')==='1'||appQuery.get('tachohistorypreview')==='1'))||serviceCompletedToday())return;
   const record=readServiceDailyRecord();
   const reminderAt=record?.snoozeUntil?new Date(record.snoozeUntil).getTime():Date.now()+15*60*1000;
   serviceReminderTimer=setTimeout(()=>{

@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T20:30:49.964Z",
-  "sourceCommit": "7739b7bf29cc8df475cd97940f457b3fb3672346",
+  "generatedAt": "2026-11-01T20:45:25.199Z",
+  "sourceCommit": "b0cfcafa7df1e5a70c3169bc758321b2da9032b4",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
     "android": {
       "target": {
-        "version": "0.1.45",
-        "build": 50
+        "version": "0.1.46",
+        "build": 51
       },
       "candidate": {
         "version": "0.1.45",
@@ -78,17 +78,19 @@
       },
       "blockers": [
         "Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.",
-        "Kod 50 jest już w Play; poprawka otwierania powiadomień wymaga nowej paczki i ponownego doboru numeru co najmniej 51. Istniejące odbiory publiczne pozostają osobne.",
-        "Workflow podpisywania kandydata jest przypięty do zajętego kodu 50; kolejna paczka wymaga wolnego numeru co najmniej 51.",
         "Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.",
+        "Kandydat 51 zachowuje sześć wymaganych rzeczywistych odbiorów zakresu; brak potwierdzonego odbioru Android Auto POI/Tacho nie pozwala uruchomić podpisywania.",
+        "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
-        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
+        "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
+        "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
+        "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Przygotować kolejny kandydat po aktualnym kodzie 50 z poprawką kliknięcia powiadomienia. Nie oznaczać starej paczki 50 jako zawierającej nową poprawkę.",
-      "sourceFingerprint": "5151cc51067f0541ba538b64fbca0b2e8420bdc34c76e51b3abe35e561fb6abe",
+      "nextAction": "Po rzeczywistych wymaganych odbiorach zakresu odświeżyć maksimum Play i uruchomić istniejący workflow build-only dla 0.1.46 (51), bez publicznego zgłoszenia.",
+      "sourceFingerprint": "3539d4c393be1e5d7e9414023511fe6799a3a624213a2edda3b43860982af785",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -135,7 +137,7 @@
           }
         },
         "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "uploaded": {
         "version": "0.4.20",
@@ -146,7 +148,7 @@
         "evidence": "docs/release/evidence/route-notification-open-30.json",
         "statusLabel": "TestFlight wewnętrzny: Testing; poprawka kliknięcia powiadomienia dostępna do instalacji",
         "fingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "production": {
         "version": "0.4.15",
@@ -166,16 +168,18 @@
       },
       "blockers": [
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
-        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
+        "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
-        "Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu."
+        "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
+        "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Zainstalować 0.4.20 (30) w TestFlight, zalogować własne konto, przejść do Tacho, odebrać test push w tle i sprawdzić przejście do aktualnej operacji po dotknięciu. Fizyczny CarPlay oraz publiczne App Review pozostają osobne.",
-      "sourceFingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
+      "nextAction": "Odbiór kliknięcia w 0.4.20 (30) potwierdzony: z Tacho do Operacji z jawnym brakiem aktywnej trasy. Dalszy test rzeczywistej zmiany celu wymaga aktywnej trasy własnego konta; CarPlay wymaga podłączenia auta. Publiczne App Review pozostaje osobne.",
+      "sourceFingerprint": "51b0738ab86b1a97e4d264bf2d3034e617168fd7ab4326990354080bcd1fd17e",
       "freshStoreRead": true,
-      "uploadRequired": false,
-      "stage": "wyslane_do_sklepu",
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
       "readyForSubmission": false
     }
   },
@@ -207,9 +211,25 @@
         "evidence": "docs/release/evidence/route-notification-open-30.json"
       },
       "blockers": [
-        "Nowa wersja iOS 0.4.20 (30) jest w TestFlight Testing; odbiór kliknięcia na fizycznym telefonie pozostaje otwarty.",
-        "Android: kod poprawki i testy są gotowe, lecz dotychczasowy podpisany build Play 50 jej nie zawiera; potrzebny nowy podpisany kandydat z wolnym numerem i zachowaniem istniejących bramek odbioru.",
+        "Kliknięcie push w iOS 0.4.20 (30) potwierdzone na fizycznym iPhonie: z Tacho do Operacji z komunikatem o braku aktywnej trasy. Rzeczywista zmiana celu pozostaje nieprzetestowana.",
+        "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony."
+      ]
+    },
+    {
+      "id": "TACHO-FULL-HISTORY-2026-11-01",
+      "summary": "Tacho pokazuje odcinki aktywności z własnego odczytu TMS i rzeczywisty koniec oraz długość ostatniego zakończonego odpoczynku. Historia zachowuje pierwszeństwo DDD, oznacza luki i nie przedłuża starego odczytu.",
+      "android": {
+        "status": "implemented",
+        "evidence": "tests/tacho-history.test.cjs; tests/tacho-history.browser.cjs: natywny pełny widok oraz osobny odczyt Tacho tylko do odczytu; ten sam GET tacho/me."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "tests/tacho-history.test.cjs; tests/tacho-history.browser.cjs: wspólny widok WKWebView, bez rozszerzenia uprawnień mostka; ten sam GET tacho/me."
+      },
+      "blockers": [
+        "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
+        "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki."
       ]
     },
     {
