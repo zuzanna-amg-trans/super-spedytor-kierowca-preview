@@ -4787,6 +4787,14 @@ function openBackendReadOnlyTacho(){
   return true;
 }
 window.SuperSpedytorBackend={
+  openCurrentRoute(){
+    // A notification is only a request to inspect the current owner's route.
+    // Reuse the existing operation navigation; never accept a point from push.
+    if(!backendMode||backendTestWorkspace||backendState?.status!=='connected'||backendState?.offline===true||backendState?.refreshing===true)return false;
+    window.SuperSpedytorLiveWorkspace?.close?.();
+    if(tachoReadonlyScreen?.isOpen())closeBackendReadOnlyTacho(false);
+    return handleConnectedBackendNavigation('now');
+  },
   closeTachoReadOnly(){
     if(!tachoReadonlyScreen?.isOpen())return false;
     closeBackendReadOnlyTacho(true);return true;

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-01T20:04:58.454Z",
-  "sourceCommit": "38d04d9b614e34c075c133709708aa9db4ad89e1",
+  "generatedAt": "2026-11-01T20:16:32.515Z",
+  "sourceCommit": "a759a927942c5c7e143ac476bf909df5ebe0a977",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -47,7 +47,7 @@
           }
         },
         "fingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "uploaded": {
         "version": "0.1.45",
@@ -58,7 +58,7 @@
         "observedAt": "2026-11-01T20:00:11Z",
         "statusLabel": "Google Play: Dostępna dla testerów wewnętrznych",
         "fingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "production": {
         "version": "0.1.43",
@@ -78,20 +78,22 @@
       },
       "blockers": [
         "Przed publicznym wydaniem nadal potrzebny jest odbiór biznesowy inwentaryzacji B939.",
+        "Kod 50 jest już w Play; poprawka otwierania powiadomień wymaga nowej paczki i ponownego doboru numeru co najmniej 51. Istniejące odbiory publiczne pozostają osobne.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu."
+        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony.",
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Tester wewnętrzny: zaktualizować w Google Play do 0.1.45 (50) i sprawdzić oba podglądy oraz zapis zdjęcia na testowym spotkaniu. Odbiór B939 i zgłoszenie do publicznego Google Play są osobne.",
-      "sourceFingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
+      "nextAction": "Przygotować kolejny kandydat po aktualnym kodzie 50 z poprawką kliknięcia powiadomienia. Nie oznaczać starej paczki 50 jako zawierającej nową poprawkę.",
+      "sourceFingerprint": "5151cc51067f0541ba538b64fbca0b2e8420bdc34c76e51b3abe35e561fb6abe",
       "freshStoreRead": true,
-      "uploadRequired": false,
-      "stage": "wyslane_do_sklepu",
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
       "readyForSubmission": false
     },
     "ios": {
       "target": {
-        "version": "0.4.19",
-        "build": 29
+        "version": "0.4.20",
+        "build": 30
       },
       "candidate": {
         "version": "0.4.19",
@@ -129,7 +131,7 @@
           }
         },
         "fingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "uploaded": {
         "version": "0.4.19",
@@ -140,7 +142,7 @@
         "observedAt": "2026-11-01T19:50:16Z",
         "statusLabel": "TestFlight wewnętrzny: Testing; grupa zewnętrzna: Waiting for Review",
         "fingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "production": {
         "version": "0.4.15",
@@ -159,14 +161,16 @@
         "evidence": "docs/release/evidence/transshipment-resume-29-50.json"
       },
       "blockers": [
+        "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta.",
-        "Brakuje kompletu dowodów: testy, podpis, zawartość paczki, materiały sklepu lub odbiór backendu."
+        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony.",
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Tester wewnętrzny: uaktualnić w TestFlight do 0.4.19 (29) i sprawdzić rozpoczęte spotkanie. Dostęp grupy zewnętrznej zależy od stanu beta review; publiczna wersja w App Store jest odrębnym zgłoszeniem.",
-      "sourceFingerprint": "a75e9dfdb46de10ef2c1da6dd5aec613524346fc675846c4c19bbb4a28c60a07",
+      "nextAction": "Nowa poprawka otwierania aktualnej operacji po kliknięciu push: przygotowany kandydat 0.4.20 (30); wymaga uploadu i odbioru kliknięcia na telefonie. Nie zmieniać trwającego publicznego zgłoszenia 0.4.15 (25).",
+      "sourceFingerprint": "d2540c93bcd8b56138afeaeacd4fe998ee301ccc94cf99429be924c704ed7fc7",
       "freshStoreRead": true,
-      "uploadRequired": false,
-      "stage": "wyslane_do_sklepu",
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
       "readyForSubmission": false
     }
   },
@@ -184,6 +188,21 @@
       },
       "blockers": [
         "Odbiór integracji inwentaryzacji B939 pozostaje otwarty. Zgodność źródeł i testów technicznych nie jest odbiorem telefonu ani auta."
+      ]
+    },
+    {
+      "id": "ROUTE-NOTIFICATION-OPEN-2026-11-01",
+      "summary": "Kliknięcie powiadomienia o trasie otwiera istniejący widok bieżącej operacji po odczycie własnej sesji kierowcy; powiadomienie nie wskazuje adresu ani rekordu do zapisu.",
+      "android": {
+        "status": "implemented",
+        "evidence": "Natywny PendingIntent route_change, odświeżenie BackendSession oraz SuperSpedytorBackend.openCurrentRoute; tests/route-notification-open.test.cjs."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "UNUserNotificationCenterDelegate kolejkuje otwarcie przy starcie aplikacji; RoutePushRegistration odświeża sesję i otwiera zatwierdzony widok operacji; tests/route-notification-open.test.cjs."
+      },
+      "blockers": [
+        "Nowe wykonania natywne wymagają nowych paczek oraz osobnego odbioru telefonu; potwierdzony odbiór APNs w iOS 0.4.16 (26) nie potwierdza poprawki kliknięcia. Fizyczny CarPlay nie jest podłączony."
       ]
     },
     {
