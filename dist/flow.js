@@ -910,11 +910,11 @@ function transshipmentCurrentContext(order){
   const vehicle=outgoing?(order.receiverVehicle||transshipment().receiverVehicle):null;
   const registration=outgoing?vehicle.registration:source.vehicle;
   const name=outgoing?vehicle.driverName:source.name;
-  return `<details class="transshipment-current-context ${outgoing?'issuing':'receiving'}"><summary>${icon('truck')}<span>${outgoing?'Wydajesz do':'Odbierasz z'} <strong>${esc(registration)}</strong></span><span class="transshipment-context-toggle">Szczegóły ${icon('arrow')}</span></summary><div class="transshipment-context-details"><p><strong>${esc(name||'Kierowca')}</strong><span>Zlecenie ${esc(order.id)}</span><span>${esc(order.goods)} · ${order.pieces.length} szt.</span></p>${outgoing?'':transshipmentOrderRibbon(order)}</div></details>`;
+  return window.SuperSpedytorTransshipmentUI.context({outgoing,vehicle:registration,driver:name,order:order.id,goods:order.goods,pieceCount:order.pieces.length,detailsHtml:outgoing?'':transshipmentOrderRibbon(order)});
 }
 function transshipmentExecutionHeader(){
   const record=transshipment(),progress=transshipmentProgress();
-  return `<div class="transshipment-execution-header"><button class="secondary-button" data-transshipment-back="info">${icon('back')}Bilans i plan</button><span>Zlecenie ${record.activeOrderIndex+1}/${record.orders.length}<small>CMR ${progress.cmrDone}/${progress.cmrTotal} · sztuki ${progress.piecesDone}/${progress.piecesTotal}</small></span></div>`;
+  return window.SuperSpedytorTransshipmentUI.executionHeader({position:`Zlecenie ${record.activeOrderIndex+1}/${record.orders.length}`,progress:`CMR ${progress.cmrDone}/${progress.cmrTotal} · sztuki ${progress.piecesDone}/${progress.piecesTotal}`});
 }
 
 function toast(message){

@@ -12,6 +12,7 @@
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
   const tms=window.SuperSpedytorTmsResults;
   let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null,chatTimer=null;
+  const transPhotos=new Map();
   const localEvidence=new Map();let evidenceOwner="",standaloneScan=null;
   // Drafts belong to the current authenticated account and live only in memory.
   // A readback for one field must not erase edits in the other fields.
@@ -110,7 +111,7 @@
       root=document.createElement('section');root.className='live-workspace';root.setAttribute('aria-label',title);
       document.querySelector('.device').append(root);
     }
-    screen=name;root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;clearInterval(chatTimer);chatTimer=null;position();
+    screen=name;root.classList.toggle('lw-transshipment-open',name==='transshipment');root.classList.remove('lw-chat-open');clearInterval(tachoTimer);tachoTimer=null;clearInterval(chatTimer);chatTimer=null;position();
     window.SuperSpedytorRouteActivity?.suspend?.();
     document.querySelectorAll('[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===name));
     root.innerHTML=`<header class="lw-header"><button data-lw-close aria-label="Wróć do operacji">‹</button><div><small>SUPER SPEDYTOR</small><h2>${e(title)}</h2></div><button data-lw-refresh aria-label="Odśwież widok">↻</button></header><div class="lw-feedback" aria-live="polite"></div><div class="lw-body"><p class="lw-empty" role="status">Pobieram dane Twojego konta…</p></div>`;
@@ -177,7 +178,7 @@
       else if(name==='chat')context.offerId?await chat(context.offerId):await chats();
       else if(name==='service')context.taskId?await task(context.taskId):await tasks();
       else if(name==='collection')await collection();
-      else if(name==='transshipment')await transshipments();
+      else if(name==='transshipment')context.pointId?await transPoint(context.pointId,context.meetingId,context.offerId):context.meetingId?await meeting(context.meetingId):await transshipments();
       else if(name==='expenses')await expenses(null,context.sourceRoutePoint);
       else if(name==='fueling')await routeStops();
       else if(name==='scanner')scanner();
@@ -531,31 +532,91 @@
     bind('[data-stop-status]',async()=>{if(action==='complete'&&fuel&&!point.fuel_photo_skip&&(!photos.some(p=>p.kind==='nozzle')||!photos.some(p=>p.kind==='dispenser')))fail('Uzupełnij oba zdjęcia tankowania lub rzeczywiste uzasadnienie ich braku.');if(!confirm('Zapisać wskazaną zmianę statusu tego punktu w TMS?'))return;await request('POST',path+action+'/',{});const read=await request('GET',path);if(read.status!==(action==='start'?'in_progress':'completed'))fail('Odczyt nie potwierdził zmiany statusu punktu.');await fuelPoint(pointId);feedback('Status punktu odczytany z TMS.');});
     bind('[data-stop-cost]',()=>open('expenses',{sourceRoutePoint:pointId}));bind('[data-stop-tacho]',()=>open('tacho'));
   }
+  const transView=window.SuperSpedytorTransshipmentLiveView;
+  function transWritable(){if(!tms.writable(state()))fail('Ta sesja działa tylko do odczytu. Nie wysłano zmiany.');}
   async function transshipments(){
     const meetings=list(await request('GET','routes/transshipment-steps/upcoming/'));
-    body().innerHTML=meetings.map(m=>card(m.place_name||'Przeładunek',`${m.window?.start||''} · ${m.steps_count||0} kroków · wydajesz ${m.releases||0}, odbierasz ${m.receipts||0}`,'Otwórz',`data-trans-point="${e(id(m.point_id))}"`)).join('')||empty('Brak nadchodzących przeładunków dla tego konta.');
-    bind('[data-trans-point]',n=>meeting(n.dataset.transPoint));
+    body().innerHTML=meetings.map(m=>card(m.place_name||'Przeładunek',`${transView.dateWindow(m.window)} · wydania: ${m.releases||0}, odbiory: ${m.receipts||0}`,'Otwórz',`data-trans-point="${e(id(m.point_id))}"`)).join('')||empty('Brak nadchodzących przeładunków dla tego konta.');
+    bind('[data-trans-point]',n=>open('transshipment',{meetingId:n.dataset.transPoint}));
   }
   async function meeting(pointId){
-    const data=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`),steps=data.steps||[],pointIds=(data.point_ids||[]).map(v=>Number(id(v))),arrived=steps.find(s=>s.kind==='arrive')?.status==='done',finish=steps.find(s=>s.kind==='finish'),done=data.status==='completed';
-    body().innerHTML=`<section class="panel"><h3>${e(data.place?.name||'Spotkanie przeładunkowe')}</h3><p>${e(data.place?.address||'')}</p><p>${e(data.window?.start||'')} – ${e(data.window?.end||'')}</p></section>`+steps.filter(s=>['release','receive'].includes(s.kind)).map(s=>`<section class="panel"><h3>${s.kind==='release'?'Wydajesz':'Odbierasz'}: ${e((s.kind==='release'?s.to:s.from)?.driver_name||(s.kind==='release'?s.to:s.from)?.name||'kierowca')}</h3><p>Zlecenia: ${e((s.offers||[]).join(', '))} · ${e(s.status||'')}</p><p>Sztuki: ${(s.pieces||[]).filter(p=>p.scanned).length}/${s.pieces?.length||0} · CMR: ${(s.cmr||[]).filter(c=>c.scanned).length}/${s.cmr?.length||0}</p>${button('Plomby, ładunek i zdjęcia',`data-trans-detail="${e(id(s.point_id))}"`,true)}</section>`).join('')+(done?empty('TMS potwierdza zakończone spotkanie.'):arrived?`<section class="panel"><h3>Domknięcie spotkania</h3>${(finish?.blockers||[]).map(b=>`<p>${e(b.order_number||b.offer_id||'Zlecenie')}: ${e(b.message||b.reason||JSON.stringify(b))}</p>`).join('')}${button('Zakończ przeładunek w TMS','data-trans-finish')}</section>`:button('Jestem na miejscu — rozpocznij przeładunek','data-trans-arrive'));
-    bind('[data-trans-detail]',n=>transPoint(n.dataset.transDetail,pointId));
-    bind('[data-trans-arrive]',async()=>{if(!pointIds.length)fail('TMS nie zwrócił punktów spotkania.');if(!confirm('Potwierdzić przyjazd na to spotkanie w TMS?'))return;await request('POST','routes/transshipment-steps/arrive/',{point_ids:pointIds});const read=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);if(!read.steps?.some(s=>s.kind==='arrive'&&s.status==='done'))fail('Nie potwierdzono rozpoczęcia spotkania.');await meeting(pointId);feedback('Przyjazd odczytany z TMS.');});
-    bind('[data-trans-finish]',async()=>{if(finish?.blockers?.length)fail('Uzupełnij wskazane przez TMS braki.');if(!confirm('Zakończyć wszystkie własne punkty tego przeładunku w TMS?'))return;await request('POST','routes/transshipment-steps/finish/',{point_ids:pointIds,notes:''});const read=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);if(read.status!=='completed')fail('Odczyt nie potwierdził zakończenia spotkania.');await meeting(pointId);feedback('TMS potwierdził zakończenie przeładunku.');});
-  }
-  async function transPoint(pointId,meetingId){
-    const path=`routes/points/${id(pointId)}/`,point=await request('GET',path),offers=point.transshipment_offers||[],scanned=new Set((point.transshipment_state?.scanned_item_ids||[]).map(String));
-    body().innerHTML=button('Wróć do spotkania','data-trans-back',true)+`<section class="panel"><h3>${point.operation_type==='transshipment_out'?'Wydanie':'Przyjęcie'} ładunku</h3><p>${e(point.location_name||'')} · ${e(point.status_display||point.status||'')}</p><div class="lw-actions">${button('Skanuj plombę sztuki lub CMR','data-trans-scan',true)}<label class="lw-field">Kod do wpisania ręcznie<input id="lw-trans-code" autocomplete="off"></label>${button('Sprawdź wpisany kod w TMS','data-trans-code',true)}</div></section>`;
-    offers.forEach(offer=>{
-      const pieces=offer.cargo_items||[],ready=pieces.length>0&&pieces.every(p=>scanned.has(String(p.id)));
-      body().insertAdjacentHTML('beforeend',`<section class="panel" data-trans-offer="${e(id(offer.id))}"><h3>${e(offer.order_number||offer.id)}</h3><p>${e(offer.weight_kg??'—')} kg · ${e(offer.pieces_count??pieces.length)} szt.</p>${pieces.map(p=>`<label class="lw-field">${p.label_code?`<span>${scanned.has(String(p.id))?'✓':'○'} ${e(p.description||p.name||'Sztuka')} · ${e(p.label_code)}</span>`:`<span><input type="checkbox" data-unsealed-piece="${e(id(p.id))}" ${offer.cargo_confirmed_at?'checked disabled':''}> Fizycznie sprawdzono: ${e(p.description||p.name||'Sztuka bez plomby')}</span>`}</label>`).join('')}<p>Ładunek: ${offer.cargo_confirmed_at?'potwierdzony w TMS':ready?'plomby zeskanowane — potwierdź fizyczny stan':'do sprawdzenia'}. Dokument CMR: ${offer.cmr_confirmed_at?'potwierdzony':'do zeskanowania'}.</p>${offer.cargo_confirmed_at?'':button('Potwierdź fizyczny stan tego ładunku',`data-trans-confirm="${e(id(offer.id))}"`,true)}<div class="lw-actions">${[['photo_transshipment','Zdjęcie ładunku'],['photo_transshipment_label','Zdjęcie plomby na ładunku'],['photo_transshipment_cmr','Zdjęcie dokumentu CMR']].map(([type,label])=>button(label,`data-trans-photo="${e(id(offer.id))}" data-document-type="${type}"`,true)).join('')}</div></section>`);
+    const data=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);
+    screenContext={meetingId:pointId};
+    body().innerHTML=transView.meeting(data,{writable:tms.writable(state())});
+    root.querySelector('[data-lw-close]').onclick=()=>open('transshipment');
+    bind('[data-trans-detail]',n=>open('transshipment',{meetingId:pointId,pointId:n.dataset.transDetail}));
+    bind('[data-trans-arrive]',async()=>{
+      const pointIds=(data.point_ids||[]).map(v=>Number(id(v)));if(!pointIds.length)fail('Brak punktów spotkania. Odśwież dane.');
+      if(!confirm('Potwierdzić przyjazd na to spotkanie?'))return;
+      await request('POST','routes/transshipment-steps/arrive/',{point_ids:pointIds});
+      const read=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);
+      if(!read.steps?.some(s=>s.kind==='arrive'&&s.status==='done'))fail('Nie potwierdzono rozpoczęcia spotkania.');
+      await open('transshipment',{meetingId:pointId});feedback('Przyjazd potwierdzony. Otwórz zlecenie i zacznij od CMR.');
     });
-    const scan=async(code,manual)=>{await request('POST',path+'transshipment-scan/',{code,manual});await transPoint(pointId,meetingId);feedback('Odświeżono plomby i bramki z TMS po skanie.');};
-    bind('[data-trans-back]',()=>meeting(meetingId));
-    bind('[data-trans-scan]',async()=>{const result=await nativeScanCode();if(result?.status==='cancelled')return;if(result?.status!=='ok'||!result.code)fail(result?.message||'Nie odczytano plomby.');await scan(result.code,false);});
-    bind('[data-trans-code]',async()=>{const code=root.querySelector('#lw-trans-code').value.trim();if(!code)fail('Wpisz kod plomby.');await scan(code,true);});
-    bind('[data-trans-confirm]',async n=>{const offer=offers.find(o=>String(o.id)===n.dataset.transConfirm),pieces=offer.cargo_items||[],node=root.querySelector(`[data-trans-offer="${id(offer.id)}"]`);if(pieces.some(p=>p.label_code&&!scanned.has(String(p.id))))fail('Najpierw zeskanuj wszystkie sztuki z plombami.');if([...node.querySelectorAll('[data-unsealed-piece]')].some(p=>!p.checked))fail('Sprawdź fizycznie wszystkie sztuki bez plomb.');if(!confirm('Zapisać potwierdzenie fizycznego stanu tego ładunku w TMS?'))return;await request('POST',path+'confirm-transshipment/',{offer_id:Number(id(offer.id)),cargo_confirmed:true});const read=await request('GET',path);if(!read.transshipment_offers?.find(o=>String(o.id)===String(offer.id))?.cargo_confirmed_at)fail('Nie potwierdzono przyjęcia ładunku w odczycie.');await transPoint(pointId,meetingId);feedback('Potwierdzenie ładunku odczytane z TMS.');});
-    bind('[data-trans-photo]',async n=>{const file=await capture();if(!file)return;try{await upload(`documents/transport/${id(n.dataset.transPhoto)}/upload_document/`,file,{document_type:n.dataset.documentType,route_point_id:pointId});await transPoint(pointId,meetingId);feedback('TMS przyjął zdjęcie. Sprawdź pozostałe bramki spotkania.');}finally{keepEvidence(file);}});
+    bind('[data-trans-finish]',async()=>{
+      // Refresh before completing; an old screen must not hide new blockers.
+      const fresh=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);
+      if(!transView.canFinish(fresh)){await open('transshipment',{meetingId:pointId});fail('Pozostały kroki do wykonania. Sprawdź aktualną listę.');}
+      if(!confirm('Zakończyć ten przeładunek? Wszystkie własne potwierdzenia i zdjęcia są kompletne.'))return;
+      await request('POST','routes/transshipment-steps/finish/',{point_ids:fresh.point_ids.map(v=>Number(id(v))),notes:''});
+      const read=await request('GET',`routes/transshipment-steps/mine/?point_id=${id(pointId)}`);
+      if(read.status!=='completed')fail('Nie potwierdzono zakończenia. Odśwież dane przed ponowieniem.');
+      await open('transshipment',{meetingId:pointId});feedback('Przeładunek zakończony — potwierdzenie odczytane z TMS.');
+    });
+  }
+  async function transPoint(pointId,meetingId,offerId){
+    const path=`routes/points/${id(pointId)}/`,meetingPath=`routes/transshipment-steps/mine/?point_id=${id(meetingId)}`;
+    const [point,meetingData]=await Promise.all([request('GET',path),request('GET',meetingPath)]);
+    if(String(point.id)!==String(pointId)||!['transshipment_in','transshipment_out'].includes(point.operation_type)||!meetingData.steps?.some(s=>String(s.point_id)===String(pointId)&&['release','receive'].includes(s.kind)))fail('Dane nie pasują do wybranego przeładunku. Otwórz spotkanie ponownie.');
+    const offers=point.transshipment_offers||[],offer=offers.find(o=>String(o.id)===String(offerId))||offers.find(o=>transView.offerState(point,o).phase!=='done')||offers[0];
+    screenContext={meetingId,pointId,offerId:offer?.id};
+    const pendingPhotos=[...transPhotos.values()].filter(p=>p.owner===owner&&String(p.pointId)===String(pointId));
+    body().innerHTML=transView.pointView(point,meetingData,{offerId:offer?.id,writable:tms.writable(state()),pendingPhotos});
+    root.querySelector('[data-lw-close]').onclick=()=>open('transshipment',{meetingId});
+    bind('[data-trans-back]',()=>open('transshipment',{meetingId}));
+    bind('[data-trans-offer-select]',n=>open('transshipment',{meetingId,pointId,offerId:n.dataset.transOfferSelect}));
+    if(!offer)return;
+    const scope='trans:'+id(pointId)+':'+id(offer.id),refresh=()=>open('transshipment',{meetingId,pointId,offerId:offer.id});
+    bindDraft(scope);
+    const scan=async(code,manual,kind)=>{
+      const expected=transView.expectedCode(point,offer,kind);
+      if(!transView.matchingCode(code,expected))fail('To nie jest plomba bieżącego '+(kind==='cmr'?'CMR':'ładunku')+'. Sprawdź numer pokazany na ekranie.');
+      await request('POST',path+'transshipment-scan/',{code,manual});
+      const read=await request('GET',path),saved=read.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
+      const confirmed=kind==='cmr'?saved?.cmr_documents?.some(d=>d.code===expected&&d.scanned)||saved?.cmr_confirmed_at:saved&&transView.offerState(read,saved).scanned.has(String(transView.offerState(point,offer).unscanned[0]?.id));
+      if(!confirmed)fail('Nie potwierdzono skanu w tym zleceniu. Odśwież przed ponowieniem.');
+      clearDraft(scope,['seal']);await refresh();feedback('Plomba zgodna — zapis potwierdzony. Wykonaj następny krok.');
+    };
+    bind('[data-trans-scan]',async n=>{transWritable();const generation=epoch,result=await nativeScanCode();if(generation!==epoch||!current())return;if(result?.status==='cancelled')return;if(result?.status!=='ok'||!result.code)fail(result?.message||'Nie odczytano plomby.');await scan(result.code,false,n.dataset.transScan);});
+    bind('[data-trans-code]',async n=>{const code=root.querySelector('#lw-trans-code').value.trim();if(!code)fail('Wpisz numer plomby.');await scan(code,true,n.dataset.transCode);});
+    bind('[data-trans-cmr]',async()=>{
+      const s=transView.offerState(point,offer);if(s.phase!=='cmr'||!(offer.cmr_scan_required===false||s.cmrScansReady))fail('Najpierw sprawdź wymagane plomby CMR.');
+      if(!confirm(s.outgoing?'Potwierdzasz przekazanie papierowego CMR?':'Potwierdzasz odbiór papierowego CMR?'))return;
+      await request('POST',path+'confirm-transshipment/',{offer_id:Number(id(offer.id)),cmr_confirmed:true});
+      const read=await request('GET',path);if(!read.transshipment_offers?.find(o=>String(o.id)===String(offer.id))?.cmr_confirmed_at)fail('Nie potwierdzono dokumentu w odczycie.');
+      await refresh();feedback('CMR potwierdzony. Przejdź do ładunku.');
+    });
+    bind('[data-trans-confirm]',async()=>{
+      const s=transView.offerState(point,offer);if(s.phase!=='cargo'||!s.pieces.length||s.unscanned.length)fail('Najpierw sprawdź CMR i wszystkie plomby sztuk.');
+      if([...root.querySelectorAll('[data-unsealed-piece]')].some(p=>!p.checked))fail('Sprawdź fizycznie wszystkie sztuki bez plomb.');
+      if(!confirm(s.outgoing?'Potwierdzasz fizyczne wydanie tego ładunku?':'Potwierdzasz fizyczny odbiór tego ładunku?'))return;
+      await request('POST',path+'confirm-transshipment/',{offer_id:Number(id(offer.id)),cargo_confirmed:true});
+      const read=await request('GET',path);if(!read.transshipment_offers?.find(o=>String(o.id)===String(offer.id))?.cargo_confirmed_at)fail('Nie potwierdzono ładunku w odczycie.');
+      clearDraft(scope);await refresh();feedback('Ładunek potwierdzony. Uzupełnij wymagane zdjęcia.');
+    });
+    const sendPhoto=async(file,type)=>{
+      const generation=epoch,key=owner+'|'+pointId+'|'+offer.id+'|'+type;
+      transPhotos.set(key,{owner,pointId,offerId:offer.id,type,file});
+      try{
+        await upload(`documents/transport/${id(offer.id)}/upload_document/`,file,{document_type:type,route_point_id:pointId});
+        const read=await request('GET',path),saved=read.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
+        const photoKey={photo_transshipment:'cargo',photo_transshipment_label:'label',photo_transshipment_cmr:'cmr'}[type];
+        if(!photoKey||saved?.photos?.[photoKey]!==true)fail('Nie potwierdzono zdjęcia w tym zleceniu. Zachowano plik na telefonie.');
+        transPhotos.delete(key);await refresh();feedback('Zdjęcie zapisane i odczytane z TMS.');
+      }catch(error){if(!current()||generation!==epoch)return;await refresh();throw error;}
+    };
+    bind('[data-trans-photo]',async n=>{transWritable();const type=n.dataset.documentType;if(!transView.offerState(point,offer).missing.includes(type))return;const file=await capture();if(file)await sendPhoto(file,type);});
+    bind('[data-trans-photo-retry]',async n=>{transWritable();const type=n.dataset.documentType,file=transPhotos.get(owner+'|'+pointId+'|'+offer.id+'|'+type)?.file;if(!file)fail('Nie znaleziono zachowanego zdjęcia.');await sendPhoto(file,type);});
   }
   document.addEventListener('click',event=>{
     if(!enabled()||state().status!=='connected')return;
@@ -568,7 +629,7 @@
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({scanner:'scanner',tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();transPhotos.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();

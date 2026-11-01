@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "bf643e6df51d2e108527ee57be44e41080be2b8c",
+  "sourceCommit": "a9b977e29eef9461777f091edb93b01f9b36d928",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "63eac65f538eaeabdcbac469f322d1802acd31a96eb0fe740a0cf75fc2258636",
+  "assetManifestSha256": "11db3c752ce1071058fcf022b11c73fc50259f4fb45ac8e1b3159d8c32073710",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -168,8 +168,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "ecaed1255c753e1bf24e65f01011a5fe923b9c5edde16c75db1565ffaa20122b",
-      "size": 456054
+      "sha256": "b4d42fc2de7f004a3012dcbae68910ae7ecf9d8c5d908a1e5087962c8e5ad44d",
+      "size": 455619
     },
     {
       "path": "full-inventory-catalog.js",
@@ -188,8 +188,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "0aad6630010b61e5b99d24261ed2dabd399d77fbde770caad64b74ca64c3d98d",
-      "size": 15004
+      "sha256": "75d7e26a3b7fd2a008d82fcb450c29c8dc0cb1c4affb0ecc9156ad50f89972c2",
+      "size": 15101
     },
     {
       "path": "inventory-walkthrough.js",
@@ -213,8 +213,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "44fff88f27d52efab6f1f2ea93f33177d733e52e425fc553952a8903cb0a7e65",
-      "size": 86624
+      "sha256": "0b9d5c093741ac66f1458bed1b9f45e0665d7907e0c5dafaecd19e1a2236d5df",
+      "size": 88188
     },
     {
       "path": "mobile-readability.css",
@@ -372,9 +372,19 @@
       "size": 1773
     },
     {
+      "path": "transshipment-live-view.js",
+      "sha256": "e81f02527e3fe8b9b13d02c7540d47a4e60d48402c025b367a25272db0406a92",
+      "size": 16696
+    },
+    {
+      "path": "transshipment-ui.js",
+      "sha256": "70c9de02fb9cf7b02cad5f9c2f0e447a5ba326ffc14f190e0e06f53314c105d3",
+      "size": 1559
+    },
+    {
       "path": "transshipment.css",
-      "sha256": "60d02124d0f89154e9505d5eafec4c5d8f178fc6fe1cc2d47bb5077ce52bbf1f",
-      "size": 40329
+      "sha256": "40bd6fdba44fa60047babe1fd111d7b0bc63615d6239929154d68d4ee9fc2d62",
+      "size": 43173
     },
     {
       "path": "transshipment.js",
