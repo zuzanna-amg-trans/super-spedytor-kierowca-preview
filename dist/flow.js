@@ -4141,6 +4141,15 @@ const backendClock=value=>{
   return match?.[1]||match?.[2]||String(value);
 };
 const backendCargoText=point=>{
+  // The daily operations list is deliberately small. The full current/next
+  // point carries the actual pieces handled here, including split deliveries.
+  if(Array.isArray(point?.handled_cargo)){
+    const value=raw=>raw!==null&&raw!==undefined&&['number','string'].includes(typeof raw)&&String(raw).trim()!==''&&Number.isFinite(Number(raw))&&Number(raw)>=0?String(Number(raw)):'';
+    return point.handled_cargo.filter(item=>item&&typeof item==='object'&&(!has(item.offer)||String(item.offer)===String(point.transport_offer))).map(item=>{
+      const weight=value(item.weight),dimensions=[item.length,item.width,item.height].map(value);
+      return [item.description||'Sztuka ładunku',weight!==''?`${weight} kg`:null,dimensions.every(part=>part!=='')?`${dimensions.join(' × ')} cm`:null].filter(has).join(' · ');
+    }).join('; ');
+  }
   const orderCargo=point?.order_cargo;
   if(orderCargo&&String(orderCargo.offer_id)===String(point.transport_offer)){
     const description=[orderCargo.description,has(orderCargo.cargo_weight)?`${orderCargo.cargo_weight} kg`:null,has(orderCargo.ldm)?`${orderCargo.ldm} LDM`:null].filter(has).join(' · ');
@@ -4175,7 +4184,15 @@ const backendPointOrder=point=>{
 };
 const backendOperationPlan=route=>{
   const apiOperations=Array.isArray(route?.operations)?route.operations:null;
-  const candidates=apiOperations?[...apiOperations]:[route?.current_point,route?.next_point];
+  const details=[route?.current_point,route?.next_point].filter(point=>point&&typeof point==='object');
+  const candidates=apiOperations?apiOperations.map(point=>{
+    if(!point||typeof point!=='object'||Array.isArray(point.handled_cargo)||!has(point.id)||!has(point.transport_offer))return point;
+    const detail=details.find(item=>String(item.id)===String(point.id)&&String(item.transport_offer)===String(point.transport_offer)
+      &&(!has(point.order_number)||!has(item.order_number)||String(item.order_number)===String(point.order_number))&&Array.isArray(item.handled_cargo));
+    // Keep the daily plan's status, order and timing. Copy only the cargo of
+    // this exact point; another stop on the same order may unload other pieces.
+    return detail?{...point,handled_cargo:detail.handled_cargo}:point;
+  }):details;
   if(!apiOperations)['upcoming_points','future_points','points'].forEach(key=>{
     if(Array.isArray(route?.[key]))candidates.push(...route[key]);
   });
