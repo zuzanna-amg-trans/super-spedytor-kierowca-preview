@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "d97e25887cca952501debd511ebf46c15b3237ef",
+  "sourceCommit": "3fecbda2db0c38fc9b51178730af602a3601630f",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "70d034eb90803ec15539db0d154129dc382833be284361296a5e0af6d92d9c5e",
+  "assetManifestSha256": "ac329b502a99c657a193bd2e789bd0c9b662cf67fdb0b80888f1480573457da8",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -23,28 +23,28 @@
     },
     {
       "path": "assets/driver-icon-180.png",
-      "sha256": "ffb32c9446bd3fcb7052d6150a2009ed2cf3fcc1f72509e3f6b4564e35252b15",
-      "size": 47282
+      "sha256": "57add8805432d27fdc858374a5a1fc8eab5355b9483a7b57eacb09a573f6ac5d",
+      "size": 40165
     },
     {
       "path": "assets/driver-icon-192.png",
-      "sha256": "ae75b6d4cd1893a9bd3d4d26b02de8b946effddcc094797ff2d7eadb5711dd59",
-      "size": 52957
+      "sha256": "1f21b92127391f7a1df819ab09de5855a9db7ce66870519467508b43def5d1f4",
+      "size": 44714
     },
     {
       "path": "assets/driver-icon-32.png",
-      "sha256": "f36a60570fa6184758199f47ea2cb8d6680dc8cd195575de108c5ec365d99469",
-      "size": 2594
+      "sha256": "6c9ad137483c086fe549835ea84dbba89c7f1255dc2a1198866f470fe1922dfc",
+      "size": 2571
     },
     {
       "path": "assets/driver-icon-512.png",
-      "sha256": "237502f18472935833b447813c812540e6bbc58afc26724272fcc1cc40a0830e",
-      "size": 309423
+      "sha256": "d683d24b8f47c59aa77bfeb14271fbc700f629a8117aadf4d7c0a7535265ffce",
+      "size": 250757
     },
     {
       "path": "assets/driver-icon-64.png",
-      "sha256": "30725beb4c4dd0c5ef77c7e85b78ab1e5032b90f6ed164871bc3443b51f1ab6f",
-      "size": 8266
+      "sha256": "65c357ecb10f08eb0d008cfe9d0a81c7e62637acbfb4d26cc31cd908c6e027b7",
+      "size": 7718
     },
     {
       "path": "assets/manrope-400.ttf",
@@ -213,8 +213,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "4eafa39c14fdde9fe5ce49cad34e26c1c3e159a0f6fdcef9e69610c6d1693ccb",
-      "size": 15402
+      "sha256": "a622b46c8ba6d66764c4cc844a90c797db85692cc45867ef2d70ba986881f71a",
+      "size": 15490
     },
     {
       "path": "inventory-review.js",
