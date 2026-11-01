@@ -53,3 +53,6 @@
 @media(min-width:1051px){
   html:not(.android-shell) .studio-layout{grid-template-columns:minmax(230px,1fr) 370px minmax(230px,.85fr)}
 }
+
+/* Approved AMG driver icon: fit the artwork inside the existing brand slots. */
+.brand-icon img,.app-brand-mark img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}

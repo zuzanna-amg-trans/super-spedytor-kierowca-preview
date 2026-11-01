@@ -7,6 +7,8 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="description" content="SuperSpedytor: nawigacja do załadunku, rozładunku, przeładunku, parkingu i tankowania, dokumentacja ładunku, ankieta serwisowa, inwentaryzacja, protokół przekazania auta oraz wydatki kierowcy.">
   <title>Super Spedytor — tryb kierowcy</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/driver-icon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/driver-icon-180.png">
   <script>
     if (new URLSearchParams(window.location.search).get('android') === '1') {
       document.documentElement.classList.add('android-shell');
@@ -67,7 +69,7 @@
   </defs></svg>
 
   <header class="studio-header">
-    <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><svg class="icon"><use href="#i-truck"/></svg></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
+    <a href="./" class="brand" aria-label="Super Spedytor — początek"><span class="brand-icon"><img src="assets/driver-icon-64.png" width="64" height="64" alt=""></span><span>super<span class="brand-bold">spedytor</span><small>TWÓJ TRANSPORT. POD KONTROLĄ.</small></span></a>
     <div class="studio-title"><span class="header-divider"></span>Tryb kierowcy <span class="version">Koncepcja 08</span></div>
     <div class="studio-meta"><span class="live-dot"></span> Interaktywny prototyp <span class="android-badge">Android</span></div>
   </header>
@@ -96,7 +98,7 @@
       <div class="preview-topline"><span id="preview-label">ZAŁADUNEK / INFORMACJE</span><span>Android <span class="tiny-dot">·</span> 360 × 800 px</span></div>
       <section class="device" aria-label="Prototyp aplikacji kierowcy">
         <div class="status-bar"><span>10:42</span><div class="status-icons"><svg class="icon"><use href="#i-signal"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M1 4c4-4 11-4 15 0M4 7c2-2 7-2 9 0M7 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="battery"></span></div></div>
-        <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><svg class="icon"><use href="#i-truck"/></svg></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
+        <header class="app-header"><div class="app-brand"><span class="app-brand-mark"><img src="assets/driver-icon-64.png" width="64" height="64" alt=""></span>super<span>spedytor</span></div><span class="driver-chip">TRYB KIEROWCY</span></header>
         <div id="driver-workspace-bar" class="driver-workspace-bar" hidden></div>
         <div class="app-scroll" id="app-scroll"><section id="route-activity" class="route-activity" aria-label="Bieżąca czynność kierowcy" hidden></section><div id="app"></div></div>
         <div id="app-action" class="app-action"></div>
