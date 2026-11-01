@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "e82620a533a2eeb6623de2dfca0f3e066a32188d",
+  "sourceCommit": "2a6ea79d4b9966528f5d7d63957b1ad94ba2f526",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "3af97ea3947dc6e5b7bd25f55010228766e8c6a7202a67f76b1004e4da2fe991",
+  "assetManifestSha256": "63eac65f538eaeabdcbac469f322d1802acd31a96eb0fe740a0cf75fc2258636",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -168,8 +168,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "7338468cee60c420d42f68dd59e0d699415b7921fcf77dde840a4d3dde72e4de",
-      "size": 456020
+      "sha256": "ecaed1255c753e1bf24e65f01011a5fe923b9c5edde16c75db1565ffaa20122b",
+      "size": 456054
     },
     {
       "path": "full-inventory-catalog.js",
@@ -373,8 +373,8 @@
     },
     {
       "path": "transshipment.css",
-      "sha256": "066922d94d05f6ae6dae4e2c6d0de37ffa1fb16846ff25a5f76f0be14c64a9cd",
-      "size": 39920
+      "sha256": "60d02124d0f89154e9505d5eafec4c5d8f178fc6fe1cc2d47bb5077ce52bbf1f",
+      "size": 40329
     },
     {
       "path": "transshipment.js",

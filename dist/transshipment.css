@@ -525,3 +525,7 @@
 .transshipment-guided .transfer-photo-step{padding:14px 0;scroll-margin-top:12px}
 .transshipment-guided .transfer-photo-step h3{font-size:23px}
 .transshipment-step-hint{margin:0;font-size:14px;line-height:1.45}
+
+/* A successful scan is a quiet status; photos are the next task. */
+.transshipment-guided .transshipment-piece-card .transshipment-scan-button.matched{min-height:44px!important;padding:9px 12px;background:#edf5e7;color:#416036;border:1px solid #bed1b1;font-size:14px!important;line-height:1.4}
+.transshipment-guided .transshipment-piece-card .transshipment-scan-button.matched .icon{width:19px;height:19px}
