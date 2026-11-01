@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "2328f3ce87cb197b0c3bbce012190f70437dcaa9",
+  "sourceCommit": "63d47b4d1373e7644517f1a926c211696946e434",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "d01644091109db6be640a4bea5c742921745ba07e5ea18c03cc09da90b777d22",
+  "assetManifestSha256": "377eef4c9f732bf64a552b6c158cd8d54179c97aec1dfb86de37238dd4fc22c6",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -213,8 +213,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "0e264205ac31b2dcf53727cd9c789fbd70540832f5ffd617b49230f0bb46d6e3",
-      "size": 15309
+      "sha256": "1ee38d2728e6d3db264f82d4060d1549b26291eec73985f6cf8fbbb359051249",
+      "size": 15356
     },
     {
       "path": "inventory-walkthrough.js",
@@ -238,8 +238,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "0b9d5c093741ac66f1458bed1b9f45e0665d7907e0c5dafaecd19e1a2236d5df",
-      "size": 88188
+      "sha256": "a1da85b890cca12635a29422548c38a6a36875e98badfe660f7d3fbd41261957",
+      "size": 92232
     },
     {
       "path": "mobile-readability.css",
@@ -398,8 +398,13 @@
     },
     {
       "path": "transshipment-live-view.js",
-      "sha256": "e81f02527e3fe8b9b13d02c7540d47a4e60d48402c025b367a25272db0406a92",
-      "size": 16696
+      "sha256": "d262987f794130cad974a40e6fec377a9d65e85a2a152a95b3fb414077884bca",
+      "size": 18463
+    },
+    {
+      "path": "transshipment-media.js",
+      "sha256": "9f826f81043a923e7ab36746954148a374b8390566926549ff6762c3dcda4b69",
+      "size": 5257
     },
     {
       "path": "transshipment-ui.js",
@@ -408,8 +413,8 @@
     },
     {
       "path": "transshipment.css",
-      "sha256": "40bd6fdba44fa60047babe1fd111d7b0bc63615d6239929154d68d4ee9fc2d62",
-      "size": 43173
+      "sha256": "730c77a2e536dbfcdd7cf24a81fd4f5f7460b49230809f0aafabf013f96a3e07",
+      "size": 44272
     },
     {
       "path": "transshipment.js",

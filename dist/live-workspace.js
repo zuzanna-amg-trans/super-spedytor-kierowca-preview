@@ -12,7 +12,7 @@
   const id=value=>{const n=String(value??'');if(!/^[1-9]\d{0,11}$/.test(n))throw Error('Brak prawidłowego identyfikatora rekordu.');return n;};
   const tms=window.SuperSpedytorTmsResults;
   let root=null,owner='',epoch=0,screen='',screenContext={},busy=false,tachoTimer=null,chatTimer=null;
-  const transPhotos=new Map();
+  const transPhotos=new Map(),transCmrReviews=new Map();
   const localEvidence=new Map();let evidenceOwner="",standaloneScan=null;
   // Drafts belong to the current authenticated account and live only in memory.
   // A readback for one field must not erase edits in the other fields.
@@ -532,7 +532,7 @@
     bind('[data-stop-status]',async()=>{if(action==='complete'&&fuel&&!point.fuel_photo_skip&&(!photos.some(p=>p.kind==='nozzle')||!photos.some(p=>p.kind==='dispenser')))fail('Uzupełnij oba zdjęcia tankowania lub rzeczywiste uzasadnienie ich braku.');if(!confirm('Zapisać wskazaną zmianę statusu tego punktu w TMS?'))return;await request('POST',path+action+'/',{});const read=await request('GET',path);if(read.status!==(action==='start'?'in_progress':'completed'))fail('Odczyt nie potwierdził zmiany statusu punktu.');await fuelPoint(pointId);feedback('Status punktu odczytany z TMS.');});
     bind('[data-stop-cost]',()=>open('expenses',{sourceRoutePoint:pointId}));bind('[data-stop-tacho]',()=>open('tacho'));
   }
-  const transView=window.SuperSpedytorTransshipmentLiveView;
+  const transView=window.SuperSpedytorTransshipmentLiveView,transMedia=window.SuperSpedytorTransshipmentMedia;
   function transWritable(){if(!tms.writable(state()))fail('Ta sesja działa tylko do odczytu. Nie wysłano zmiany.');}
   async function transshipments(){
     const meetings=list(await request('GET','routes/transshipment-steps/upcoming/'));
@@ -571,30 +571,67 @@
     const offers=point.transshipment_offers||[],offer=offers.find(o=>String(o.id)===String(offerId))||offers.find(o=>transView.offerState(point,o).phase!=='done')||offers[0];
     screenContext={meetingId,pointId,offerId:offer?.id};
     const pendingPhotos=[...transPhotos.values()].filter(p=>p.owner===owner&&String(p.pointId)===String(pointId));
-    body().innerHTML=transView.pointView(point,meetingData,{offerId:offer?.id,writable:tms.writable(state()),pendingPhotos});
+    const reviewKey=owner+'|'+pointId+'|'+offer?.id,mediaEpoch=epoch;
+    let cmrReview=transCmrReviews.get(reviewKey)||null,cmrFiles=[],cmrError='';
+    if(cmrReview&&offer?.cmr_confirmed_at){transCmrReviews.delete(reviewKey);cmrReview=null;}
+    if(offer&&(cmrReview||offer.cmr_confirmed_at)){
+      try{cmrFiles=transMedia.documents(await request('GET',`documents/transport/${id(offer.id)}/list_documents/`),offer.id);}
+      catch(error){if(!current()||epoch!==mediaEpoch)throw error;cmrError='Nie udało się pobrać skanów CMR. '+error.message;}
+    }
+    body().innerHTML=transView.pointView(point,meetingData,{offerId:offer?.id,writable:tms.writable(state()),pendingPhotos,cmrReview,cmrFiles,cmrError,native:bridge});
     root.querySelector('[data-lw-close]').onclick=()=>open('transshipment',{meetingId});
     bind('[data-trans-back]',()=>open('transshipment',{meetingId}));
     bind('[data-trans-offer-select]',n=>open('transshipment',{meetingId,pointId,offerId:n.dataset.transOfferSelect}));
     if(!offer)return;
     const scope='trans:'+id(pointId)+':'+id(offer.id),refresh=()=>open('transshipment',{meetingId,pointId,offerId:offer.id});
     bindDraft(scope);
-    const scan=async(code,manual,kind)=>{
+    bind('[data-trans-media-retry]',refresh);
+    bind('[data-trans-cmr-cancel]',async()=>{transCmrReviews.delete(reviewKey);await refresh();});
+    const updateCmrButton=()=>{const node=root?.querySelector('[data-trans-cmr-accept]'),check=root?.querySelector('[data-trans-cmr-reviewed]');if(node)node.disabled=!tms.writable(state())||!check?.checked||!cmrFiles.length||Boolean(cmrError);};
+    root.querySelector('[data-trans-cmr-reviewed]')?.addEventListener('change',updateCmrButton);
+    root.querySelectorAll('[data-trans-media-image]').forEach(image=>{
+      const failed=()=>{image.hidden=true;const error=image.closest('figure')?.querySelector('[data-trans-media-error]');if(error)error.hidden=false;};
+      image.addEventListener('error',failed);if(image.complete&&!image.naturalWidth)failed();
+    });
+    root.querySelectorAll('[data-trans-loading-gallery]').forEach(gallery=>{
+      const items=[...gallery.querySelectorAll('[data-trans-gallery-item]')],previous=gallery.querySelector('[data-trans-gallery-prev]'),next=gallery.querySelector('[data-trans-gallery-next]');let page=0;
+      const show=()=>{items.forEach((item,i)=>item.hidden=i!==page);previous.disabled=page===0;next.disabled=page===items.length-1;gallery.querySelector('[data-trans-gallery-count]').textContent=`Zdjęcie ${page+1} z ${items.length}`;};
+      previous.onclick=()=>{if(page>0){page--;show();}};next.onclick=()=>{if(page<items.length-1){page++;show();}};
+    });
+    const scan=async(code,manual,kind,reviewed=false)=>{
       const expected=transView.expectedCode(point,offer,kind);
       if(!transView.matchingCode(code,expected))fail('To nie jest plomba bieżącego '+(kind==='cmr'?'CMR':'ładunku')+'. Sprawdź numer pokazany na ekranie.');
+      if(kind==='cmr'&&!reviewed){
+        transCmrReviews.set(reviewKey,{code:expected,manual});await refresh();return;
+      }
       await request('POST',path+'transshipment-scan/',{code,manual});
       const read=await request('GET',path),saved=read.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
       const confirmed=kind==='cmr'?saved?.cmr_documents?.some(d=>d.code===expected&&d.scanned)||saved?.cmr_confirmed_at:saved&&transView.offerState(read,saved).scanned.has(String(transView.offerState(point,offer).unscanned[0]?.id));
       if(!confirmed)fail('Nie potwierdzono skanu w tym zleceniu. Odśwież przed ponowieniem.');
+      if(kind==='cmr')transCmrReviews.delete(reviewKey);
       clearDraft(scope,['seal']);await refresh();feedback('Plomba zgodna — zapis potwierdzony. Wykonaj następny krok.');
     };
     bind('[data-trans-scan]',async n=>{transWritable();const generation=epoch,result=await nativeScanCode();if(generation!==epoch||!current())return;if(result?.status==='cancelled')return;if(result?.status!=='ok'||!result.code)fail(result?.message||'Nie odczytano plomby.');await scan(result.code,false,n.dataset.transScan);});
     bind('[data-trans-code]',async n=>{const code=root.querySelector('#lw-trans-code').value.trim();if(!code)fail('Wpisz numer plomby.');await scan(code,true,n.dataset.transCode);});
     bind('[data-trans-cmr]',async()=>{
       const s=transView.offerState(point,offer);if(s.phase!=='cmr'||!(offer.cmr_scan_required===false||s.cmrScansReady))fail('Najpierw sprawdź wymagane plomby CMR.');
-      if(!confirm(s.outgoing?'Potwierdzasz przekazanie papierowego CMR?':'Potwierdzasz odbiór papierowego CMR?'))return;
+      transCmrReviews.set(reviewKey,{code:null,manual:true});await refresh();
+    });
+    bind('[data-trans-cmr-accept]',async()=>{
+      transWritable();
+      if(!cmrReview||!cmrFiles.length||cmrError||!root.querySelector('[data-trans-cmr-reviewed]')?.checked)fail('Najpierw obejrzyj skan i porównaj cały dokument.');
+      const fresh=await request('GET',path),freshOffer=fresh.transshipment_offers?.find(o=>String(o.id)===String(offer.id));
+      if(!freshOffer||freshOffer.cmr_confirmed_at||String(fresh.id)!==String(pointId)) {transCmrReviews.delete(reviewKey);await refresh();fail('Stan CMR zmienił się. Sprawdź aktualne potwierdzenie.');}
+      const freshFiles=transMedia.documents(await request('GET',`documents/transport/${id(offer.id)}/list_documents/`),offer.id);
+      if(JSON.stringify(freshFiles)!==JSON.stringify(cmrFiles)){await refresh();fail('Pliki CMR zmieniły się. Porównaj aktualny komplet przed potwierdzeniem.');}
+      if(cmrReview.code){
+        if(!transView.matchingCode(cmrReview.code,transView.expectedCode(fresh,freshOffer,'cmr'))){transCmrReviews.delete(reviewKey);await refresh();fail('Wymagana plomba CMR zmieniła się. Sprawdź ją ponownie.');}
+        await scan(cmrReview.code,cmrReview.manual,'cmr',true);return;
+      }
+      if(!(freshOffer.cmr_scan_required===false||transView.offerState(fresh,freshOffer).cmrScansReady))fail('Najpierw sprawdź wymagane plomby CMR.');
       await request('POST',path+'confirm-transshipment/',{offer_id:Number(id(offer.id)),cmr_confirmed:true});
       const read=await request('GET',path);if(!read.transshipment_offers?.find(o=>String(o.id)===String(offer.id))?.cmr_confirmed_at)fail('Nie potwierdzono dokumentu w odczycie.');
-      await refresh();feedback('CMR potwierdzony. Przejdź do ładunku.');
+      transCmrReviews.delete(reviewKey);await refresh();feedback('CMR potwierdzony. Przejdź do ładunku.');
     });
     bind('[data-trans-confirm]',async()=>{
       const s=transView.offerState(point,offer);if(s.phase!=='cargo'||!s.pieces.length||s.unscanned.length)fail('Najpierw sprawdź CMR i wszystkie plomby sztuk.');
@@ -617,6 +654,8 @@
     };
     bind('[data-trans-photo]',async n=>{transWritable();const type=n.dataset.documentType;if(!transView.offerState(point,offer).missing.includes(type))return;const file=await capture();if(file)await sendPhoto(file,type);});
     bind('[data-trans-photo-retry]',async n=>{transWritable();const type=n.dataset.documentType,file=transPhotos.get(owner+'|'+pointId+'|'+offer.id+'|'+type)?.file;if(!file)fail('Nie znaleziono zachowanego zdjęcia.');await sendPhoto(file,type);});
+    const focusMedia=root.querySelector(cmrReview?'.transshipment-cmr-preview':'.transshipment-piece-card .transshipment-loading-gallery');
+    if(focusMedia){const viewport=body(),target=cmrReview?focusMedia:focusMedia.closest('.transshipment-piece-card');viewport.scrollTop+=target.getBoundingClientRect().top-viewport.getBoundingClientRect().top-8;}
   }
   document.addEventListener('click',event=>{
     if(!enabled()||state().status!=='connected')return;
@@ -629,7 +668,7 @@
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({scanner:'scanner',tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();transPhotos.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();transPhotos.clear();transCmrReviews.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
   window.SuperSpedytorLiveWorkspace={open,close};
 })();
