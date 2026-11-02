@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "754e4aff2f843e8168dd1f4d28115c54ada2ed1b",
+  "sourceCommit": "db3394d27ba1aea6e4166c40ca5443df5b650354",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "39ad76ac14087fc96c1b3e7287b47f7a17ac9cb5f46c666ed6a43c9ce0ac6aec",
+  "assetManifestSha256": "c7aef37df64351a1194ff1970c0c9363657c1c1fc6eb0ab4028f48b05db89ef0",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -90,6 +90,21 @@
       "path": "car-route-alert-demo.js",
       "sha256": "7174361b4c3a248acf34b345e908a2217e3b508a7bb2bba7fc510433af9339b9",
       "size": 2655
+    },
+    {
+      "path": "car-wash-entry.js",
+      "sha256": "86abfd462f8b9d9825735c2c9f2f5caa150c45d06235cf0131cb264693619f61",
+      "size": 4050
+    },
+    {
+      "path": "car-wash-live.css",
+      "sha256": "524e82b58db1bb3bb2cf9408cedfce796db2c0d57bd0892e0a1f4408133ece72",
+      "size": 3574
+    },
+    {
+      "path": "car-wash-live.js",
+      "sha256": "0751f8d9567ef2a8bbee744f19c83c7fa6fcf5bd3d50d3eeb9f434ebf34e01dd",
+      "size": 67174
     },
     {
       "path": "car-wash.css",
@@ -193,8 +208,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "c069c69b442abe417df61153b4c57a34a35120cc4fdf64fc53e0b06df35e1617",
-      "size": 456222
+      "sha256": "5ee3fa9240b36602e64f7d2dd272d1a9d90d9d3b0759cb7fda53436c28ede434",
+      "size": 456899
     },
     {
       "path": "full-inventory-catalog.js",
@@ -213,8 +228,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "b81af2ed8b50da7aeccf2afb0b65f2f7fc188c309ac7bef30b48f86837104246",
-      "size": 15581
+      "sha256": "fdde43739b1f857cfd031bf9b38afb1e4d68f76a9eed456acf06a33d22bb2887",
+      "size": 15719
     },
     {
       "path": "inventory-review.js",
@@ -243,8 +258,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "ad99134597fe95a60d041d8ee0379864fd405f241c08894567b3241811db407d",
-      "size": 101107
+      "sha256": "d59f34ea0790515127d5bf17feca06e3de96318d8d7b2488e81079e1e9e6c7c0",
+      "size": 101386
     },
     {
       "path": "mobile-readability.css",

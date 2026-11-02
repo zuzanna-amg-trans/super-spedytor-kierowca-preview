@@ -1,0 +1,39 @@
+/* Mycie zewnętrzne — prawdziwy przepływ (B935). Pełnoekranowa nakładka na .device. */
+.cwl-overlay { position: absolute; inset: 0; z-index: 90; display: flex; flex-direction: column; background: #f4f6f8; color: #14202b; font: 15px/1.4 system-ui, sans-serif; }
+.cwl-header { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #0f3d5e; color: #fff; }
+.cwl-back { min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, .15); color: #fff; font-size: 20px; }
+.cwl-title { margin: 0; font-size: 17px; }
+.cwl-sub { margin: 2px 0 0; font-size: 12px; opacity: .85; }
+.cwl-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+.cwl-footer { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: #fff; border-top: 1px solid #d5dce3; }
+.cwl-h2 { margin: 6px 0 0; font-size: 16px; }
+.cwl-muted { color: #566573; font-size: 13px; }
+.cwl-card, .cwl-panel { display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #d5dce3; }
+.cwl-panel h2, .cwl-panel p { margin: 0; }
+.cwl-panel.cwl-ok { border-color: #2e8b57; }
+.cwl-panel.cwl-warn { border-color: #d98a00; background: #fff8e8; }
+.cwl-panel.cwl-error { border-color: #c0392b; background: #fdecea; }
+.cwl-panel.cwl-info { border-color: #2b6cb0; }
+.cwl-banner { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.cwl-banner.cwl-error { background: #fdecea; color: #8a1c10; }
+.cwl-banner.cwl-ok { background: #e6f4ea; color: #1e5c33; }
+.cwl-banner.cwl-info { background: #e8f1fb; color: #154b7a; }
+.cwl-btn { min-height: 48px; padding: 0 14px; border: 1px solid #0f3d5e; border-radius: 12px; background: #fff; color: #0f3d5e; font-size: 15px; font-weight: 600; }
+.cwl-btn.cwl-primary { background: #0f3d5e; color: #fff; }
+.cwl-btn:disabled { opacity: .5; }
+.cwl-item { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid #d5dce3; background: #fff; color: inherit; font: inherit; min-height: 48px; }
+.cwl-body > *, .cwl-header, .cwl-footer { flex-shrink: 0; }
+.cwl-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.cwl-tab { flex: 0 0 auto; min-height: 40px; padding: 0 12px; border-radius: 20px; border: 1px solid #b7c3ce; background: #fff; font-size: 13px; }
+.cwl-tab.cwl-on { background: #0f3d5e; color: #fff; border-color: #0f3d5e; }
+.cwl-slot { display: flex; gap: 10px; padding: 10px; border-radius: 12px; background: #fff; border: 1px solid #d5dce3; }
+.cwl-slot-text { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.cwl-state { font-size: 13px; font-weight: 600; }
+.cwl-thumb { width: 88px; height: 88px; flex: 0 0 88px; object-fit: cover; border-radius: 8px; background: #e3e8ed; }
+.cwl-thumb-empty { display: flex; align-items: center; justify-content: center; color: #6b7a88; font-size: 12px; }
+.cwl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.cwl-grid figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.cwl-grid .cwl-thumb { width: 100%; height: 96px; }
+.cwl-grid figcaption { font-size: 11px; color: #566573; }
+.cwl-check { display: flex; gap: 10px; align-items: flex-start; padding: 10px; background: #fff; border-radius: 12px; border: 1px solid #d5dce3; }
+.cwl-check input { width: 24px; height: 24px; flex: 0 0 24px; }

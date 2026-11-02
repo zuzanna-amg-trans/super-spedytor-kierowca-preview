@@ -4085,6 +4085,7 @@ function enterTestingWorkspace(viewId,renderView=true){
   if(liveBusy||liveOperation?.finishing||backendPointActionPending||backendState?.write?.status==='pending'||pendingRequests.size>0){toast('Poczekaj na zakończenie bieżącej operacji.');return false;}
   backendTestWorkspace=true;
   if(liveMode())exitLiveOperation();
+  if(typeof closeCarWashLive==='function')closeCarWashLive();
   if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen){cmrInventoryScreen.close();cmrInventoryScreen=null;}
   document.documentElement.classList.add('backend-testing');
   driverBridge?.backendTestingMode?.(true);
@@ -4118,6 +4119,7 @@ function leaveTestingWorkspace(){
 }
 function carWashEntryView(){return `<button type="button" id="car-wash-entry" class="cw-service-entry" data-service-panel="car-wash"><span>${icon('camera')}</span><span><strong>Wydatki · Mycie auta</strong><small>15 EUR po akceptacji · podgląd dokumentacji</small></span>${icon('arrow')}</button>`;}
 function openCarWashPreview(){
+  if(backendMode&&!backendTestWorkspace){if(typeof openCarWashLive==='function')openCarWashLive();else toast('Moduł mycia nie został załadowany.');return;}
   if(typeof productionScope!=='undefined'&&productionScope)return;
   if(!window.SuperSpedytorCarWash?.open){toast('Kreator mycia jest niedostępny. Odśwież aplikację.');return;}
   if(backendMode&&!backendTestWorkspace){toast('Otwórz Serwis w Testuj widoki, aby sprawdzić szkic mycia.');return;}
@@ -4395,7 +4397,7 @@ function backendOperationFallbackView(){
   const point=backendDriverOperationPlan(routes).nearest;
   const title=point?'Pobieranie danych zlecenia…':routes.length?'Trasa zakończona':'Brak aktywnej trasy';
   const message=point?'Poczekaj na otwarcie danych kierowcy.':routes.length?'Nie ma kolejnej niezakończonej operacji. Odśwież plan, jeśli spedytor dodał nowe zadanie.':'Super Spedytor nie zwrócił aktywnej trasy dla Twojego konta.';
-  return `<div class="app-content"><div class="operation-heading"><h2>${title}</h2><div class="header-tools"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></div></div><section class="panel" role="status"><p>${message}</p></section><div id="cmri-tasks">${inventoryTaskCards()}</div></div>`;
+  return `<div class="app-content"><div class="operation-heading"><h2>${title}</h2><div class="header-tools"><button id="backend-refresh" class="icon-button" aria-label="Odśwież dane">↻</button><button id="backend-logout" class="icon-button" aria-label="Wyloguj z aplikacji">${icon('close')}</button></div></div><section class="panel" role="status"><p>${message}</p></section><div id="cmri-tasks">${inventoryTaskCards()}</div>${typeof carWashEntryHtml==='function'?carWashEntryHtml():''}</div>`;
 }
 function renderBackendOperationScreen(scroll=0){
   if(typeof surveyRegisterScreen!=='undefined')surveyRegisterScreen?.destroy();
@@ -4411,6 +4413,7 @@ function renderBackendOperationScreen(scroll=0){
   $$('[data-nav]').forEach(button=>button.classList.toggle('active',button.dataset.nav==='now'));
   bindLiveSessionControls();
   bindInventoryCards();
+  if(typeof bindCarWashEntry==='function')bindCarWashEntry();
   $('#app-scroll').scrollTop=scroll;
 }
 function backendChatSelection(){
@@ -4571,7 +4574,8 @@ function renderBackendServiceHistoryScreen(scroll=0){
     return;
   }
 
-  $('#app').innerHTML=serviceModuleSwitch('history')+serviceHistoryView();
+  $('#app').innerHTML=serviceModuleSwitch('history')+(typeof carWashEntryHtml==='function'?carWashEntryHtml():'')+serviceHistoryView();
+  if(typeof bindCarWashEntry==='function')bindCarWashEntry();
   $('#app-action').innerHTML=serviceHistoryActionView();
   $('#design-context').innerHTML=serviceHistoryDesignNotes();
   $('#preview-label').textContent=backendState?.read_only===true&&backendState?.backend_environment==='dev'?'SERWIS / HISTORIA DEV':'SERWIS / HISTORIA SS';
@@ -4829,6 +4833,8 @@ window.SuperSpedytorBackend={
     const pointWrite=backendState?.write;
     if(typeof cmrInventoryScreen!=='undefined'&&cmrInventoryScreen?.options?.isActive&&!cmrInventoryScreen.options.isActive())cmrInventoryScreen.close();
     window.SuperSpedytorOfflineWorkspace?.receive();
+    if(backendState?.status!=='connected'){if(typeof closeCarWashLive==='function')closeCarWashLive();window.SuperSpedytorCarWash?.close?.();}
+    else if(typeof syncCarWashLive==='function')syncCarWashLive();
     if(!['connected','connecting'].includes(backendState?.status))backendPointActionPending=null;
     else if(backendPointActionPending&&pointWrite?.id
       &&String(pointWrite.id)!==backendPointActionPending.previousWriteId
