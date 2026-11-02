@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T10:50:01.726Z",
-  "sourceCommit": "7185989ea2d75068ff6fa1c7952ca087e7a92a42",
+  "generatedAt": "2026-11-02T10:54:50.322Z",
+  "sourceCommit": "573acaf8696f53fd5714a200b29bfd68a536a5e2",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
