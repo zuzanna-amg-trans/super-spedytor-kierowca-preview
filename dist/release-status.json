@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T15:19:18.662Z",
-  "sourceCommit": "cbe0a54827ec10240cea8f114221992e9c061aeb",
+  "generatedAt": "2026-11-02T15:26:53.545Z",
+  "sourceCommit": "b0687a88e3158680743f7aca4c5179e83d5af425",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -109,7 +109,7 @@
         "docs/release/evidence/account-scanner-2026-11-02.json"
       ],
       "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
-      "sourceFingerprint": "760ef4d780f6650ff550f770df202b63baaa1a0fd7fcf3986266b8aea1b5338c",
+      "sourceFingerprint": "8af2b84d4dc3e3d31ce7efbee959309ac13953289071a1312d8aecdba87f2aaa",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -217,7 +217,7 @@
         "docs/release/evidence/account-scanner-2026-11-02.json"
       ],
       "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
-      "sourceFingerprint": "e6964e28ce14634e42e533eedbb6edb582b29a8f81c555788d7ea26a9d943825",
+      "sourceFingerprint": "c69ab686db28cee572a433813922f77d991108b1b3e21544872f9b2290246aec",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
