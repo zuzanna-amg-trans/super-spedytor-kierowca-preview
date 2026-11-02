@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T02:15:56.311Z",
-  "sourceCommit": "db3394d27ba1aea6e4166c40ca5443df5b650354",
+  "generatedAt": "2026-11-02T09:34:26.809Z",
+  "sourceCommit": "0398328ed703102d87bc4951d1f2523c50ed3a49",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -102,7 +102,7 @@
         "docs/release/evidence/b939-dev-production-2026-11-01.json",
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json"
       ],
-      "sourceFingerprint": "72dfc0fe1be98e8dabadb658c0b19d199c80a3c908a88d8401e165a63c6c398a",
+      "sourceFingerprint": "783dfc0ee3fb6e972fb9417246f95e1664b57c4276f9c618ccfb0be0986840d9",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -203,7 +203,7 @@
         "docs/release/evidence/route-notification-open-30.json",
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json"
       ],
-      "sourceFingerprint": "c4039b88d2c379c60e3983ac798a0af04af6bd8e610d47adc81e7955e0d9206e",
+      "sourceFingerprint": "13d71df76d4a4336217188d43874e6d2324246897035efdcae409fabe4270b19",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",

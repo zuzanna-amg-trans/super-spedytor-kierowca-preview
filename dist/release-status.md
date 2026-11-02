@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T02:15:56.311Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T09:34:26.809Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
