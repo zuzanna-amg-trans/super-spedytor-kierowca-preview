@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T10:54:50.322Z",
-  "sourceCommit": "573acaf8696f53fd5714a200b29bfd68a536a5e2",
+  "generatedAt": "2026-11-02T11:32:38.588Z",
+  "sourceCommit": "525a212f1e3ab0914474af919f9bd2300fd8494b",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -43,8 +43,9 @@
           },
           "backendAcceptance": {
             "passed": false,
-            "evidence": "docs/release/evidence/prepublication-50-29-2026-11-01.json",
-            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff"
+            "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
+            "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff",
+            "reason": "B939 is accepted and verified in production. This task does not sign off every other required source-specific mobile/backend acceptance; the remaining release gates are preserved."
           }
         },
         "matchesCurrent": false
@@ -53,7 +54,7 @@
         "version": "0.1.45",
         "build": 50,
         "sourceCommit": "7d4359b973ec9a3c65eb9ed294b3d4a11ac3aeff",
-        "observedAt": "2026-11-02T10:18:01Z",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
         "statusLabel": "Test wewnętrzny dostępny",
         "artifactSha256": "31ae7b79c0bf7ca87224c9752af20e64ebe3abe5d62c542a53dd660890738463",
         "fingerprint": "289615c27a70a0db5f47ddc6e1c7608b1d346ca148fe0548850cbbbaf63e472e",
@@ -64,7 +65,7 @@
         "version": "0.1.43",
         "build": 48,
         "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
-        "observedAt": "2026-11-02T10:18:01Z",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
         "status": "in_review",
         "statusLabel": "W trakcie sprawdzania; kod 48; publikowanie zaplanowane wyłączone",
         "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
@@ -73,19 +74,16 @@
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-02T10:18:01Z",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
         "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json"
       },
       "blockers": [
         "Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.",
         "Kandydat 51 zachowuje sześć wymaganych rzeczywistych odbiorów zakresu; brak potwierdzonego odbioru Android Auto POI/Tacho nie pozwala uruchomić podpisywania.",
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
-        "B939: produkcja jest autoryzowana po odbiorze DEV. Aktualny podgląd a4cc3c55 działa; zatwierdzony zapisany wpis został odrzucony przez API (HTTP 401). Konto DEV jest aktywne. Potrzebne skuteczne logowanie aktualnym hasłem i odczyt szczegółów ankiety, następnie wymagany odbiór, wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "B935/AA39: mycie dodano do aktualnych źródeł linii 51. Ostatnią potwierdzoną paczką Play pozostaje 50; nowa paczka mycia nie została jeszcze podpisana. Wymagany odbiór nowego przepływu i potwierdzenie deklaracji Data Safety.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
-        "B939: rzeczywisty odbiór szczegółów DEV nie jest zakończony. W aktualnym podglądzie a4cc3c55 zatwierdzony zapisany wpis jest odrzucany (HTTP 401); potrzebne skuteczne logowanie aktualnym hasłem. Produkcja jest autoryzowana po wymaganym odbiorze; nowe zgłoszenia i publikacja sklepowa nadal wstrzymane. Aktualny dowód: docs/release/evidence/b939-dev-production-2026-11-02.json",
-        "B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
@@ -94,7 +92,7 @@
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.",
+      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.",
       "relatedEvidence": [
         "docs/release/evidence/transshipment-resume-29-50.json",
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
@@ -146,7 +144,8 @@
           "backendAcceptance": {
             "passed": false,
             "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
-            "evidence": "docs/release/evidence/transfer-saved-photo-31.json"
+            "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
+            "reason": "B939 is accepted and verified in production. This task does not sign off every other required source-specific mobile/backend acceptance; the remaining release gates are preserved."
           }
         },
         "fingerprint": "89a6b28c3220ccb21f2d89182f4559f726d36d203030d4d23577626479ba8c32",
@@ -157,9 +156,9 @@
         "build": 31,
         "sourceCommit": "33a12b010450618865f9b9d2a082d5723889be23",
         "artifactSha256": "969db77714067b1a50d49153ed849cd3b918be6067dc1299ab616f0d346f70c7",
-        "evidence": "docs/release/evidence/transfer-saved-photo-31.json",
-        "observedAt": "2026-11-01T22:39:00Z",
-        "statusLabel": "TestFlight wewnętrzny: Testing; zewnętrzny: Waiting for Review.",
+        "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
+        "statusLabel": "TestFlight wewnętrzny: Testing; zewnętrzny: Testing.",
         "fingerprint": "89a6b28c3220ccb21f2d89182f4559f726d36d203030d4d23577626479ba8c32",
         "matchesCurrent": false
       },
@@ -167,26 +166,23 @@
         "version": "0.4.15",
         "build": 25,
         "sourceCommit": "ba5f3531f57532d1d90a171f2c9c3509a6cc9507",
-        "observedAt": "2026-11-01T19:30:00Z",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
         "status": "in_review",
         "statusLabel": "Waiting for Review; wybrany build 25; automatyczna publikacja po akceptacji",
-        "evidence": "https://appstoreconnect.apple.com/apps/6827520989/distribution/ios/version/inflight",
+        "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
         "fingerprint": "c5d3ef4c9ec3ec54f1c0c7e2386f2c746baf6983e6cd09fbb25e9a74062212f9",
         "matchesCurrent": false
       },
       "storeRead": {
         "status": "confirmed",
-        "observedAt": "2026-11-01T22:39:00Z",
+        "observedAt": "2026-11-02T11:21:02.591245+00:00",
         "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json"
       },
       "blockers": [
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
-        "B939: produkcja jest autoryzowana po odbiorze DEV. Aktualny podgląd a4cc3c55 działa; zatwierdzony zapisany wpis został odrzucony przez API (HTTP 401). Konto DEV jest aktywne. Potrzebne skuteczne logowanie aktualnym hasłem i odczyt szczegółów ankiety, następnie wymagany odbiór, wdrożenie i weryfikacja produkcji.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "B935/AA39: wspólny interfejs oraz natywna polityka mycia są w kodzie; wymagają nowej paczki 32, kompilacji i odbioru na iPhonie. To zadanie zatwierdza wydanie Androida; brak nowego odbioru ani podpisania iOS.",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
-        "B939: rzeczywisty odbiór szczegółów DEV nie jest zakończony. W aktualnym podglądzie a4cc3c55 zatwierdzony zapisany wpis jest odrzucany (HTTP 401); potrzebne skuteczne logowanie aktualnym hasłem. Produkcja jest autoryzowana po wymaganym odbiorze; nowe zgłoszenia i publikacja sklepowa nadal wstrzymane. Aktualny dowód: docs/release/evidence/b939-dev-production-2026-11-02.json",
-        "B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
@@ -195,7 +191,7 @@
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w wewnętrznym TestFlight 31; zewnętrzna grupa czeka na ocenę Apple. Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować.",
+      "nextAction": "Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w TestFlight 31, wewnętrznie i zewnętrznie (Testing). Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować.",
       "relatedEvidence": [
         "docs/release/evidence/transshipment-resume-29-50.json",
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
@@ -218,17 +214,15 @@
       "summary": "Podgląd DEV otwiera zatwierdzony widok własnej inwentaryzacji i jej zdjęcia przez transport tylko do odczytu.",
       "android": {
         "status": "implemented",
-        "evidence": "docs/release/evidence/b939-dev-readonly-2026-11-01.json",
+        "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
         "reason": "Natywny mostek zachowuje obsługę inwentaryzacji; podgląd przeglądarkowy używa własnego mostka bez podszywania się pod Androida."
       },
       "ios": {
         "status": "implemented",
-        "evidence": "docs/release/evidence/b939-dev-readonly-2026-11-01.json",
+        "evidence": "docs/release/evidence/b939-dev-production-2026-11-02.json",
         "reason": "Ten sam interfejs i zachowany mostek natywny; w DEV przeglądarkowym dostępne są tylko odczyty własnych rekordów."
       },
-      "blockers": [
-        "B939: rzeczywisty odbiór szczegółów DEV nie jest zakończony. W aktualnym podglądzie a4cc3c55 zatwierdzony zapisany wpis jest odrzucany (HTTP 401); potrzebne skuteczne logowanie aktualnym hasłem. Produkcja jest autoryzowana po wymaganym odbiorze; nowe zgłoszenia i publikacja sklepowa nadal wstrzymane. Aktualny dowód: docs/release/evidence/b939-dev-production-2026-11-02.json"
-      ]
+      "blockers": []
     },
     {
       "id": "MOBILE-2026-11-01-01",
@@ -241,9 +235,7 @@
         "status": "implemented",
         "evidence": "Wspólne dist/, natywna polityka dokumentów iOS, źródła 3fecbda2db0c38fc9b51178730af602a3601630f; przygotowanie paczki pozostaje otwarte."
       },
-      "blockers": [
-        "B939 działa na DEV. Wdrożenie produkcyjne jest autoryzowane; pozostają odbiór funkcjonalny DEV i wdrożenie z weryfikacją produkcji."
-      ]
+      "blockers": []
     },
     {
       "id": "ROUTE-NOTIFICATION-OPEN-2026-11-01",
