@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "0398328ed703102d87bc4951d1f2523c50ed3a49",
+  "sourceCommit": "552e00ed8e64403f79f47d44c7c802dfe022c263",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "builtAt": "2026-11-02T09:34:26.750Z",
+  "builtAt": "2026-11-02T10:25:17.412Z",
   "assetManifestSha256": "8eab6f1dd8d8d4fbfc3984fd06ae98142f6d5f221009cd89067669becef0ceb0",
   "mode": "demo-driver-preview",
   "backend": {
@@ -15,10 +15,10 @@
   "androidRuntimeVersion": "0.1.29-internal-test",
   "note": "Podgląd DEMO wszystkich widoków na danych przykładowych. Rzeczywiste dane DEV wymagają osobnej sesji pod devViewerUrl. Funkcje aparatu pozostają natywne.",
   "integration": {
-    "candidateSha": "0398328ed703102d87bc4951d1f2523c50ed3a49",
-    "initialIntegrationSha": "db3394d27ba1aea6e4166c40ca5443df5b650354",
+    "candidateSha": "552e00ed8e64403f79f47d44c7c802dfe022c263",
+    "initialIntegrationSha": "0398328ed703102d87bc4951d1f2523c50ed3a49",
     "integrationBranch": "codex/preview-integration",
-    "baseSha": "db3394d27ba1aea6e4166c40ca5443df5b650354",
+    "baseSha": "0398328ed703102d87bc4951d1f2523c50ed3a49",
     "branches": [
       {
         "name": "main",
@@ -114,7 +114,7 @@
       },
       {
         "name": "codex/mobile-release-control",
-        "sha": "1b108e2498fcea06e2ef5453bcf7d14d11c7de65"
+        "sha": "f1e323d2599012ce8af4fe65c0a417155449b779"
       },
       {
         "name": "codex/play-production-31",
@@ -182,7 +182,7 @@
       }
     ],
     "mergedBranches": [
-      "codex/dev-login-autofill"
+      "codex/mobile-release-control"
     ],
     "skippedBranches": [
       "main",
@@ -201,13 +201,13 @@
       "codex/advanced-document-scanner",
       "codex/b939-dev-inventory-readonly",
       "codex/car-wash-allowance",
+      "codex/dev-login-autofill",
       "codex/driver-neon-app-icon",
       "codex/driver-transfer-photo-preview",
       "codex/full-vehicle-inventory",
       "codex/ios-inventory-complete",
       "codex/ios-mobile-readability",
       "codex/ios-operation-tacho-clarity",
-      "codex/mobile-release-control",
       "codex/play-production-31",
       "codex/play-public-latest-2026-11-01",
       "codex/preview-demo-mode",
@@ -226,7 +226,7 @@
       "codex/transshipment-photo-ios-test"
     ]
   },
-  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-0398328ed703102d87bc4951d1f2523c50ed3a49/Super-Spedytor-Test-1to1.apk",
+  "androidDownloadUrl": "https://github.com/AMG-Trans/super-spedytor-kierowca-android/releases/download/preview-552e00ed8e64403f79f47d44c7c802dfe022c263/Super-Spedytor-Test-1to1.apk",
   "androidDownloadLabel": "Pobierz tę samą wersję na Androida",
   "androidDownloadRequiresRepoAccess": true
 }
