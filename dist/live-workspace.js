@@ -512,9 +512,10 @@
   }
   function scanner(){
     const ready=typeof bridge.scanDocument==='function';
-    body().innerHTML=`<section class="panel"><h3>Skanuj dokument</h3><p>Zrób skan jednej lub kilku stron. Po wybraniu „Użyj PDF” sprawdzisz gotowy dokument tutaj.</p><p>Skan zostaje na telefonie. Nie jest wysyłany do zlecenia ani do czatu.</p>${ready?button(standaloneScan?'Zeskanuj kolejny dokument':'Uruchom skaner','data-standalone-scan'):empty('Skaner jest niedostępny w tej wersji aplikacji na tym urządzeniu.')}</section>`+(standaloneScan?`<section class="panel" aria-label="Gotowy skan"><h3>Podgląd skanu</h3>${window.CmrDocumentPreview.markup(standaloneScan,{native:bridge})}</section>`:'')+button('Pliki na telefonie','data-scanner-files',true);
+    body().innerHTML=`<section class="panel"><h3>Skanuj dokument</h3><p>Zrób skan jednej lub kilku stron. Po wybraniu „Użyj PDF” sprawdzisz gotowy dokument tutaj.</p><p>Skan zostaje na telefonie. Nie jest wysyłany do zlecenia ani do czatu.</p>${ready?button(standaloneScan?'Zeskanuj kolejny dokument':'Uruchom skaner','data-standalone-scan'):empty('Skaner jest niedostępny w tej wersji aplikacji na tym urządzeniu.')}</section>`+(standaloneScan?`<section class="panel" aria-label="Gotowy skan"><h3>Podgląd skanu</h3>${window.CmrDocumentPreview.markup(standaloneScan,{native:bridge})}${typeof bridge.saveLocalFile==='function'?button('Zapisz PDF na telefonie',`data-save-local-pdf="${e(standaloneScan.token)}"`):empty('Zapis do wybranego folderu wymaga aktualizacji aplikacji.')}</section>`:'')+button('Pliki na telefonie','data-scanner-files',true);
     const back=root.querySelector('[data-lw-close]');back.setAttribute('aria-label','Wróć do moich spraw');back.onclick=()=>open('menu');
     bind('[data-scanner-files]',()=>open('files'));
+    bindLocalPdfSave();
     bind('[data-standalone-scan]',async()=>{
       const generation=epoch,account=owner;
       // This entry only creates an owned local PDF. No order/point or upload is involved.
@@ -526,11 +527,22 @@
       keepEvidence(standaloneScan);scanner();feedback('PDF gotowy. Otwórz podgląd, aby sprawdzić wszystkie strony.');
     });
   }
+  function bindLocalPdfSave(){
+    bind('[data-save-local-pdf]',async node=>{
+      const generation=epoch,account=owner;
+      const result=await nativeCall(requestId=>bridge.saveLocalFile(requestId,node.dataset.saveLocalPdf));
+      if(!current()||owner!==account||generation!==epoch)return;
+      if(result?.status==='cancelled'){feedback('Zapis anulowany. Skan pozostaje w plikach aplikacji.');return;}
+      if(result?.status!=='saved')fail(result?.message||'Nie potwierdzono zapisu PDF. Spróbuj ponownie.');
+      feedback('PDF zapisany w wybranym miejscu na telefonie.');
+    });
+  }
   async function files(){
     const response=await nativeCall(id=>bridge.localFiles(id));
     if(response?.status!==200)fail('Nie udało się odczytać plików tego konta.');
     const entries=list(response.body);entries.forEach(keepEvidence);
-    body().innerHTML=empty('To lokalne kopie przypisane do Twojego konta. Pozostają dostępne po ponownym zalogowaniu. Sam plik nie potwierdza przyjęcia dokumentu w TMS.')+entries.map(file=>`<section class="panel"><h3>${e(file.name)}</h3><p>${e(file.mime)} · ${(Number(file.size)/1024/1024).toFixed(1)} MB</p><a href="ssfile://local/${e(file.token)}" target="_blank">Otwórz lub zachowaj w Plikach</a>${button('Usuń tę lokalną kopię',`data-local-remove="${e(file.token)}"`,true)}</section>`).join('');
+    body().innerHTML=empty('To lokalne kopie przypisane do Twojego konta. Pozostają dostępne po ponownym zalogowaniu. Sam plik nie potwierdza przyjęcia dokumentu w TMS.')+entries.map(file=>`<section class="panel"><h3>${e(file.name)}</h3><p>${e(file.mime)} · ${(Number(file.size)/1024/1024).toFixed(1)} MB</p><a href="ssfile://local/${e(file.token)}" target="_blank">Otwórz plik</a>${file.mime==='application/pdf'&&typeof bridge.saveLocalFile==='function'?button('Zapisz PDF na telefonie',`data-save-local-pdf="${e(file.token)}"`,true):''}${button('Usuń tę lokalną kopię',`data-local-remove="${e(file.token)}"`,true)}</section>`).join('');
+    bindLocalPdfSave();
     bind('[data-local-remove]',async n=>{if(!confirm('Usunąć tę lokalną kopię? Najpierw sprawdź zapis w TMS albo zachowaj plik poza aplikacją.'))return;bridge.releaseFile(n.dataset.localRemove);localEvidence.delete(n.dataset.localRemove);if(standaloneScan?.token===n.dataset.localRemove)standaloneScan=null;await files();});
   }
   async function expenses(entry=null,sourcePoint=null){

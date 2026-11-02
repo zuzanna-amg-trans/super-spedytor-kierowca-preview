@@ -4657,7 +4657,7 @@ function renderBackendPanel(){
   const retry=$('#backend-retry',panel);
   if(retry)retry.onclick=()=>driverBridge?.backendRefresh();
 }
-function renderSavedDriverLogin(panel,error){
+function renderSavedDriverLogin(panel,error,loginBridge=driverBridge){
   const logins=[...new Set((Array.isArray(backendState.saved_logins)?backendState.saved_logins:[]).filter(value=>typeof value==='string'&&value.length>0&&value.length<=200))];
   const ui=renderSavedDriverLogin.state||(renderSavedDriverLogin.state={manual:false,selected:'',username:'',remember:true,failure:''});
   if(backendState.login_failure_id&&ui.failure!==backendState.login_failure_id){
@@ -4666,29 +4666,29 @@ function renderSavedDriverLogin(panel,error){
   const selected=logins.includes(ui.selected)?ui.selected:logins[0]||'';
   const manual=ui.manual||!selected;
   const problem=error||backendState.saved_credentials_error||'';
-  const accounts=logins.length?`<section class="backend-saved-logins" aria-label="Zapisane konta kierowców"><h3>Zapisane konta</h3>${logins.map((username,index)=>`<div class="backend-saved-row ${!manual&&username===selected?'selected':''}"><button type="button" class="backend-saved-account" data-saved-login="${index}" aria-pressed="${!manual&&username===selected}">${icon('truck')}<span>${esc(username)}<small>Hasło zapamiętane na tym iPhonie</small></span>${!manual&&username===selected?icon('check'):icon('arrow')}</button><button type="button" class="backend-saved-remove" data-forget-login="${index}" aria-label="Usuń zapisane konto ${esc(username)}" title="Usuń login i hasło z tego iPhone’a">${icon('close')}</button></div>`).join('')}</section>`:'';
-  const fields=manual?`<label><span>Login</span><input id="backend-username" name="username" value="${esc(ui.username)}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="200" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="current-password" maxlength="1000" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${ui.remember?'checked':''}><span>Zapamiętaj login i hasło na tym iPhonie</span></label>`:'';
-  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="on"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>${manual?'Wpisz dane konta kierowcy Super Spedytora.':'Wybierz zapisane konto, aby zalogować się bez wpisywania hasła.'}</p>${problem?`<div class="backend-error" role="alert">${icon('info')} ${esc(problem)}</div>`:''}${accounts}${logins.length?`<button id="backend-other-account" class="backend-other-account" type="button">Inny użytkownik</button>`:''}${fields}<button type="submit">${icon('signal')} ${manual?'Połącz z Super Spedytorem':`Zaloguj jako ${esc(selected)}`}</button><div class="backend-security">${icon('check')} Hasła chroni Pęk kluczy tego iPhone’a. Wylogowanie kończy sesję; zapisane konto możesz usunąć z listy.</div></form>`;
+  const accounts=logins.length?`<section class="backend-saved-logins" aria-label="Zapisane konta kierowców"><h3>Zapisane konta</h3>${logins.map((username,index)=>`<div class="backend-saved-row ${!manual&&username===selected?'selected':''}"><button type="button" class="backend-saved-account" data-saved-login="${index}" aria-pressed="${!manual&&username===selected}">${icon('truck')}<span>${esc(username)}<small>Hasło zapamiętane na tym urządzeniu</small></span>${!manual&&username===selected?icon('check'):icon('arrow')}</button><button type="button" class="backend-saved-remove" data-forget-login="${index}" aria-label="Usuń zapisane konto ${esc(username)}" title="Usuń login i hasło z tego urządzenia">${icon('close')}</button></div>`).join('')}</section>`:'';
+  const fields=manual?`<label><span>Login</span><input id="backend-username" name="username" value="${esc(ui.username)}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="200" required></label><label><span>Hasło</span><input id="backend-password" name="password" type="password" autocomplete="current-password" maxlength="1000" required></label><label class="backend-remember"><input id="backend-remember" name="remember" type="checkbox" ${ui.remember?'checked':''}><span>Zapamiętaj login i hasło na tym urządzeniu</span></label>`:'';
+  panel.innerHTML=`<form id="backend-login" class="backend-login" autocomplete="on"><span class="backend-login-mark">${icon('truck')}</span><small>SUPER SPEDYTOR KIEROWCA${installedAppVersion?` · ${esc(installedAppVersion)}`:''}</small><h2>Zaloguj kierowcę</h2><p>${manual?'Wpisz dane konta kierowcy Super Spedytora.':'Wybierz zapisane konto, aby zalogować się bez wpisywania hasła.'}</p>${problem?`<div class="backend-error" role="alert">${icon('info')} ${esc(problem)}</div>`:''}${accounts}${logins.length?`<button id="backend-other-account" class="backend-other-account" type="button">Inny użytkownik</button>`:''}${fields}<button type="submit">${icon('signal')} ${manual?'Połącz z Super Spedytorem':`Zaloguj jako ${esc(selected)}`}</button><div class="backend-security">${icon('check')} Hasła są chronione na tym urządzeniu. Wylogowanie kończy sesję; zapisane konto możesz usunąć z listy.</div></form>`;
   const form=$('#backend-login',panel);
   if(privacyPolicyUrl)form.insertAdjacentHTML('beforeend',privacyPolicyLink());
   $$('[data-saved-login]',panel).forEach(button=>button.onclick=()=>{
-    ui.selected=logins[Number(button.dataset.savedLogin)];ui.manual=false;renderSavedDriverLogin(panel,error);
+    ui.selected=logins[Number(button.dataset.savedLogin)];ui.manual=false;renderSavedDriverLogin(panel,error,loginBridge);
   });
   $$('[data-forget-login]',panel).forEach(button=>button.onclick=()=>{
-    button.disabled=true;driverBridge.backendForgetSavedAccount(logins[Number(button.dataset.forgetLogin)]);
+    button.disabled=true;loginBridge.backendForgetSavedAccount(logins[Number(button.dataset.forgetLogin)]);
   });
   const other=$('#backend-other-account',panel);
-  if(other)other.onclick=()=>{ui.manual=true;ui.username='';renderSavedDriverLogin(panel,error);$('#backend-username',panel)?.focus();};
+  if(other)other.onclick=()=>{ui.manual=true;ui.username='';renderSavedDriverLogin(panel,error,loginBridge);$('#backend-username',panel)?.focus();};
   const remember=$('#backend-remember',panel);
   if(manual&&remember)remember.onchange=()=>{ui.remember=remember.checked;};
   form.onsubmit=event=>{
     event.preventDefault();
-    if(!manual){driverBridge.backendLoginSaved(selected);return;}
+    if(!manual){loginBridge.backendLoginSaved(selected);return;}
     const username=$('#backend-username',panel).value.trim();
     const password=$('#backend-password',panel).value;
     ui.username=username;ui.remember=Boolean($('#backend-remember',panel)?.checked);
     $('#backend-password',panel).value='';
-    driverBridge.backendLoginRemembered(username,password,ui.remember);
+    loginBridge.backendLoginRemembered(username,password,ui.remember);
   };
 }
 // AA28: a separate GET-only Tacho surface; no offline request cache or demo fallback.
@@ -4937,3 +4937,26 @@ if(backendMode){
   window.addEventListener('beforeunload',()=>clearInterval(inventoryTicker),{once:true});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshInventoryTasks(true);});
 }
+
+// Public, explicit DEMO of the approved account selector. No native bridge,
+// real authentication, password persistence or TMS requests are installed.
+function showSavedLoginPreview(){
+  if(!previewMode||backendMode||driverBridge||appQuery.get('loginPreview')!=='1')return false;
+  backendState={status:'disconnected',saved_logins:['Kierowca DEMO A','Kierowca DEMO B']};
+  const panel=backendPanel();
+  document.documentElement.classList.add('backend-auth-gate');
+  const draw=()=>{
+    renderSavedDriverLogin(panel,'',demo);
+    panel.insertAdjacentHTML('afterbegin','<div class="backend-error" role="note"><strong>DEMO · Zapisane konta</strong><p>Wyłącznie przykładowe dane. Nie wpisuj prawdziwego hasła. Ta strona nie loguje do TMS i nie zapisuje haseł.</p><a href="?android=1&amp;preview=1">Wróć do podglądu aplikacji</a></div>');
+  };
+  const demo={
+    backendLoginSaved:username=>toast('DEMO: wybrano konto '+username+'. W aplikacji następuje rzeczywiste logowanie.'),
+    backendForgetSavedAccount:username=>{backendState.saved_logins=backendState.saved_logins.filter(name=>name!==username);draw();},
+    backendLoginRemembered:(username,_password,remember)=>{
+      if(remember&&username&&!backendState.saved_logins.includes(username))backendState.saved_logins.unshift(username);
+      delete renderSavedDriverLogin.state;draw();toast('DEMO: ustawienie konta zmienione tylko w pamięci tego podglądu.');
+    }
+  };
+  draw();return true;
+}
+showSavedLoginPreview();

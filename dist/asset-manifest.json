@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "36b74cddf2c54100989c1334b1f2bfe1e9c4252b",
+  "sourceCommit": "cbe0a54827ec10240cea8f114221992e9c061aeb",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "9c856f1e5366e8772b8784999fd42be3fb724188897d7d26d26c004fddf69a12",
+  "assetManifestSha256": "e19ad096f1afcd41759ab14c492c909927a2b5a9ba4e6a8b320dff293ff19419",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -208,8 +208,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "8c811d56666221197653c4fe5599f1c38c96d0702d964c834aa9922cf9e5ea51",
-      "size": 457547
+      "sha256": "4c46800f5ca22fae102fe848cc8e5b3928b14bedf1af0b0fc9d316f7c6501364",
+      "size": 459087
     },
     {
       "path": "full-inventory-catalog.js",
@@ -258,8 +258,8 @@
     },
     {
       "path": "live-workspace.js",
-      "sha256": "d59f34ea0790515127d5bf17feca06e3de96318d8d7b2488e81079e1e9e6c7c0",
-      "size": 101386
+      "sha256": "f9aa88ada3b7ed3ce1e70594cb16ca3fb1bd742d7bdbc4bef2895f99242b1e9f",
+      "size": 102360
     },
     {
       "path": "mobile-readability.css",
