@@ -23,6 +23,8 @@
   const SESSION_MESSAGE='Nie można odnowić sesji w tej przeglądarce. Zaloguj się ponownie; automatyczne odnawianie wymaga pliku cookie Super Spedytora.';
   let accessToken=null;
   let expectedIdentity=null;
+  let expectedUsername=null;
+  let sessionSource=null;
   let generation=0;
   let queue=Promise.resolve();
   // Cookie-changing responses must finish in order even across account switches.
@@ -44,7 +46,7 @@
       getAppVersion:()=>String(build.androidRuntimeVersion||build.androidSourceVersion||''),
       getUiSourceCommit:()=>String(build.sourceCommit||''),
       getUiAssetsHash:()=>String(build.assetManifestSha256||''),
-      backendLogin:failClosed,backendRefresh:failClosed,backendLogout:failClosed,
+      backendLogin:failClosed,backendLoginFromTms:failClosed,backendRefresh:failClosed,backendLogout:failClosed,
       backendPointAction:failClosed,backendServiceSurvey:failClosed,backendTestingMode(){}
     };
     return;
@@ -82,6 +84,8 @@
     controllers.clear();
     accessToken=null;
     expectedIdentity=null;
+    expectedUsername=null;
+    sessionSource=null;
     queue=Promise.resolve();
     return generation;
   }
@@ -181,6 +185,9 @@
     }catch(error){alive(gen);accessToken=null;throw error;}
   }
   function verifyProfile(profile){
+    if(expectedUsername!==null&&profile.username!==expectedUsername){
+      accessToken=null;throw new SessionError('Sesja TMS należy do innego konta. Połącz właściwe konto w TMS DEV albo zaloguj się hasłem.',403);
+    }
     if(profile.has_driver!==true){accessToken=null;throw new SessionError('To konto nie ma profilu kierowcy');}
     let identity='';
     if(profile.id!==undefined&&profile.id!==null){
@@ -279,6 +286,7 @@
     getUiAssetsHash:()=>String(build.assetManifestSha256||''),
     backendLogin(username,password,rememberMe){
       const gen=invalidate();
+      sessionSource='password';
       saveRemember(false);
       const user=typeof username==='string'?username.trim():'';
       let secret=typeof password==='string'?password:'';
@@ -297,6 +305,22 @@
         publish(next,gen);
       },error=>{accessToken=null;saveRemember(false);publish(errorState(error),gen);});
     },
+    backendLoginFromTms(username){
+      const gen=invalidate();
+      saveRemember(false);
+      const user=typeof username==='string'?username.trim():'';
+      if(!user){publish({status:'error',message:'Wpisz login konta zalogowanego w TMS DEV.'},gen);return Promise.resolve();}
+      expectedUsername=user;
+      sessionSource='tms';
+      publish({status:'connecting',message:'Potwierdzanie sesji TMS DEV…'},gen);
+      return enqueue(gen,async()=>{
+        // The browser sends its existing HttpOnly cookie. Never read the TMS
+        // tab's storage, transfer a token between tabs or persist this session.
+        await refreshAccess(gen);
+        alive(gen);
+        const next=await snapshot(gen);alive(gen);publish(next,gen);
+      },error=>{accessToken=null;saveRemember(false);publish(errorState(error),gen);});
+    },
     backendRefresh(){
       const gen=generation;
       if(!accessToken&&!wantsRemember()){
@@ -310,12 +334,13 @@
       });
     },
     backendLogout(){
+      const revokeCookie=sessionSource==='password';
       const gen=invalidate();
       saveRemember(false);
       publish({status:'disconnected',message:'Wylogowano z Super Spedytora'},gen);
       // Browser owns the HttpOnly cookie. Delete local access immediately;
       // revoke the server cookie without exposing it to JavaScript.
-      return request('POST','logout/',{},false,gen).catch(()=>{});
+      return revokeCookie?request('POST','logout/',{},false,gen).catch(()=>{}):Promise.resolve();
     },
     backendTestingMode(){},
     liveInventoryEnabled(){return true;},

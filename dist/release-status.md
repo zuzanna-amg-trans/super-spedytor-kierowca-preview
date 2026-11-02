@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T10:25:17.478Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T10:50:01.726Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ Wysłanie nowej paczki i publiczna publikacja są oddzielnymi krokami. Wspólna 
 
 ## Android
 
-Następny krok: Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować. B935/AA39: wdrożyć dokładny backend b95ab985 po zatwierdzonym kontrolerze #666; po kontroli aktualnej integracji i rzeczywistych odbiorach przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.
+Następny krok: Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.
 
 Stan sklepu: świeży odczyt.
 - Pozostają wymagane rzeczywiste odbiory Android Auto i zakresu produkcyjnego; kompilacja nie potwierdza odbioru auta.
@@ -28,7 +28,6 @@ Stan sklepu: świeży odczyt.
 - Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.
 - Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.
 - Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.
-- Wdrożenie backendu b95ab985 oczekuje na zatwierdzenie technicznego kontrolera PR #666 i metody uruchomienia.
 - Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.
 - Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.
 
@@ -49,6 +48,5 @@ Stan sklepu: świeży odczyt.
 - Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.
 - Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.
 - Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.
-- Wdrożenie backendu b95ab985 oczekuje na zatwierdzenie technicznego kontrolera PR #666 i metody uruchomienia.
 - Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.
 - Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.

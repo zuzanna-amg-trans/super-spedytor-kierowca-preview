@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T10:25:17.478Z",
-  "sourceCommit": "552e00ed8e64403f79f47d44c7c802dfe022c263",
+  "generatedAt": "2026-11-02T10:50:01.726Z",
+  "sourceCommit": "7185989ea2d75068ff6fa1c7952ca087e7a92a42",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -91,11 +91,10 @@
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
-        "Wdrożenie backendu b95ab985 oczekuje na zatwierdzenie technicznego kontrolera PR #666 i metody uruchomienia.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować. B935/AA39: wdrożyć dokładny backend b95ab985 po zatwierdzonym kontrolerze #666; po kontroli aktualnej integracji i rzeczywistych odbiorach przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.",
+      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: zapisany wpis DEV odrzucony (HTTP 401); po skutecznym logowaniu dokończyć rzeczywisty odczyt i wymagany odbiór, następnie autoryzowane wdrożenie produkcyjne i odczyt. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.",
       "relatedEvidence": [
         "docs/release/evidence/transshipment-resume-29-50.json",
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
@@ -103,7 +102,8 @@
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
         "docs/release/evidence/b939-dev-production-2026-11-02.json"
       ],
-      "sourceFingerprint": "783dfc0ee3fb6e972fb9417246f95e1664b57c4276f9c618ccfb0be0986840d9",
+      "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
+      "sourceFingerprint": "347884a42bb5ee550e9de5ccb7e39f756ad2c02f96498066427ebb1bfef53667",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -192,7 +192,6 @@
         "Nowe pola API wymagają wdrożenia i odbioru backendu na DEV przed promocją do produkcji.",
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
-        "Wdrożenie backendu b95ab985 oczekuje na zatwierdzenie technicznego kontrolera PR #666 i metody uruchomienia.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
@@ -205,7 +204,8 @@
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
         "docs/release/evidence/b939-dev-production-2026-11-02.json"
       ],
-      "sourceFingerprint": "13d71df76d4a4336217188d43874e6d2324246897035efdcae409fabe4270b19",
+      "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
+      "sourceFingerprint": "4e6b02d43298bffce18144c24bf3931ca17be7a7250b6eaba8a325cc4c7bcd3d",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -316,7 +316,6 @@
       },
       "blockers": [
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
-        "Wdrożenie backendu b95ab985 oczekuje na zatwierdzenie technicznego kontrolera PR #666 i metody uruchomienia.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho."
       ]
     }
