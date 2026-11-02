@@ -759,7 +759,21 @@
     event.preventDefault();event.stopImmediatePropagation();
     open(workspace?'menu':designed?({scanner:'scanner',tacho:'tacho',chat:'chat',collection:'collection','cmr-transferor':'collection',transshipment:'transshipment','transshipment-out':'transshipment',fueling:'fueling',parking:'fueling',survey:'service',inventory:'service',handover:'service',history:'service',help:'help'}[designed.dataset.designedView]||'menu'):name==='service'?'service':name==='help'?'help':name);
   },true);
-  window.addEventListener('ss-native-state',()=>{const account=state().status==='connected'?String(state().profile?.id??''):'';if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();transPhotos.clear();transCmrReviews.clear();standaloneScan=null;evidenceOwner=account;}if(root&&!current())close();if(!allWorkflows())return;const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';const menu=document.querySelector('.driver-chip');if(menu){if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}}});
+  function syncState(){
+    const session=state(),account=session.status==='connected'?String(session.profile?.id??''):'';
+    if(account!==evidenceOwner){localEvidence.clear();formDrafts.clear();transPhotos.clear();transCmrReviews.clear();standaloneScan=null;evidenceOwner=account;}
+    if(root&&!current())close();
+    if(!allWorkflows())return;
+    const button=document.getElementById('workspace-choose');if(button)button.textContent='Moje sprawy';
+    const menu=document.querySelector('.driver-chip');
+    if(menu){
+      if(account){menu.dataset.liveMenu='1';menu.textContent='Moje sprawy';menu.setAttribute('role','button');menu.tabIndex=0;}
+      else{delete menu.dataset.liveMenu;menu.textContent='SUPER SPEDYTOR';menu.removeAttribute('role');menu.removeAttribute('tabindex');}
+    }
+  }
+  window.addEventListener('ss-native-state',syncState);
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-live-menu]')){event.preventDefault();open('menu');}});
-  window.SuperSpedytorLiveWorkspace={open,close};
+  window.SuperSpedytorLiveWorkspace={open,close,syncState};
+  // The restored native session can arrive before this script is loaded.
+  syncState();
 })();

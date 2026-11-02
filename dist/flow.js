@@ -4607,6 +4607,9 @@ function renderBackendPanel(){
   const configurationError=backendState?.configuration_error===true;
   const chip=$('.driver-chip');
   if(chip&&!backendTestWorkspace)chip.textContent=devConnection?'DEV · tylko odczyt':'SUPER SPEDYTOR';
+  // Android publishes state through receive(), without the extra iOS event.
+  // Reconcile the existing menu after every render so its label stays visible.
+  window.SuperSpedytorLiveWorkspace?.syncState?.();
   if(!connected&&status!=='connecting'){
     backendActiveNav='now';backendServicePanel='history';
     state.serviceHistorySelectedId=null;
