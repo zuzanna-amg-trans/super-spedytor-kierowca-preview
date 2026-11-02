@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T15:26:53.545Z",
-  "sourceCommit": "b0687a88e3158680743f7aca4c5179e83d5af425",
+  "generatedAt": "2026-11-02T15:31:55.939Z",
+  "sourceCommit": "70b12931d2653ab832f27766591898f079ecffd9",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -351,12 +351,13 @@
       "summary": "Android zapamiętuje kilka kont kierowców i udostępnia wybór loginu, tak jak istniejący iOS. Wylogowanie zachowuje wpisy; usunięcie dotyczy pojedynczego konta.",
       "android": {
         "status": "implemented",
-        "evidence": "docs/release/evidence/account-scanner-2026-11-02.json"
+        "evidence": "docs/release/evidence/account-scanner-2026-11-02.json",
+        "reason": "Natywny sejf Androida i wspólny wybór kont. Oznaczenie publicznego DEMO pozostaje widoczne przy zmianie konta i otwarciu ręcznego formularza."
       },
       "ios": {
         "status": "implemented",
         "evidence": "docs/release/evidence/account-scanner-2026-11-02.json",
-        "reason": "Istniejący wybór kont Keychain zachowany; wspólny ekran i natywny eksport PDF sprawdzane równolegle."
+        "reason": "Zachowany istniejący Keychain iOS. Wspólny ekran oraz stałe oznaczenie publicznego DEMO sprawdzane równolegle; podgląd nie loguje do TMS."
       },
       "blockers": [
         "Wymagane nowe podpisane 51/32 oraz rzeczywisty odbiór kont/skanera i zapisu plików na odpowiednich urządzeniach. Zachowano pozostałe bramki pełnego wydania."
