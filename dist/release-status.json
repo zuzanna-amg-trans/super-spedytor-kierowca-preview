@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T11:32:38.588Z",
-  "sourceCommit": "525a212f1e3ab0914474af919f9bd2300fd8494b",
+  "generatedAt": "2026-11-02T11:51:32.494Z",
+  "sourceCommit": "36b74cddf2c54100989c1334b1f2bfe1e9c4252b",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -83,6 +83,7 @@
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
         "B935/AA39: mycie dodano do aktualnych źródeł linii 51. Ostatnią potwierdzoną paczką Play pozostaje 50; nowa paczka mycia nie została jeszcze podpisana. Wymagany odbiór nowego przepływu i potwierdzenie deklaracji Data Safety.",
+        "Ponowny test syntetycznego zestawu w nowej sesji DEV jest otwarty: odczyt bazy potwierdził brak ankiety testowej. Wcześniejszy zaakceptowany odbiór B939 i jego wdrożenie produkcyjne pozostają osobnymi dowodami. Szczegóły: docs/release/evidence/dev-tms-session-2026-11-02.json",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
@@ -90,15 +91,19 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
+        "Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.",
+        "Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.",
+        "iOS 32: istnieje archiwum bez podpisu; brak nowego podpisanego IPA i wysyłki TestFlight. Wymagane odbiory bieżącego zakresu pozostają jawne.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego.",
+      "nextAction": "Zgodnie z decyzją właścicielki pozostawić poprawkę zdjęć we wspólnej wersji 51. Zachować wymagane odbiory Android Auto, zakresu produkcyjnego i historii Tacho przed dalszą dystrybucją. W Play ostatni potwierdzony kod to 50. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować. B935/AA39: backend b95ab985 wdrożony 02.11.2026 o 11:23 Europe/Warsaw, z pełnym zweryfikowanym backupem i bez zaległych migracji. Właściciel potwierdził brak odbiorów Android Auto POI/Tacho. Po rzeczywistych wymaganych odbiorach i zatwierdzeniu Data Safety przygotować podpisaną paczkę 51. Nie zgłaszać nowego wydania publicznego. Nowe połączenie z aktywną sesją TMS zostało sprawdzone online. Dokończyć ponowny test zestawu DEV po osobno zatwierdzonym odtworzeniu; stan przygotowania 51/32 opisuje docs/release/evidence/dev-tms-session-2026-11-02.json.",
       "relatedEvidence": [
         "docs/release/evidence/transshipment-resume-29-50.json",
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
         "docs/release/evidence/b939-dev-production-2026-11-01.json",
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
-        "docs/release/evidence/b939-dev-production-2026-11-02.json"
+        "docs/release/evidence/b939-dev-production-2026-11-02.json",
+        "docs/release/evidence/dev-tms-session-2026-11-02.json"
       ],
       "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
       "sourceFingerprint": "347884a42bb5ee550e9de5ccb7e39f756ad2c02f96498066427ebb1bfef53667",
@@ -181,7 +186,8 @@
       "blockers": [
         "Tacho: nowe zasoby wymagają nowej paczki oraz odbioru własnej historii z API DEV przed promocją backendu.",
         "Nowe publiczne zgłoszenia i publikacja w Google Play/App Store pozostają wstrzymane na polecenie użytkowniczki.",
-        "B935/AA39: wspólny interfejs oraz natywna polityka mycia są w kodzie; wymagają nowej paczki 32, kompilacji i odbioru na iPhonie. To zadanie zatwierdza wydanie Androida; brak nowego odbioru ani podpisania iOS.",
+        "B935/AA39: wspólny interfejs oraz natywna polityka mycia są w kodzie; mają skompilowane archiwum 32 bez podpisu; wymagają podpisu, eksportu i odbioru na iPhonie. To zadanie zatwierdza wydanie Androida; brak nowego odbioru ani podpisania iOS.",
+        "Ponowny test syntetycznego zestawu w nowej sesji DEV jest otwarty: odczyt bazy potwierdził brak ankiety testowej. Wcześniejszy zaakceptowany odbiór B939 i jego wdrożenie produkcyjne pozostają osobnymi dowodami. Szczegóły: docs/release/evidence/dev-tms-session-2026-11-02.json",
         "Wersja paczki kandydata różni się od planowanego numeru wydania.",
         "Android: kandydat 0.1.46 (51) ma aktualną alokację i przetestowane niezmienione bramki; brak rzeczywistych wymaganych odbiorów Android Auto/produkcji blokuje podpisywanie.",
         "Fizyczny CarPlay nie jest podłączony.",
@@ -189,16 +195,20 @@
         "Zmiana wspólnych zasobów wymaga nowych zweryfikowanych paczek Android i iOS oraz odbioru konta kierowcy; dotychczasowe paczki nie zawierają tej poprawki.",
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho.",
+        "Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.",
+        "Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.",
+        "iOS 32: istnieje archiwum bez podpisu; brak nowego podpisanego IPA i wysyłki TestFlight. Wymagane odbiory bieżącego zakresu pozostają jawne.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
-      "nextAction": "Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w TestFlight 31, wewnętrznie i zewnętrznie (Testing). Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować.",
+      "nextAction": "Odbiór powiadomień trasy na fizycznym iPhonie potwierdzony 01.11.2026: automatyczny push po zmianie punktu w TMS i otwarcie nowego celu po kliknięciu; CarPlay w aucie pozostaje do odbioru. Poprawkę zdjęć można sprawdzić w TestFlight 31, wewnętrznie i zewnętrznie (Testing). Następna paczka pełnej integracji ma numer 32, po odrębnym odbiorze historii Tacho na DEV. B939: odbiór DEV zaakceptowany, produkcja 4d27b0f9 wdrożona i zweryfikowana. Sklepów jeszcze nie publikować. Nowe połączenie z aktywną sesją TMS zostało sprawdzone online. Dokończyć ponowny test zestawu DEV po osobno zatwierdzonym odtworzeniu; stan przygotowania 51/32 opisuje docs/release/evidence/dev-tms-session-2026-11-02.json.",
       "relatedEvidence": [
         "docs/release/evidence/transshipment-resume-29-50.json",
         "docs/release/evidence/prepublication-50-29-2026-11-01.json",
         "docs/release/evidence/b939-dev-production-2026-11-01.json",
         "docs/release/evidence/route-notification-open-30.json",
         "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
-        "docs/release/evidence/b939-dev-production-2026-11-02.json"
+        "docs/release/evidence/b939-dev-production-2026-11-02.json",
+        "docs/release/evidence/dev-tms-session-2026-11-02.json"
       ],
       "backendDeploymentEvidence": "docs/release/evidence/b935-aa39-car-wash-port-2026-11-02.json",
       "sourceFingerprint": "4e6b02d43298bffce18144c24bf3931ca17be7a7250b6eaba8a325cc4c7bcd3d",
@@ -309,6 +319,25 @@
       "blockers": [
         "Nowa integracja w aktualnej linii aplikacji wymaga podpisanych paczek oraz odbioru ich rzeczywistego przepływu; test DEV poprzedniej paczki AA39 nie jest podpisanym kandydatem 51/32.",
         "Przed podpisaniem pozostają wymagane rzeczywiste odbiory zakresu produkcyjnego i deklaracji Data Safety; pełny profil Android dodatkowo wymaga Android Auto POI/Tacho."
+      ]
+    },
+    {
+      "id": "DEV-TMS-SESSION-2026-11-02",
+      "summary": "Podgląd DEV łączy się przez aktywną sesję TMS i sprawdza wpisany login przed odczytem danych kierowcy.",
+      "android": {
+        "status": "implemented",
+        "evidence": "docs/release/evidence/dev-tms-session-2026-11-02.json",
+        "reason": "Wspólny interfejs i zasoby są zintegrowane; 290 wykonanych testów natywnych oraz lint przeszły. Nowa paczka 51 pozostaje zablokowana przez rzeczywiste wymagane odbiory."
+      },
+      "ios": {
+        "status": "implemented",
+        "evidence": "docs/release/evidence/dev-tms-session-2026-11-02.json",
+        "reason": "Wspólne zasoby są zintegrowane; 101 testów natywnych i archiwum 32 bez podpisu przeszły kontrolę. Podpis, eksport IPA i upload pozostają osobnymi etapami."
+      },
+      "blockers": [
+        "Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.",
+        "Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.",
+        "iOS 32: istnieje archiwum bez podpisu; brak nowego podpisanego IPA i wysyłki TestFlight. Wymagane odbiory bieżącego zakresu pozostają jawne."
       ]
     }
   ]
