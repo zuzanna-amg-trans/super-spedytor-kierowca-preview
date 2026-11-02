@@ -4304,10 +4304,34 @@ let cmrInventoryTasks=[];
 let cmrInventoryScreen=null;
 let cmrInventoryRefreshAt=0;
 let cmrInventoryLoading=false;
-async function inventoryRequest(method,path,body){
-  const result=await nativeRequest(method,path,body);
-  if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Nie udało się odczytać inwentaryzacji.'));
-  return result.body;
+const inventoryOwner=()=>String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??'');
+async function prepareInventoryWorkspace(owner){
+  for(let attempt=0;attempt<40;attempt++){
+    if(owner!==inventoryOwner()||backendState?.status!=='connected')throw new Error('Konto kierowcy zmieniło się. Otwórz właściwe zadanie ponownie.');
+    const workspace=window.SuperSpedytorOfflineWorkspace;
+    if(!backendState?.refreshing&&(!workspace||workspace.ready()))return workspace?.prepare();
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  throw new Error('Poczekaj na odtworzenie zapisu na telefonie i odśwież zadanie.');
+}
+async function inventoryRequest(method,path,body,requireFresh=false){
+  const owner=inventoryOwner();
+  for(let attempt=0;attempt<20;attempt++){
+    const result=await nativeRequest(method,path,body);
+    if(method==='GET'&&Number(result?.http_status||result?.status)===409&&result?.message==='Sesja zmieniła się — otwórz operację ponownie'
+      &&owner===inventoryOwner()&&backendState?.status==='connected'&&attempt<19){
+      await new Promise(resolve=>setTimeout(resolve,100));continue;
+    }
+    if(!liveOperationModel.isSuccess(result)){
+      const body=result?.body;
+      const detail=Array.isArray(body)?body[0]:body?.detail||body?.non_field_errors||body?.message;
+      const message=Array.isArray(detail)?detail[0]:detail;
+      throw new Error(typeof message==='string'&&message.trim()?message.slice(0,600):liveOperationModel.errorMessage(result,'Nie udało się potwierdzić operacji inwentaryzacji.'));
+    }
+    if(owner!==inventoryOwner())throw new Error('Konto kierowcy zmieniło się. Otwórz właściwe zadanie ponownie.');
+    if(requireFresh&&result.cached)throw new Error('Po przerwaniu aparatu połącz się z SuperSpedytorem, aby potwierdzić zapisany krok zadania.');
+    return result.body;
+  }
 }
 async function refreshInventoryTasks(force=false){
   if(!window.SuperSpedytorNative?.backendRequest||!backendMode||backendState?.status!=='connected'||cmrInventoryLoading||(!force&&Date.now()-cmrInventoryRefreshAt<30000))return;
@@ -4331,26 +4355,41 @@ function liveInventoryTasksView(){
 function bindInventoryCards(){
   document.querySelectorAll('[data-cmr-inventory-open]').forEach(button=>{button.disabled=false;button.onclick=()=>openInventory(Number(button.dataset.cmrInventoryOpen));});
 }
-function openInventory(id){
+function openInventory(id,recovery=null){
   if(!window.SuperSpedytorNative?.backendRequest)return;
+  if(!Number.isSafeInteger(id)||id<=0)return;
   if(cmrInventoryScreen)cmrInventoryScreen.close();
-  const owner=String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??'');
+  const owner=inventoryOwner();
+  let requireFreshRecovery=Boolean(recovery);
   if(!window.SuperSpedytorCmrInventory)return;
   cmrInventoryScreen=new window.SuperSpedytorCmrInventory.Screen({
-    id,host:document.querySelector('.device'),request:inventoryRequest,isReadOnly:backendReadOnly,
+    id,host:document.querySelector('.device'),recovery,isReadOnly:backendReadOnly,
+    request:(method,path,body)=>inventoryRequest(method,path,body,requireFreshRecovery),
+    onRecovered:nonce=>{requireFreshRecovery=false;window.SuperSpedytorNative?.acknowledgeInventoryCaptureRecovery?.(nonce);},
     upload:async(path,token,fields)=>{const result=await nativeUpload(path,token,fields);if(!liveOperationModel.isSuccess(result))throw new Error(liveOperationModel.errorMessage(result,'Zdjęcie nie zostało potwierdzone.'));return {...result.body,queued:result.queued===true};},
-    prepare:()=>window.SuperSpedytorOfflineWorkspace?.prepare(),
+    prepare:()=>prepareInventoryWorkspace(owner),
     pendingUploads:()=>window.SuperSpedytorOfflineWorkspace?.inventoryUploads(id)||[],
     reconcile:data=>window.SuperSpedytorOfflineWorkspace?.reconcileInventory(id,data),
     subscribe:listener=>window.SuperSpedytorOfflineWorkspace?.subscribeInventory(listener),
     isActive:()=>backendState?.status==='connected'&&!backendTestWorkspace&&owner===String(backendState?.backend_origin||'native')+'|'+String(backendState?.profile?.id??''),
-    capture:async()=>{const result=await nativeCapturePhoto();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zrobić zdjęcia.');return result;},
+    capture:async context=>{const result=await (window.SuperSpedytorNative.captureInventoryPhoto
+      ?nativeCall(requestId=>window.SuperSpedytorNative.captureInventoryPhoto(requestId,String(context.inventoryId),String(context.attemptId),context.side))
+      :nativeCapturePhoto());if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zrobić zdjęcia.');return result;},
     scan:async()=>{const result=await nativeScanCode();if(result?.status==='cancelled')return null;if(result?.status!=='ok')throw new Error(result?.message||'Nie udało się zeskanować plomby.');return result.code;},
     release:nativeReleaseFile,onClose:()=>{cmrInventoryScreen=null;refreshInventoryTasks(true);}
   });
   cmrInventoryScreen.start();
 }
 window.SuperSpedytorOpenInventory=id=>{if(backendState?.status==='connected')openInventory(Number(id));};
+function resumeInterruptedInventoryCapture(){
+  if(backendState?.status!=='connected'||backendTestWorkspace||cmrInventoryScreen)return;
+  try{
+    const recovery=JSON.parse(window.SuperSpedytorNative?.inventoryCaptureRecovery?.()||'{}');
+    if(!/^[1-9][0-9]*$/.test(String(recovery.inventory_id||''))||!/^[1-9][0-9]*$/.test(String(recovery.attempt_id||''))
+      ||!['back','front'].includes(recovery.side)||!/^[-a-f0-9]{36}$/.test(recovery.nonce||''))return;
+    openInventory(Number(recovery.inventory_id),recovery);
+  }catch{ /* no valid account-bound interruption marker */ }
+}
 function backendDesignedTiming(point,{firstOperation=false,history=false}={}){
   const eta=point.live_eta_datetime||point.eta_datetime;
   const planned=eta||point.planned_at||point.time_window_start;
@@ -4861,6 +4900,7 @@ window.SuperSpedytorBackend={
     else {cmrInventoryTasks=[];if(cmrInventoryScreen)cmrInventoryScreen.close();}
     settleBackendPointWrite(backendState?.write,previousWriteKey,previousContext);
     renderBackendPanel();
+    if(backendState?.status==='connected'&&window.SuperSpedytorNative?.inventoryCaptureRecovery)setTimeout(resumeInterruptedInventoryCapture,0);
     if(backendState?.remember_error)toast(backendState.remember_error);
   },
   // AA9: odpowiedź mostka na backendRequest/backendUpload/capturePhoto/scanDocument/scanCode

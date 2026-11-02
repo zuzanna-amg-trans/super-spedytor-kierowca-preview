@@ -193,10 +193,15 @@
       if(attempt['has_'+job.fields.side])return attempt.hashes?.[job.fields.side]===job.fields.file_sha256
         ?{confirmed:true}:{state:'blocked',message:'W Super Spedytorze jest inne zdjęcie tej strony. Zachowano plik na telefonie.'};
     }
+    // A fresh read may overlap another native snapshot refresh. No write was started yet.
+    if(token!==epoch||offline()||!writable()||backendState?.offline)return {state:'queued'};
     result=job.kind==='upload'
       ?await nativeCall(id=>window.SuperSpedytorNative.backendUpload(id,job.path,job.token,JSON.stringify(job.fields||{})))
       :await nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,job.method,job.path,JSON.stringify(job.body||{})));
     if(token!==epoch)return {state:'uncertain'};
+    if(result?.request_started===false&&Number(result.http_status||result.status)===409
+      &&['Sesja zmieniła się — otwórz operację ponownie','Poczekaj na potwierdzenie aktualnych danych kierowcy'].includes(result.message))
+      return {state:'queued',message:'Zapis nie został wysłany. Oczekuje na zakończenie odświeżania konta kierowcy.'};
     if(outcome(result)){
       if(job.kind==='upload'&&/^documents\/cmr-inventory\/\d+\/photo\/$/.test(job.path)){
         const check=await nativeCall(id=>window.SuperSpedytorNative.backendRequest(id,'GET',job.path.replace(/photo\/$/,''),''));

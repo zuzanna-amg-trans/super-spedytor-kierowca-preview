@@ -1,9 +1,9 @@
 {
   "protocol": 2,
-  "sourceCommit": "3d8acadbd5fafa3ba0a34ce006a2f4b121a3a021",
+  "sourceCommit": "47a9d1522b1c47f765353ce01821afaa14b856c9",
   "sourceBranch": "codex/preview-integration",
   "androidSourceVersion": "0.1.29-internal",
-  "assetManifestSha256": "df3bb7e16c1238d56b10a2dab0709ad64d17f2060820aa327a476dd4ae268269",
+  "assetManifestSha256": "cc0261fe71e85ce38998c3b41b75eb76890a072c35e3acc2fa8f8e141d57cc61",
   "canonicalFormat": "SHA256 of JSON.stringify(files) plus newline; files sorted by path; fields path, sha256, size",
   "files": [
     {
@@ -128,8 +128,8 @@
     },
     {
       "path": "cmr-inventory.js",
-      "sha256": "a30ec993b06bfacebf0aedfccf7da2f7335fb3d52d3d2cb5243fe1f5abee9c04",
-      "size": 18347
+      "sha256": "c0f0994e96e6241c993b1b6b32669988cb2ed5e4a4aa421f9da9734e29f43902",
+      "size": 21511
     },
     {
       "path": "demo-assets.js",
@@ -208,8 +208,8 @@
     },
     {
       "path": "flow.js",
-      "sha256": "ec2f8eb80359992add14a0031dfea5c6d91952e69225a6068f23217807312875",
-      "size": 459348
+      "sha256": "aee8b60c84a7b8729db50105008aa4ba6d1f56b3d99e3e2bd7995824d97fc171",
+      "size": 462139
     },
     {
       "path": "full-inventory-catalog.js",
@@ -273,8 +273,8 @@
     },
     {
       "path": "offline-workspace.js",
-      "sha256": "1764a372cb1e5ccb84e814a063317b7785fa5e40315cc30e7af682f105ddfc21",
-      "size": 21246
+      "sha256": "1111192d66223a2c0666f93bf6a7f3fb97d1c7318d67eb068e599b55d572506f",
+      "size": 21787
     },
     {
       "path": "offline.css",

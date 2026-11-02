@@ -1,11 +1,11 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T19:09:03.036Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T23:32:39.357Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
-| Android | 0.1.47 (52) | 0.1.47 (52) | NIE | Wysłane do sklepu |
-| Apple iOS | 0.4.23 (33) | 0.4.23 (33) | NIE | Wysłane do sklepu |
+| Android | 0.1.47 (52) | 0.1.47 (52) | TAK | Do przygotowania |
+| Apple iOS | 0.4.23 (33) | 0.4.23 (33) | TAK | Do przygotowania |
 
 Wysłanie nowej paczki i publiczna publikacja są oddzielnymi krokami. Wspólna gotowość: **NIE**.
 
@@ -33,7 +33,7 @@ Stan sklepu: świeży odczyt.
 - iOS 33: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.
 - Android 52: Google Play Internal Testing, dostępny. iOS 33: wewnętrzny TestFlight, Testing. Wymagany rzeczywisty odbiór kont/aparatu/zapisu PDF na telefonach oraz pozostałe odbiory pełnego publicznego wydania.
 - Android 52 i iOS 33 są podpisane i dostępne wewnętrznie. Wymagany rzeczywisty odbiór przycisku Moje sprawy, aparatu, zapisu PDF oraz kont na telefonach; pozostałe odbiory pełnego publicznego wydania pozostają otwarte.
-- Brakuje potwierdzenia: pola publicznego zgłoszenia w sklepie, odbiór backendu.
+- Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.
 
 ## Apple iOS
 
@@ -57,4 +57,4 @@ Stan sklepu: świeży odczyt.
 - iOS 33: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.
 - Android 52: Google Play Internal Testing, dostępny. iOS 33: wewnętrzny TestFlight, Testing. Wymagany rzeczywisty odbiór kont/aparatu/zapisu PDF na telefonach oraz pozostałe odbiory pełnego publicznego wydania.
 - Android 52 i iOS 33 są podpisane i dostępne wewnętrznie. Wymagany rzeczywisty odbiór przycisku Moje sprawy, aparatu, zapisu PDF oraz kont na telefonach; pozostałe odbiory pełnego publicznego wydania pozostają otwarte.
-- Brakuje potwierdzenia: pola publicznego zgłoszenia w sklepie, odbiór backendu.
+- Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.

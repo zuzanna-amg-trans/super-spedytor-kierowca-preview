@@ -4,7 +4,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
   const checks = {
-    separate_sleeve: 'Ten ładunek jest w osobnej koszulce.',
+    separate_sleeve: 'Zapakowałem dokumenty tego ładunku do osobnej koszulki.',
     cmr_first: 'Pierwszą stroną, widoczną z przodu, jest CMR.',
     blank_last_reverse: 'Z tyłu jest pusty rewers ostatniej strony CMR z plombą.',
     signatures_stamps_annotations: 'Komplet zawiera wszystkie wymagane podpisy, pieczątki i adnotacje.',
@@ -15,7 +15,7 @@
     driver_disagrees: 'Kierowca zgłosił niezgodność kompletu.',
     seal_mismatch: 'Plomba jest przypisana do innego dokumentu.',
     back_or_seal_unreadable: 'Nie potwierdzono pustego rewersu i czytelnej, zgodnej plomby.',
-    ambiguous_document: 'Kilka dokumentów pasuje do zdjęcia. Wymagana kontrola CWP.',
+    ambiguous_document: 'Kilka dokumentów pasuje do zdjęcia. Wymagana kontrola biura.',
     document_not_matched: 'Nie znaleziono jednoznacznie zgodnej kopii CMR po rozładunku.',
     verification_error: 'Porównanie dokumentów nie zakończyło się poprawnie.',
     missing_document: 'Zgłoszono brak dokumentu.',
@@ -37,6 +37,15 @@
     if (attempt.status === 'matched' || attempt.issue === 'seal_mismatch') return 'confirm';
     return 'review';
   }
+  function captureRecoveryNotice(data, recovery) {
+    if (String(data.id) !== String(recovery.inventory_id)) throw new Error('Odczytano inne zadanie CMR. Otwórz właściwe zadanie ponownie.');
+    if (data.status === 'completed') return 'Odczytano zapisany stan. Ta inwentaryzacja została już zakończona.';
+    const attempt = (data.attempts || []).find(row => String(row.id) === String(recovery.attempt_id));
+    if (!attempt || attempt.status === 'cancelled') return 'Przerwano pracę aparatu. Odczytano bieżący stan zadania; poprzednie zdjęcie nie zostanie użyte w innej koszulce.';
+    if (attempt['has_' + recovery.side]) return 'Przywrócono zadanie po przerwaniu aparatu. Zapis tego zdjęcia jest potwierdzony w SuperSpedytorze.';
+    const side = recovery.side === 'back' ? 'tyłu z plombą' : 'przodu z CMR';
+    return 'Przerwano wykonywanie zdjęcia ' + side + '. To zdjęcie nie zostało zapisane w SuperSpedytorze — wykonaj je ponownie. Wcześniej zapisane kroki są zachowane.';
+  }
   function requestKey() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -45,7 +54,8 @@
   }
   class Screen {
     constructor(options) {
-      this.options = options; this.data = null; this.busy = false; this.error = '';
+      this.options = options; this.data = null; this.busy = false; this.error = ''; this.notice = '';
+      this.recoveryHandled = false;
       this.images = {}; this.timer = null; this.disposed = false; this.polls = 0; this.files = {};
       this.root = document.createElement('section'); this.root.className = 'cmri-screen';
       this.root.setAttribute('aria-label', 'Inwentaryzacja zamkniętych CMR');
@@ -85,6 +95,15 @@
       if (active && !['queued', 'checking'].includes(active.status) && (active.has_front || active.has_back)) {
         const imageData = await this.options.request('GET', this.path() + '?images=' + active.id);
         if (!this.disposed) this.images[active.id] = imageData.attempts.find(a => a.id === active.id) || {};
+      }
+      if (this.disposed || this.options.isActive && !this.options.isActive()) return;
+      if (this.options.recovery && !this.recoveryHandled) {
+        this.notice = captureRecoveryNotice(data, this.options.recovery);
+        this.options.onRecovered?.(this.options.recovery.nonce);
+        this.recoveryHandled = true;
+      } else if (this.options.recovery && this.recoveryHandled) {
+        const recovered = (data.attempts || []).find(row => String(row.id) === String(this.options.recovery.attempt_id));
+        if (recovered && recovered['has_' + this.options.recovery.side]) this.notice = '';
       }
       this.render(); this.schedule();
     }
@@ -127,7 +146,7 @@
       this.assertWritable();
       const attempt = activeAttempt(this.data);
       if(!attempt||attempt['has_'+side]||this.pendingPhotos().length)return;
-      const file = this.files[side] || await this.options.capture();
+      const file = this.files[side] || await this.options.capture({inventoryId:this.options.id, attemptId:attempt.id, side});
       if (!file) return;
       if(this.disposed||this.readOnly()||this.options.isActive&&!this.options.isActive()){this.options.release(file.token);return;}
       this.files[side] = {...file, attemptId: attempt.id};
@@ -149,23 +168,32 @@
     }
     form(attempt) {
       const issue = attempt.issue === 'seal_mismatch';
-      return this.gallery(attempt) + (issue ? '<p class="cmri-warning">Porównaj papierowy CMR ze skanem po rozładunku. Zgodność treści nie naprawia przypisania plomby.</p>' : '') +
+      return '<p class="cmri-note" role="status">' + (issue ? 'System rozpoznał CMR zgodny ze skanem z rozładunku, ale przypisanie plomby wymaga wyjaśnienia przez biuro.' : 'System rozpoznał CMR zgodny ze skanem z rozładunku. Sprawdź zdjęcia i potwierdź kompletność dokumentów.') + '</p>' + this.gallery(attempt) + (issue ? '<p class="cmri-warning">Porównaj papierowy CMR ze skanem po rozładunku. Zgodność treści nie naprawia przypisania plomby.</p>' : '') +
         '<form id="cmri-confirm"><label class="cmri-check"><input type="checkbox" name="documents_match" required> Papierowy CMR jest zgodny ze skanem z rozładunku.</label>' +
         Object.entries(checks).map(([key, text]) => '<label class="cmri-check"><input type="checkbox" name="' + key + '" required> ' + text + '</label>').join('') +
         '<p class="cmri-note">Sprawdź także strony wewnątrz koszulki. Zdjęcia zewnętrzne nie pokazują całego kompletu.</p>' +
-        '<button class="primary-button" type="submit">' + (issue ? 'CMR zgodny — zgłoś plombę do CWP' : 'Potwierdzam zgodność i kompletność') + '</button></form>' +
-        '<button class="secondary-button" data-action="report">Dokumenty się różnią — zgłoś do CWP</button>';
+        '<button class="primary-button" type="submit">' + (issue ? 'CMR zgodny — zgłoś plombę do biura' : 'Potwierdzam zgodność i kompletność') + '</button></form>' +
+        '<button class="secondary-button" data-action="report">Dokumenty się różnią — zgłoś do biura</button>';
     }
     step(attempt) {
       const step = nextStep(attempt);
-      if (step === 'scan') return '<section class="panel"><h3>Przygotuj pierwszą koszulkę</h3><p>Jeden ładunek — jedna koszulka. Z przodu CMR, z tyłu pusty rewers ostatniej strony z plombą.</p><button class="primary-button" data-action="scan">Skanuj plombę z tyłu</button><button class="secondary-button" data-action="replacement">Na dokumencie nie ma plomby</button></section>';
+      if (step === 'scan') {
+        const data = this.data || {};
+        if (data.expected > 0 && data.packed === data.expected)
+          return '<section class="panel"><h3>Wszystkie koszulki są w kopercie</h3><p>' +
+            (data.issues ? 'Pozostały zgłoszenia wymagające wyjaśnienia. Zadanie można zakończyć po ich rozwiązaniu.' : 'Sprawdź podsumowanie i zakończ inwentaryzację.') + '</p></section>';
+        const title = data.packed > 0 || (data.attempts || []).length ? 'Przygotuj kolejną koszulkę' : 'Przygotuj pierwszą koszulkę';
+        return '<section class="panel"><small>Krok 1 z 6</small><h3>' + title + '</h3><p>Jeden ładunek — jedna koszulka. Z przodu CMR, z tyłu pusty rewers ostatniej strony z plombą.</p><button class="primary-button" data-action="scan">Skanuj plombę z tyłu</button><button class="secondary-button" data-action="replacement">Na dokumencie nie ma plomby</button></section>';
+      }
       const title = {back: '2. Zdjęcie tyłu z plombą', front: '3. Odwróć koszulkę — zdjęcie przodu',
         verify: '4. Porównaj CMR', processing: 'Porównywanie dokumentu…', confirm: '5. Sprawdź komplet',
         pack: '6. Włóż do tekturowej koperty', review: 'Dokument wymaga wyjaśnienia'}[step];
+      const stageNumber = {back:2,front:3,verify:4,processing:4,confirm:5,pack:6}[step];
+      const stageLabel = stageNumber ? '<p class="cmri-note">Krok ' + stageNumber + ' z 6</p>' : '';
       const pending=this.pendingPhotos();
       if(pending.length){
         const uncertain=pending.some(job=>['uncertain','blocked'].includes(job.state));
-        return '<section class="panel"><h3>'+title+'</h3><p class="cmri-note" role="status">Zdjęcie zapisano na telefonie. '+
+        return '<section class="panel">'+stageLabel+'<h3>'+title+'</h3><p class="cmri-note" role="status">Zdjęcie zapisano na telefonie. '+
           (uncertain?'Wynik wysyłki wymaga sprawdzenia w kolejce synchronizacji. Nie rób kolejnego zdjęcia tej strony.':'Oczekuje na potwierdzenie w Super Spedytorze.')+
           '</p></section>';
       }
@@ -178,10 +206,10 @@
       if (step === 'processing') body = '<p role="status">Zdjęcia są zapisane. Możesz zamknąć ekran i wrócić później do tego samego zadania.</p>';
       if (step === 'confirm') body = this.form(attempt);
       if (step === 'pack') body = '<p>Dokument został zweryfikowany. Włóż całą koszulkę do tekturowej koperty.</p><button class="primary-button" data-action="pack">Włożyłem koszulkę do koperty</button>';
-      if (step === 'review') body = this.gallery(attempt) + '<p class="cmri-warning">' + esc(issues[attempt.issue] || 'Wymagana kontrola CWP.') +
-        '</p><button class="primary-button" data-action="report">Zgłoś do CWP</button>';
+      if (step === 'review') body = this.gallery(attempt) + '<p class="cmri-warning">' + esc(issues[attempt.issue] || 'Wymagana kontrola biura.') +
+        '</p><button class="primary-button" data-action="report">Zgłoś do biura</button>';
       const cancel = !['pack', 'processing'].includes(step) ? '<button class="secondary-button" data-action="cancel">Powtórz tę koszulkę</button>' : '';
-      return '<section class="panel"><small>PLOMBA ' + esc(attempt.scanned_code) + '</small><h3>' + title + '</h3>' + body + cancel + '</section>';
+      return '<section class="panel"><small>PLOMBA ' + esc(attempt.scanned_code) + '</small>' + stageLabel + '<h3>' + title + '</h3>' + body + cancel + '</section>';
     }
     render() {
       if (this.disposed) return;
@@ -191,7 +219,7 @@
         const packed = new Set(data.attempts.filter(a => a.status === 'packed').map(a => a.cmr_item_id));
         content = '<div class="cmri-identity"><strong>' + esc(data.driver_name) + '</strong><span>' + esc(data.vehicle_registration) + '</span></div>' +
           '<div class="cmri-progress"><strong>' + data.packed + ' / ' + data.expected + '</strong><span>koszulek w kopercie</span></div>' +
-          (data.status === 'completed' ? '<section class="panel"><h3>Inwentaryzacja zakończona</h3><p>Raport z parami zdjęć zapisano w SuperSpedytorze.</p></section>'
+          (data.status === 'completed' ? '<section class="panel"><h3>Inwentaryzacja zakończona</h3><p>Raport z parami zdjęć zapisano w SuperSpedytorze.</p><p class="cmri-note">Ten widok nie potwierdza dostarczenia do CWP. Status dostarczenia sprawdzisz w raporcie.</p></section>'
             : data.status === 'cancelled' ? '<p class="cmri-warning">Zadanie anulowane po zmianie stanu dokumentów.</p>'
             : data.status === 'scope_changed' ? '<p class="cmri-warning">Plan trasy lub stan dokumentów zmienił się. Poczekaj na zakończenie rozładunków i odśwież zakres.</p>'
             : this.step(active)) +
@@ -199,13 +227,14 @@
           data.scope.map(row => '<li><span>' + esc(row.order_number || ('Zlecenie ' + row.offer_id)) + ' · komplet ' + row.item_id + '</span>' +
             (packed.has(row.item_id) ? '<b>W kopercie</b>' : ['completed', 'cancelled', 'scope_changed'].includes(data.status) ? '<span>Zmiana zakresu</span>' : '<button data-missing="' + row.item_id + '">Zgłoś brak</button>') + '</li>').join('') + '</ul></section>' +
           data.attempts.filter(a => a.verification && a.verification.reported && !a.resolved_at && a.status !== 'cancelled')
-            .map(a => '<section class="panel cmri-warning"><strong>Wymaga CWP</strong><p>' + esc(issues[a.issue] || a.note || 'Zgłoszenie do wyjaśnienia.') + '</p><small>Próba ' + a.id + ' · plomba ' + esc(a.scanned_code) + '</small></section>').join('') +
+            .map(a => '<section class="panel cmri-warning"><strong>Wymaga wyjaśnienia przez biuro</strong><p>' + esc(issues[a.issue] || a.note || 'Zgłoszenie do wyjaśnienia.') + '</p><small>Próba ' + a.id + ' · plomba ' + esc(a.scanned_code) + '</small></section>').join('') +
           (canComplete(data) ? '<button class="primary-button" data-action="complete">Wszystkie koszulki są w kopercie — zakończ</button>' : '');
       }
       this.root.innerHTML = '<header class="cmri-header"><button data-action="close" aria-label="Zamknij inwentaryzację">←</button><h2>Zamknięte CMR-y</h2><button data-action="refresh" aria-label="Odśwież zadanie">↻</button></header><div class="cmri-body">' +
         (this.error ? '<p class="cmri-error" role="alert">' + esc(this.error) + '</p>' : '') +
         (this.readOnly() ? '<p class="cmri-note" role="status">Podgląd tylko do odczytu · bez zapisywania zmian w TMS.</p>' : '') +
-        (this.busy ? '<p class="cmri-note" role="status">Pobieranie i sprawdzanie stanu…</p>' : '') + content + '</div>';
+        (this.notice ? '<p class="cmri-note cmri-recovery" role="status">' + esc(this.notice) + '</p>' : '') +
+        (this.busy ? '<p class="cmri-note" role="status">' + (this.readOnly() ? 'Pobieranie i sprawdzanie stanu…' : 'Zapisywanie i sprawdzanie stanu…') + '</p>' : '') + content + '</div>';
       this.root.querySelectorAll('button, input').forEach(el => {
         if (el.dataset.action !== 'close') el.disabled = this.busy || this.readOnly() && el.dataset.action !== 'refresh';
       });
@@ -262,5 +291,5 @@
       this.root.remove(); this.options.onClose();
     }
   }
-  return {Screen, activeAttempt, nextStep, canComplete, checks, issues};
+  return {Screen, activeAttempt, nextStep, canComplete, captureRecoveryNotice, checks, issues};
 });

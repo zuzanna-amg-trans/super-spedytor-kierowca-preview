@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T19:09:03.036Z",
-  "sourceCommit": "3d8acadbd5fafa3ba0a34ce006a2f4b121a3a021",
+  "generatedAt": "2026-11-02T23:32:39.357Z",
+  "sourceCommit": "47a9d1522b1c47f765353ce01821afaa14b856c9",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -47,7 +47,7 @@
             "sourceCommit": "c51545ca8ff052bea6fa1acf83352efb761cf4c1"
           }
         },
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "uploaded": {
         "version": "0.1.47",
@@ -58,7 +58,7 @@
         "artifactSha256": "baf405c2ee73d81afb660e92a794452c92634a68066ccca7240f285e275a2732",
         "fingerprint": "e98647af9f8025315c91a0a8c8ca6bde470f39fa15d2ed1873081e3951947981",
         "evidence": "docs/release/evidence/scanner-menu-distribution-52-33-2026-11-02.json",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "production": {
         "version": "0.1.43",
@@ -96,7 +96,7 @@
         "iOS 33: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.",
         "Android 52: Google Play Internal Testing, dostępny. iOS 33: wewnętrzny TestFlight, Testing. Wymagany rzeczywisty odbiór kont/aparatu/zapisu PDF na telefonach oraz pozostałe odbiory pełnego publicznego wydania.",
         "Android 52 i iOS 33 są podpisane i dostępne wewnętrznie. Wymagany rzeczywisty odbiór przycisku Moje sprawy, aparatu, zapisu PDF oraz kont na telefonach; pozostałe odbiory pełnego publicznego wydania pozostają otwarte.",
-        "Brakuje potwierdzenia: pola publicznego zgłoszenia w sklepie, odbiór backendu."
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
       "nextAction": "Zaktualizować aplikację do 0.1.47 (52) w Google Play Internal Testing. Po zalogowaniu wybrać Moje sprawy w prawym górnym rogu → Skaner. Odebrać widoczność menu po odświeżeniu i ponownym uruchomieniu, aparat, dwustronicowy PDF zapisany w wybranym folderze oraz zapamiętane konta. Bieżąca paczka jest wysłana; pełne odbiory publicznego wydania pozostają otwarte.",
       "relatedEvidence": [
@@ -141,10 +141,10 @@
         "backendEnvironment": "dev",
         "playCandidate": false
       },
-      "sourceFingerprint": "e98647af9f8025315c91a0a8c8ca6bde470f39fa15d2ed1873081e3951947981",
+      "sourceFingerprint": "26516d330777279f223acf0013be00bdce37999f53dce370c36e975c52e1c9f7",
       "freshStoreRead": true,
-      "uploadRequired": false,
-      "stage": "wyslane_do_sklepu",
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
       "readyForSubmission": false
     },
     "ios": {
@@ -188,7 +188,7 @@
             "sourceCommit": "c51545ca8ff052bea6fa1acf83352efb761cf4c1"
           }
         },
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "uploaded": {
         "version": "0.4.23",
@@ -199,7 +199,7 @@
         "artifactSha256": "23dc0aa8a5168ef7a53a0cdb26d615cb4ee150f892cc00ca678edc68f50bfd07",
         "fingerprint": "010f0a572412cd6b0ed43a40a740cd06070529e7232731eeabf51f1887eb7b59",
         "evidence": "docs/release/evidence/scanner-menu-distribution-52-33-2026-11-02.json",
-        "matchesCurrent": true
+        "matchesCurrent": false
       },
       "production": {
         "version": "0.4.15",
@@ -235,7 +235,7 @@
         "iOS 33: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.",
         "Android 52: Google Play Internal Testing, dostępny. iOS 33: wewnętrzny TestFlight, Testing. Wymagany rzeczywisty odbiór kont/aparatu/zapisu PDF na telefonach oraz pozostałe odbiory pełnego publicznego wydania.",
         "Android 52 i iOS 33 są podpisane i dostępne wewnętrznie. Wymagany rzeczywisty odbiór przycisku Moje sprawy, aparatu, zapisu PDF oraz kont na telefonach; pozostałe odbiory pełnego publicznego wydania pozostają otwarte.",
-        "Brakuje potwierdzenia: pola publicznego zgłoszenia w sklepie, odbiór backendu."
+        "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
       "nextAction": "Zaktualizować aplikację do 0.4.23 (33) w wewnętrznym TestFlight. Po zalogowaniu wybrać Moje sprawy w prawym górnym rogu → Skaner. Odebrać widoczność menu po odświeżeniu i ponownym uruchomieniu, aparat, dwustronicowy PDF zapisany w wybranym folderze oraz zapamiętane konta. Bieżąca paczka jest wysłana; pełne odbiory publicznego wydania pozostają otwarte.",
       "relatedEvidence": [
@@ -267,10 +267,10 @@
         "appStoreConnectBuildId": "2bf3643d-cdfd-49be-b8c2-06ce26bbcd0e",
         "internalGroupId": "e3e60ba1-757f-45da-b890-a666783b6db4"
       },
-      "sourceFingerprint": "010f0a572412cd6b0ed43a40a740cd06070529e7232731eeabf51f1887eb7b59",
+      "sourceFingerprint": "c7a1a04de62e338c76e633c9d54303a44b5c8168549080e17d1c62acf90e3d1f",
       "freshStoreRead": true,
-      "uploadRequired": false,
-      "stage": "wyslane_do_sklepu",
+      "uploadRequired": true,
+      "stage": "do_przygotowania",
       "readyForSubmission": false
     }
   },
