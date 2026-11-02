@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MOBILE-2026-11-01-01",
-  "generatedAt": "2026-11-02T17:27:28.843Z",
-  "sourceCommit": "13899f8257697ed2871c6237433af96195ad24ba",
+  "generatedAt": "2026-11-02T17:50:48.608Z",
+  "sourceCommit": "7f8d6874b9b0572b45af94489ca6d8bd9a5eda03",
   "stopBefore": "public-store-submission",
   "bothReady": false,
   "platforms": {
@@ -95,6 +95,7 @@
         "Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.",
         "Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.",
         "iOS 32: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.",
+        "Dystrybucja Androida 51 wymaga podpisanego AAB, inspekcji i odczytu dostępności Google Play. Odbiory fizycznych telefonów, auta, backendu i deklaracji publicznego wydania pozostają otwarte.",
         "Udostępnione: osobny Android DEV QA 33 oraz podpisany iOS 32 w wewnętrznym TestFlight (Testing). Wymagany rzeczywisty odbiór kont, aparatu i zapisu PDF na obu urządzeniach. Android 51 i pozostałe odbiory pełnego wydania pozostają otwarte.",
         "Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie."
       ],
@@ -123,7 +124,7 @@
         "backendEnvironment": "dev",
         "playCandidate": false
       },
-      "sourceFingerprint": "8af2b84d4dc3e3d31ce7efbee959309ac13953289071a1312d8aecdba87f2aaa",
+      "sourceFingerprint": "14f97c7a82a92479a30d2be2df6df1ce180f0d2772206b706e92ddd33f68fc49",
       "freshStoreRead": true,
       "uploadRequired": true,
       "stage": "do_przygotowania",
@@ -371,6 +372,22 @@
         "Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.",
         "Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.",
         "iOS 32: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne."
+      ]
+    },
+    {
+      "id": "2026-11-02-full-internal-testing",
+      "summary": "Pełny Android 51 do autoryzowanych testów wewnętrznych Play: aktualny wybór kont, samodzielny skaner/PDF i zachowany Android Auto/Tacho; publiczne odbiory pozostają osobne.",
+      "android": {
+        "status": "implemented",
+        "evidence": "docs/release/full-internal-testing-51.md"
+      },
+      "ios": {
+        "status": "not_applicable",
+        "evidence": "docs/release/evidence/account-scanner-qa-distribution-2026-11-02.json",
+        "reason": "Zmiana dotyczy tylko receptury dystrybucji Androida. iOS 32 już zawiera wspólny zakres kont/skanera i jest Testing w wewnętrznym TestFlight; brak zmiany wykonania iOS."
+      },
+      "blockers": [
+        "Dystrybucja Androida 51 wymaga podpisanego AAB, inspekcji i odczytu dostępności Google Play. Odbiory fizycznych telefonów, auta, backendu i deklaracji publicznego wydania pozostają otwarte."
       ]
     },
     {

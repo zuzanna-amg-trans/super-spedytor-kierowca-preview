@@ -1,6 +1,6 @@
 # Kontrola wydań Android / Apple
 
-Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T17:27:28.843Z.
+Pakiet zmian: **MOBILE-2026-11-01-01**. Odczyt raportu: 2026-11-02T17:50:48.608Z.
 
 | Platforma | Wersja docelowa | Ostatnio wysłana | Potrzebna nowa paczka | Etap |
 |---|---|---|---|---|
@@ -31,6 +31,7 @@ Stan sklepu: świeży odczyt.
 - Ponowny odbiór inwentaryzacji w nowej sesji DEV pozostaje otwarty: serwer nie zwraca syntetycznej ankiety. Wcześniejszy zaakceptowany odbiór jest zachowany jako osobny dowód.
 - Android 51: zachowane wymagane odbiory pakietu, TMS PROD, zakresu zapisów, Android Auto POI/Tacho i Data Safety; brak odbioru nie jest zastępowany testem ani kompilacją.
 - iOS 32: podpisany IPA dostępny w wewnętrznym TestFlight; wymagane rzeczywiste odbiory bieżącego zakresu pozostają jawne.
+- Dystrybucja Androida 51 wymaga podpisanego AAB, inspekcji i odczytu dostępności Google Play. Odbiory fizycznych telefonów, auta, backendu i deklaracji publicznego wydania pozostają otwarte.
 - Udostępnione: osobny Android DEV QA 33 oraz podpisany iOS 32 w wewnętrznym TestFlight (Testing). Wymagany rzeczywisty odbiór kont, aparatu i zapisu PDF na obu urządzeniach. Android 51 i pozostałe odbiory pełnego wydania pozostają otwarte.
 - Paczka kandydata nie obejmuje bieżących źródeł; trzeba ją zbudować ponownie.
 
